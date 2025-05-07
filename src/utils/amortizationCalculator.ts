@@ -115,3 +115,65 @@ export const generateAmortizationSchedule = (loan: Loan): AmortizationEntry[] =>
 
   return schedule;
 };
+
+export interface AnnualSummary {
+  year: number;
+  totalPrincipalPaid: number;
+  totalInterestPaid: number;
+  totalPayment: number;
+}
+
+export interface LifespanSummary {
+  totalPrincipalPaid: number;
+  totalInterestPaid: number;
+  totalPayment: number;
+  actualTenureMonths: number;
+}
+
+export const generateAnnualSummaries = (schedule: AmortizationEntry[]): AnnualSummary[] => {
+  if (!schedule || schedule.length === 0) return [];
+
+  const summariesByYear: { [year: number]: AnnualSummary } = {};
+
+  schedule.forEach(entry => {
+    const year = new Date(entry.paymentDate).getFullYear();
+    if (!summariesByYear[year]) {
+      summariesByYear[year] = {
+        year,
+        totalPrincipalPaid: 0,
+        totalInterestPaid: 0,
+        totalPayment: 0,
+      };
+    }
+    summariesByYear[year].totalPrincipalPaid += entry.principalPaid;
+    summariesByYear[year].totalInterestPaid += entry.interestPaid;
+    summariesByYear[year].totalPayment += entry.emi; // emi here is actual payment made
+  });
+
+  return Object.values(summariesByYear).sort((a, b) => a.year - b.year);
+};
+
+export const generateLifespanSummary = (schedule: AmortizationEntry[]): LifespanSummary | null => {
+  if (!schedule || schedule.length === 0) return null;
+
+  const summary: LifespanSummary = {
+    totalPrincipalPaid: 0,
+    totalInterestPaid: 0,
+    totalPayment: 0,
+    actualTenureMonths: schedule.length,
+  };
+
+  schedule.forEach(entry => {
+    summary.totalPrincipalPaid += entry.principalPaid;
+    summary.totalInterestPaid += entry.interestPaid;
+    summary.totalPayment += entry.emi; // emi here is actual payment made
+  });
+  
+  // Round to 2 decimal places
+  summary.totalPrincipalPaid = parseFloat(summary.totalPrincipalPaid.toFixed(2));
+  summary.totalInterestPaid = parseFloat(summary.totalInterestPaid.toFixed(2));
+  summary.totalPayment = parseFloat(summary.totalPayment.toFixed(2));
+
+
+  return summary;
+};

@@ -7,7 +7,8 @@ import { generateAmortizationSchedule } from '../utils/amortizationCalculator'; 
 import PaymentForm from './PaymentForm';
 import DynamicAdjustmentsForm from './DynamicAdjustmentsForm';
 import PrepaymentSimulator from './PrepaymentSimulator';
-import AmortizationTable from './AmortizationTable'; // Import AmortizationTable
+import AmortizationTable from './AmortizationTable';
+import LoanSummaries from './LoanSummaries'; // Import LoanSummaries
 
 const DetailsContainer = styled.div`
   padding: 20px;
@@ -140,7 +141,8 @@ const LoanDetailsDisplay: React.FC<LoanDetailsDisplayProps> = ({ loan }) => {
       <PaymentForm />
       <DynamicAdjustmentsForm />
       <PrepaymentSimulator />
-      <AmortizationTable schedule={amortizationSchedule} /> {/* Add the amortization table */}
+      <LoanSummaries schedule={amortizationSchedule} /> {/* Add the summaries component */}
+      <AmortizationTable schedule={amortizationSchedule} /> 
     </DetailsContainer>
   );
 };
