@@ -4,7 +4,7 @@ import styled from 'styled-components';
 import { Loan, AmortizationEntry } from '../types';
 import { calculateEMI, calculateTotalInterestAndPayment, calculateTotalDisbursed } from '../utils/loanCalculations'; 
 import { generateAmortizationSchedule } from '../utils/amortizationCalculator'; 
-import PreEmiPaymentForm from './PaymentForm'; 
+// import PreEmiPaymentForm from './PaymentForm'; // Removed import
 import AddDisbursementForm from './AddDisbursementForm'; 
 import PrepaymentSimulator from './PrepaymentSimulator';
 import AmortizationTable from './AmortizationTable';
@@ -160,7 +160,7 @@ const LoanDetailsDisplay: React.FC<LoanDetailsDisplayProps> = ({ loan }) => {
        )}
        
        {/* Render forms and tools */}
-       <PreEmiPaymentForm /> 
+       {/* <PreEmiPaymentForm /> */} {/* Removed usage */}
        <AddDisbursementForm /> 
        <PrepaymentSimulator />
        <LoanSummaries schedule={amortizationSchedule} />
