@@ -4,8 +4,8 @@ import styled from 'styled-components';
 import { Loan, AmortizationEntry } from '../types';
 import { calculateEMI, calculateTotalInterestAndPayment } from '../utils/loanCalculations';
 import { generateAmortizationSchedule } from '../utils/amortizationCalculator'; // Import schedule generator
-import PaymentForm from './PaymentForm';
-import DynamicAdjustmentsForm from './DynamicAdjustmentsForm';
+import PreEmiPaymentForm from './PaymentForm'; // Updated import name
+// import DynamicAdjustmentsForm from './DynamicAdjustmentsForm'; // Remove import
 import PrepaymentSimulator from './PrepaymentSimulator';
 import AmortizationTable from './AmortizationTable';
 import LoanSummaries from './LoanSummaries';
@@ -73,21 +73,19 @@ const LoanDetailsDisplay: React.FC<LoanDetailsDisplayProps> = ({ loan }) => {
 
   return (
     <DetailsContainer>
-      <h3>{loan.name} - Summary</h3>
-      <DetailItem><strong>Principal:</strong> ₹{details.principal.toLocaleString()}</DetailItem>
-      <DetailItem><strong>Annual Interest Rate:</strong> {details.originalInterestRate}%</DetailItem>
-      <DetailItem><strong>Tenure:</strong> {details.originalTenureMonths / 12} years ({details.originalTenureMonths} months)</DetailItem>
-      <DetailItem><strong>Start Date:</strong> {new Date(details.startDate).toLocaleDateString()}</DetailItem>
-      
-      <hr style={{ margin: '15px 0', borderColor: '#eee' }} />
+       <h3>{loan.name} - Summary</h3>
+       <DetailItem><strong>Principal:</strong> ₹{details.principal.toLocaleString()}</DetailItem>
+       <DetailItem><strong>Annual Interest Rate:</strong> {details.originalInterestRate}%</DetailItem>
+       <DetailItem><strong>Tenure:</strong> {details.originalTenureMonths / 12} years ({details.originalTenureMonths} months)</DetailItem>
+       <DetailItem><strong>Start Date:</strong> {new Date(details.startDate).toLocaleDateString()}</DetailItem>
+       
+       <hr style={{ margin: '15px 0', borderColor: '#eee' }} />
 
-      <DetailItem><strong>Calculated Initial EMI:</strong> ₹{initialEMI.toLocaleString()}</DetailItem>
-      <DetailItem><strong>Total Interest Payable (Initial):</strong> ₹{summary.totalInterest.toLocaleString()}</DetailItem>
-      <DetailItem><strong>Total Amount Payable (Initial):</strong> ₹{summary.totalPayment.toLocaleString()}</DetailItem>
+       <DetailItem><strong>Calculated Initial EMI:</strong> ₹{initialEMI.toLocaleString()}</DetailItem>
+       <DetailItem><strong>Total Interest Payable (Initial):</strong> ₹{summary.totalInterest.toLocaleString()}</DetailItem>
+       <DetailItem><strong>Total Amount Payable (Initial):</strong> ₹{summary.totalPayment.toLocaleString()}</DetailItem>
 
-      {/* Placeholder for future sections */}
-      {/* 
-      <h4>Payment History</h4>
+       <h4>Payment History</h4>
       {loan.paymentHistory.length > 0 ? (
         <ul>
           {loan.paymentHistory.map(p => <li key={p.id}>{p.date}: ₹{p.amount} ({p.type})</li>)}
@@ -140,14 +138,14 @@ const LoanDetailsDisplay: React.FC<LoanDetailsDisplayProps> = ({ loan }) => {
             </li>
           ))}
         </ul>
-      ) : <p>No custom EMI changes recorded.</p>}
-      
-      <PaymentForm />
-      <DynamicAdjustmentsForm />
-      <PrepaymentSimulator />
+       ) : <p>No custom EMI changes recorded.</p>}
+       
+       <PreEmiPaymentForm /> {/* Updated component usage */}
+       {/* <DynamicAdjustmentsForm /> */} {/* Remove usage */}
+       <PrepaymentSimulator />
       <LoanSummaries schedule={amortizationSchedule} />
       <LoanChart schedule={amortizationSchedule} /> {/* Add the chart component */}
-      <AmortizationTable schedule={amortizationSchedule} /> 
+      <AmortizationTable schedule={amortizationSchedule} loan={loan} /> {/* Pass loan prop */}
     </DetailsContainer>
   );
 };

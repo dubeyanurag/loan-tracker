@@ -7,9 +7,9 @@ import LoanDetailsDisplay from './components/LoanDetailsDisplay';
 
 // Basic layout styled components
 const AppContainer = styled.div`
-  max-width: 900px;
-  margin: 20px auto;
-  padding: 20px;
+  /* max-width: 900px; */ /* Remove max-width */
+  margin: 0; /* Remove auto margin */
+  padding: 20px; /* Keep padding */
   font-family: Arial, sans-serif; // Overriding index.css for app-specific font
   color: #333; // Overriding index.css for app-specific color
   background-color: #fff; // Overriding index.css for app-specific background
@@ -24,13 +24,13 @@ const MainTitle = styled.h1`
 `;
 
 const ContentLayout = styled.div`
-  display: grid;
-  grid-template-columns: 1fr; // Single column for now, can be 2 for wider screens
-  gap: 30px; // Increased gap slightly
+  display: flex; /* Use flexbox */
+  flex-direction: column; /* Stack sections vertically */
+  gap: 30px; 
+  /* align-items: start; */ /* Not needed for column flex */
 
-  @media (min-width: 768px) {
-    grid-template-columns: 1fr 2fr; // Enable two columns on wider screens
-  }
+  /* Remove media query for columns */
+  /* @media (min-width: 768px) { ... } */
 `;
 
 const Section = styled.section`
@@ -62,10 +62,11 @@ function App() {
               <h2>Loan Details: {selectedLoan.name}</h2>
               <p>Principal: ₹{selectedLoan.details.principal.toLocaleString()}</p>
               <p>Interest Rate: {selectedLoan.details.originalInterestRate}%</p>
-              <LoanDetailsDisplay loan={selectedLoan} />
+              {/* LoanDetailsDisplay now renders directly inside the second section */}
+              <LoanDetailsDisplay loan={selectedLoan} /> 
             </div>
           ) : (
-            <p style={{ textAlign: 'center', color: '#777' }}>Select a loan to see details or add a new loan.</p>
+            <p style={{ textAlign: 'center', color: '#777', marginTop: '30px' }}>Select a loan to see details or add a new loan.</p>
           )}
         </Section>
       </ContentLayout>
