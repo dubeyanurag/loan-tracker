@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home Loan Tracker</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Home Loan Tracker</h1>
+
+        <div class="card">
+            <h2>Loan Setup</h2>
+            <div class="form-group">
+                <label for="principal">Principal Amount (₹):</label>
+                <input type="number" id="principal" placeholder="e.g., 5000000">
+            </div>
+            <div class="form-group">
+                <label for="interestRate">Annual Interest Rate (%):</label>
+                <input type="number" id="interestRate" step="0.01" placeholder="e.g., 8.5">
+            </div>
+            <div class="form-group">
+                <label for="tenureYears">Loan Tenure (Years):</label>
+                <input type="number" id="tenureYears" placeholder="e.g., 20">
+            </div>
+            <div class="form-group">
+                <label for="startDate">Loan Start Date:</label>
+                <input type="date" id="startDate">
+            </div>
+            <button id="calculateEmiBtn">Calculate EMI</button>
+            <div id="emiResult" class="result"></div>
+        </div>
+
+        <div class="card" id="loanSummaryCard" style="display:none;">
+            <h2>Loan Summary</h2>
+            <p><strong>Calculated EMI:</strong> <span id="summaryEmi"></span></p>
+            <p><strong>Total Principal:</strong> <span id="summaryPrincipal"></span></p>
+            <p><strong>Total Interest Payable:</strong> <span id="summaryTotalInterest"></span></p>
+            <p><strong>Total Amount Payable:</strong> <span id="summaryTotalAmount"></span></p>
+        </div>
+
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
