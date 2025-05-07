@@ -157,7 +157,7 @@ const LoanDetailsDisplay: React.FC<LoanDetailsDisplayProps> = ({ loan }) => {
        <PreEmiPaymentForm /> {/* Only renders if loan.details.startedWithPreEMI is true */}
        <PrepaymentSimulator />
        <LoanSummaries schedule={amortizationSchedule} />
-       <LoanChart schedule={amortizationSchedule} /> 
+       <LoanChart schedule={amortizationSchedule} loan={loan} /> {/* Pass loan prop */}
        <AmortizationTable schedule={amortizationSchedule} loan={loan} /> 
     </DetailsContainer>
   );
