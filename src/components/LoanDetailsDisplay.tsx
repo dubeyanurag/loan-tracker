@@ -1,11 +1,13 @@
 // src/components/LoanDetailsDisplay.tsx
 import React, { useMemo } from 'react';
 import styled from 'styled-components';
-import { Loan } from '../types';
+import { Loan, AmortizationEntry } from '../types';
 import { calculateEMI, calculateTotalInterestAndPayment } from '../utils/loanCalculations';
+import { generateAmortizationSchedule } from '../utils/amortizationCalculator'; // Import schedule generator
 import PaymentForm from './PaymentForm';
 import DynamicAdjustmentsForm from './DynamicAdjustmentsForm';
-import PrepaymentSimulator from './PrepaymentSimulator'; // Import PrepaymentSimulator
+import PrepaymentSimulator from './PrepaymentSimulator';
+import AmortizationTable from './AmortizationTable'; // Import AmortizationTable
 
 const DetailsContainer = styled.div`
   padding: 20px;
@@ -36,7 +38,7 @@ interface LoanDetailsDisplayProps {
 }
 
 const LoanDetailsDisplay: React.FC<LoanDetailsDisplayProps> = ({ loan }) => {
-  const { details } = loan;
+  const { details } = loan; // details is LoanDetails, loan is the full Loan object
 
   // Calculate EMI and other summary figures
   // For now, this uses original loan details. Later, it will need to consider
@@ -59,6 +61,10 @@ const LoanDetailsDisplay: React.FC<LoanDetailsDisplayProps> = ({ loan }) => {
     }
     return { totalInterest: 0, totalPayment: 0 };
   }, [details, initialEMI]);
+
+  const amortizationSchedule: AmortizationEntry[] = useMemo(() => {
+    return generateAmortizationSchedule(loan);
+  }, [loan]); // Regenerate if the full loan object changes
 
   return (
     <DetailsContainer>
@@ -133,7 +139,8 @@ const LoanDetailsDisplay: React.FC<LoanDetailsDisplayProps> = ({ loan }) => {
       
       <PaymentForm />
       <DynamicAdjustmentsForm />
-      <PrepaymentSimulator /> {/* Add the prepayment simulator here */}
+      <PrepaymentSimulator />
+      <AmortizationTable schedule={amortizationSchedule} /> {/* Add the amortization table */}
     </DetailsContainer>
   );
 };

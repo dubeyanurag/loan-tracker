@@ -78,3 +78,14 @@ export type AppAction =
   | { type: 'ADD_PRE_EMI_PAYMENT'; payload: { loanId: string; payment: PreEMIInterestPayment } }
   | { type: 'ADD_INTEREST_RATE_CHANGE'; payload: { loanId: string; change: InterestRateChange } }
   | { type: 'ADD_CUSTOM_EMI_CHANGE'; payload: { loanId: string; change: CustomEMIChange } };
+
+export interface AmortizationEntry {
+  monthNumber: number;
+  paymentDate: string; // Could be more specific if we track exact payment dates
+  openingBalance: number;
+  emi: number; // The EMI paid for this period
+  principalPaid: number;
+  interestPaid: number;
+  closingBalance: number;
+  remarks?: string; // e.g., "Prepayment of X made", "ROI changed to Y%"
+}
