@@ -3,7 +3,8 @@ import React, { useMemo } from 'react';
 import styled from 'styled-components';
 import { Loan } from '../types';
 import { calculateEMI, calculateTotalInterestAndPayment } from '../utils/loanCalculations';
-import PaymentForm from './PaymentForm'; // Import PaymentForm
+import PaymentForm from './PaymentForm';
+import DynamicAdjustmentsForm from './DynamicAdjustmentsForm'; // Import DynamicAdjustmentsForm
 
 const DetailsContainer = styled.div`
   padding: 20px;
@@ -103,8 +104,34 @@ const LoanDetailsDisplay: React.FC<LoanDetailsDisplayProps> = ({ loan }) => {
           ))}
         </ul>
       ) : <p>No EMI or Prepayment transactions recorded yet.</p>}
+
+      <h4>Interest Rate Changes</h4>
+      {loan.interestRateChanges.length > 0 ? (
+        <ul>
+          {loan.interestRateChanges.map(c => (
+            <li key={c.id}>
+              {new Date(c.date).toLocaleDateString()}: New Rate {c.newRate}%
+              {c.adjustmentPreference && ` (Pref: ${c.adjustmentPreference})`}
+              {c.newEMIIfApplicable && ` (New EMI: ₹${c.newEMIIfApplicable.toLocaleString()})`}
+            </li>
+          ))}
+        </ul>
+      ) : <p>No interest rate changes recorded.</p>}
+
+      <h4>Custom EMI Changes</h4>
+      {loan.customEMIChanges.length > 0 ? (
+        <ul>
+          {loan.customEMIChanges.map(c => (
+            <li key={c.id}>
+              {new Date(c.date).toLocaleDateString()}: New EMI ₹{c.newEMI.toLocaleString()}
+              {c.remarks && ` (${c.remarks})`}
+            </li>
+          ))}
+        </ul>
+      ) : <p>No custom EMI changes recorded.</p>}
       
-      <PaymentForm /> {/* Add the payment form here */}
+      <PaymentForm />
+      <DynamicAdjustmentsForm /> {/* Add the dynamic adjustments form here */}
     </DetailsContainer>
   );
 };
