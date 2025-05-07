@@ -99,26 +99,34 @@ const AmortizationTable: React.FC<AmortizationTableProps> = ({ schedule, loan })
       } else {
         alert('Invalid amount.');
       }
-    }
+     }
   };
 
   const handleSetROI = (entry: AmortizationEntry) => {
     const rateStr = window.prompt(`Enter new Annual ROI (%) effective ${new Date(entry.paymentDate).toLocaleDateString()}:`);
-     if (rateStr) {
+    if (rateStr) {
       const newRate = parseFloat(rateStr);
-      if (!isNaN(newRate) && newRate > 0) {
-         // TODO: Ask for adjustment preference (adjustTenure/adjustEMI/customEMI) via modal later
-         dispatch({
-           type: 'ADD_INTEREST_RATE_CHANGE',
-           payload: {
-             loanId: loan.id,
-             change: {
-               id: '', // Will be set by reducer
-               date: entry.paymentDate,
-               newRate: newRate,
-               adjustmentPreference: 'adjustTenure', // Default for now
-             }
-           }
+      if (!isNaN(newRate) && newRate >= 0) { // Allow 0% ROI
+        // Ask user for preference
+        const preferencePrompt = window.prompt(`New ROI is ${newRate}%. Choose effect:\n1: Reduce Tenure (Keep EMI Same)\n2: Reduce EMI (Keep Tenure Same)`, "1");
+        let adjustmentPreference: 'adjustTenure' | 'adjustEMI' = 'adjustTenure'; // Default
+        if (preferencePrompt === '2') {
+            adjustmentPreference = 'adjustEMI';
+        } else if (preferencePrompt !== '1') {
+            alert('Invalid choice. Defaulting to "Reduce Tenure".');
+        }
+
+        dispatch({
+          type: 'ADD_INTEREST_RATE_CHANGE',
+          payload: {
+            loanId: loan.id,
+            change: {
+              id: '', // Will be set by reducer
+              date: entry.paymentDate,
+              newRate: newRate,
+              adjustmentPreference: adjustmentPreference, // Use user's choice
+            }
+          }
          });
          alert('ROI change logged. Schedule will recalculate.');
       } else {
@@ -175,8 +183,9 @@ const AmortizationTable: React.FC<AmortizationTableProps> = ({ schedule, loan })
         <tbody>
           {schedule.map((entry) => {
             const entryDate = new Date(entry.paymentDate);
-            // Disable actions if entry date is on or before the latest structural adjustment
-            const isDisabled = latestAdjustmentDate ? entryDate <= latestAdjustmentDate : false;
+            // Disable ROI/EMI actions if entry date is on or before the latest structural adjustment
+            const isStructureChangeDisabled = latestAdjustmentDate ? entryDate <= latestAdjustmentDate : false;
+            // Prepay is always enabled (per revised plan)
 
             return (
               <tr key={entry.monthNumber}>
@@ -189,9 +198,9 @@ const AmortizationTable: React.FC<AmortizationTableProps> = ({ schedule, loan })
                 <td>{entry.closingBalance.toLocaleString()}</td>
                 {/* <td>{entry.remarks}</td> */} {/* Removed Remarks Cell */}
                 <td> {/* Actions Cell */}
-                  <ActionButton onClick={() => handleAddPrepayment(entry)} disabled={isDisabled} title="Add Prepayment">Prepay</ActionButton>
-                  <ActionButton onClick={() => handleSetROI(entry)} disabled={isDisabled} title="Set New ROI">Set ROI</ActionButton>
-                  <ActionButton onClick={() => handleSetEMI(entry)} disabled={isDisabled} title="Set Custom EMI">Set EMI</ActionButton>
+                  <ActionButton onClick={() => handleAddPrepayment(entry)} title="Add Prepayment">Prepay</ActionButton>
+                  <ActionButton onClick={() => handleSetROI(entry)} disabled={isStructureChangeDisabled} title="Set New ROI">Set ROI</ActionButton>
+                  <ActionButton onClick={() => handleSetEMI(entry)} disabled={isStructureChangeDisabled} title="Set Custom EMI">Set EMI</ActionButton>
                 </td>
               </tr>
             );

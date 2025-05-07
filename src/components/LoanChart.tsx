@@ -161,6 +161,7 @@ const LoanChart: React.FC<LoanChartProps> = ({ schedule, loan }) => {
   const balanceData = schedule.map(entry => entry.closingBalance);
   const principalData = schedule.map(entry => entry.principalPaid);
   const interestData = schedule.map(entry => entry.interestPaid);
+  const emiData = schedule.map(entry => entry.emi); // Get EMI data
 
   const data: ChartData<'line'> = {
     labels,
@@ -193,6 +194,16 @@ const LoanChart: React.FC<LoanChartProps> = ({ schedule, loan }) => {
         tension: 0.1,
         pointRadius: 1,
         borderDash: [5, 5], // Dashed line for P/I
+      },
+      {
+        label: 'EMI Paid (₹)',
+        data: emiData, // Add EMI data
+        borderColor: 'rgb(153, 102, 255)', // Purple
+        backgroundColor: 'rgba(153, 102, 255, 0.5)',
+        yAxisID: 'yPayments', // Assign to secondary y-axis
+        tension: 0.1,
+        pointRadius: 1,
+        borderDash: [2, 2], // Different dash
       },
     ],
   };
