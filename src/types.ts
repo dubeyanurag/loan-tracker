@@ -94,10 +94,9 @@ export interface AmortizationEntry {
   principalPaid: number;
   interestPaid: number;
   closingBalance: number;
-  // Indicator fields for events occurring *during* this month/period
-  // Include original event ID and type for potential deletion/linking
-  isPrepayment?: { id: string; amount: number };
-  isRoiChange?: { id: string; newRate: number; preference?: string };
-  isEmiChange?: { id: string; newEMI: number };
-  isDisbursement?: { id: string; amount: number };
+  // Store arrays of events occurring *during* this month/period
+  disbursements?: Array<{ id: string; amount: number }>;
+  prepayments?: Array<{ id: string; amount: number }>;
+  roiChanges?: Array<{ id: string; newRate: number; preference?: string }>;
+  emiChanges?: Array<{ id: string; newEMI: number }>;
 }

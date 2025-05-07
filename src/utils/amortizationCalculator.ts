@@ -55,8 +55,11 @@ export const generateAmortizationSchedule = (loan: Loan): AmortizationEntry[] =>
     let interestForMonth = openingBalance * monthlyInterestRate;
     let principalPaidThisMonth = currentEMI - interestForMonth;
     let actualPaymentMade = currentEMI; // Assume scheduled EMI is paid
-    // Event indicators for the current month's entry
-    let entryIndicators: Partial<Pick<AmortizationEntry, 'isPrepayment' | 'isRoiChange' | 'isEmiChange' | 'isDisbursement'>> = {};
+    // Temporary arrays to collect events for this month's entry
+    let disbursementsThisMonth: AmortizationEntry['disbursements'] = [];
+    let prepaymentsThisMonth: AmortizationEntry['prepayments'] = [];
+    let roiChangesThisMonth: AmortizationEntry['roiChanges'] = [];
+    let emiChangesThisMonth: AmortizationEntry['emiChanges'] = [];
 
     // Check for events occurring in the current month/period
     // This logic needs to be robust to handle multiple events in a month,
@@ -73,13 +76,13 @@ export const generateAmortizationSchedule = (loan: Loan): AmortizationEntry[] =>
             cumulativeDisbursed += event.amount;
             const remainingMonths = currentTenureMonths - monthNumber; 
             currentEMI = calculateEMI(openingBalance, currentAnnualRate, remainingMonths > 0 ? remainingMonths : 1);
-            entryIndicators.isDisbursement = { id: event.id, amount: event.amount }; // Set indicator with ID
+            disbursementsThisMonth.push({ id: event.id, amount: event.amount }); // Add to array
         } else if (event.eventType === 'payment') {
             actualPaymentMade = event.amount; 
             if (event.type === 'Prepayment') {
                 openingBalance -= event.amount; 
                 interestForMonth = openingBalance * monthlyInterestRate;
-                entryIndicators.isPrepayment = { id: event.id, amount: event.amount }; // Set indicator with ID
+                prepaymentsThisMonth.push({ id: event.id, amount: event.amount }); // Add to array
             }
             // For EMI type, actualPaymentMade is set. The principal/interest split will be based on this.
             principalPaidThisMonth = actualPaymentMade - interestForMonth;
@@ -92,10 +95,10 @@ export const generateAmortizationSchedule = (loan: Loan): AmortizationEntry[] =>
                 currentEMI = event.newEMIIfApplicable;
             }
             // If 'adjustTenure', EMI remains same.
-            entryIndicators.isRoiChange = { id: event.id, newRate: event.newRate, preference: event.adjustmentPreference }; // Set indicator with ID
+            roiChangesThisMonth.push({ id: event.id, newRate: event.newRate, preference: event.adjustmentPreference }); // Add to array
         } else if (event.eventType === 'emiChange') {
             currentEMI = event.newEMI;
-            entryIndicators.isEmiChange = { id: event.id, newEMI: event.newEMI }; // Set indicator with ID
+            emiChangesThisMonth.push({ id: event.id, newEMI: event.newEMI }); // Add to array
         }
         eventPointer++;
         // Re-check if we moved past the Pre-EMI period due to event processing
@@ -139,7 +142,11 @@ export const generateAmortizationSchedule = (loan: Loan): AmortizationEntry[] =>
       principalPaid: parseFloat(principalPaidThisMonth.toFixed(2)),
       interestPaid: parseFloat(interestForMonth.toFixed(2)),
       closingBalance: parseFloat(closingBalance.toFixed(2)),
-      ...entryIndicators // Spread the collected indicators for this month
+      // Add event arrays only if they have items
+      ...(disbursementsThisMonth.length > 0 && { disbursements: disbursementsThisMonth }),
+      ...(prepaymentsThisMonth.length > 0 && { prepayments: prepaymentsThisMonth }),
+      ...(roiChangesThisMonth.length > 0 && { roiChanges: roiChangesThisMonth }),
+      ...(emiChangesThisMonth.length > 0 && { emiChanges: emiChangesThisMonth }),
     });
 
     openingBalance = closingBalance;

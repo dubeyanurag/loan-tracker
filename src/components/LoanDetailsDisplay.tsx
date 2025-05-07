@@ -44,19 +44,8 @@ const DetailItem = styled.p`
   }
 `;
 
-// Simple Edit button style (Keep if needed elsewhere, or remove if only used in deleted lists)
-const EditButton = styled.button`
-  padding: 2px 5px;
-  font-size: 0.8em;
-  margin-left: 10px;
-  cursor: pointer;
-  background-color: #e9ecef;
-  border: 1px solid #ced4da;
-  border-radius: 3px;
-   &:hover {
-     background-color: #dee2e6;
-   }
-`;
+// Simple Edit button style (No longer needed here)
+// const EditButton = styled.button` ... `;
 
 
 interface LoanDetailsDisplayProps {
@@ -65,7 +54,7 @@ interface LoanDetailsDisplayProps {
 
 const LoanDetailsDisplay: React.FC<LoanDetailsDisplayProps> = ({ loan }) => {
   const { details } = loan; 
-  const dispatch = useAppDispatch(); // Keep dispatch if needed for future edits
+  const dispatch = useAppDispatch(); // Keep dispatch if needed for future edits from table
 
   const totalDisbursed = useMemo(() => calculateTotalDisbursed(details.disbursements), [details.disbursements]);
 
@@ -91,8 +80,7 @@ const LoanDetailsDisplay: React.FC<LoanDetailsDisplayProps> = ({ loan }) => {
     return generateAmortizationSchedule(loan);
   }, [loan]); 
 
-  // Edit Handlers are removed as the lists containing the edit buttons are removed.
-  // If editing is needed later, it would likely be triggered from the AmortizationTable itself.
+  // Edit Handlers removed as they were tied to the deleted lists
 
   return (
     <DetailsContainer>

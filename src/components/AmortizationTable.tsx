@@ -237,39 +237,58 @@ const AmortizationTable: React.FC<AmortizationTableProps> = ({ schedule, loan })
             const entryDate = new Date(entry.paymentDate); // Restore entryDate for display
             // const isStructureChangeDisabled = false; // Disabling removed
 
-            // Determine highlight class and event details based on indicators
+            // Determine highlight class and collect event details
             let highlightClass = '';
-            let eventText = '';
-            let eventIdToDelete: string | undefined = undefined;
-            let eventTypeToDelete: string = '';
+            const eventsThisMonth: React.ReactNode[] = [];
 
-            if (entry.isPrepayment) { 
-                highlightClass = 'highlight-prepayment'; 
-                eventText = `Prepay: ${entry.isPrepayment.amount.toLocaleString()}`;
-                eventIdToDelete = entry.isPrepayment.id;
-                eventTypeToDelete = 'Prepayment';
-            } else if (entry.isRoiChange) { // Use else-if to prioritize one indicator per row if multiple happen? Or combine text? Combine for now.
-                highlightClass = 'highlight-roi'; 
-                eventText = `ROI: ${entry.isRoiChange.newRate}% (${entry.isRoiChange.preference || 'N/A'})`;
-                eventIdToDelete = entry.isRoiChange.id;
-                eventTypeToDelete = 'ROI Change';
-            } else if (entry.isEmiChange) { 
-                highlightClass = 'highlight-emi'; 
-                eventText = `EMI: ${entry.isEmiChange.newEMI.toLocaleString()}`;
-                eventIdToDelete = entry.isEmiChange.id;
-                eventTypeToDelete = 'EMI Change';
-            } else if (entry.isDisbursement) { 
-                highlightClass = 'highlight-disbursement'; 
-                eventText = `Disburse: ${entry.isDisbursement.amount.toLocaleString()}`;
-                eventIdToDelete = entry.isDisbursement.id;
-                eventTypeToDelete = 'Disbursement';
-            }
-            // Note: This simple else-if structure only shows/allows deleting the *first* event type found if multiple occur in one entry. 
-            // A more complex UI might list multiple events or handle deletion differently.
+            entry.disbursements?.forEach(e => {
+                highlightClass = 'highlight-disbursement'; // Apply highlight
+                eventsThisMonth.push(
+                    <div key={`disburse-${e.id}`}>
+                        Disburse: {e.amount.toLocaleString()}
+                        <DeleteEventButton onClick={() => handleDeleteEvent(e.id, 'Disbursement')} title="Delete this Disbursement event">
+                           &#x274C;
+                        </DeleteEventButton>
+                    </div>
+                );
+            });
+            entry.prepayments?.forEach(e => {
+                highlightClass = 'highlight-prepayment'; // Apply highlight (might override previous)
+                eventsThisMonth.push(
+                    <div key={`prepay-${e.id}`}>
+                        Prepay: {e.amount.toLocaleString()}
+                        <DeleteEventButton onClick={() => handleDeleteEvent(e.id, 'Prepayment')} title="Delete this Prepayment event">
+                           &#x274C;
+                        </DeleteEventButton>
+                    </div>
+                );
+            });
+             entry.roiChanges?.forEach(e => {
+                highlightClass = 'highlight-roi'; // Apply highlight
+                eventsThisMonth.push(
+                    <div key={`roi-${e.id}`}>
+                        ROI: {e.newRate}% ({e.preference || 'N/A'})
+                        <DeleteEventButton onClick={() => handleDeleteEvent(e.id, 'ROI Change')} title="Delete this ROI Change event">
+                           &#x274C;
+                        </DeleteEventButton>
+                    </div>
+                );
+            });
+             entry.emiChanges?.forEach(e => {
+                highlightClass = 'highlight-emi'; // Apply highlight
+                eventsThisMonth.push(
+                    <div key={`emi-${e.id}`}>
+                        EMI: {e.newEMI.toLocaleString()}
+                        <DeleteEventButton onClick={() => handleDeleteEvent(e.id, 'EMI Change')} title="Delete this EMI Change event">
+                           &#x274C;
+                        </DeleteEventButton>
+                    </div>
+                );
+            });
 
 
             return (
-              <tr key={entry.monthNumber} className={highlightClass}>
+              <tr key={entry.monthNumber} className={highlightClass || ''}> {/* Apply highlight class */}
                 <td>{entry.monthNumber}</td>
                 <td>{entryDate.toLocaleDateString()}</td>
                 <td>{entry.openingBalance.toLocaleString()}</td>
@@ -278,12 +297,7 @@ const AmortizationTable: React.FC<AmortizationTableProps> = ({ schedule, loan })
                 <td>{entry.interestPaid.toLocaleString()}</td>
                 <td>{entry.closingBalance.toLocaleString()}</td>
                 <td> {/* Event/Delete Cell */}
-                    {eventText}
-                    {eventIdToDelete && (
-                        <DeleteEventButton onClick={() => handleDeleteEvent(eventIdToDelete, eventTypeToDelete)} title={`Delete this ${eventTypeToDelete} event`}>
-                           &#x274C; {/* Cross Mark */}
-                        </DeleteEventButton>
-                    )}
+                    {eventsThisMonth.length > 0 ? eventsThisMonth : null}
                 </td> 
                 <td> {/* Actions Cell */}
                   {/* Buttons are now always enabled */}
