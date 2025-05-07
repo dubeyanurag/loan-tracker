@@ -95,8 +95,9 @@ export interface AmortizationEntry {
   interestPaid: number;
   closingBalance: number;
   // Indicator fields for events occurring *during* this month/period
-  isPrepayment?: { amount: number };
-  isRoiChange?: { newRate: number; preference?: string };
-  isEmiChange?: { newEMI: number };
-  isDisbursement?: { amount: number };
+  // Include original event ID and type for potential deletion/linking
+  isPrepayment?: { id: string; amount: number };
+  isRoiChange?: { id: string; newRate: number; preference?: string };
+  isEmiChange?: { id: string; newEMI: number };
+  isDisbursement?: { id: string; amount: number };
 }

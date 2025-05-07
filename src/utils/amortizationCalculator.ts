@@ -73,13 +73,13 @@ export const generateAmortizationSchedule = (loan: Loan): AmortizationEntry[] =>
             cumulativeDisbursed += event.amount;
             const remainingMonths = currentTenureMonths - monthNumber; 
             currentEMI = calculateEMI(openingBalance, currentAnnualRate, remainingMonths > 0 ? remainingMonths : 1);
-            entryIndicators.isDisbursement = { amount: event.amount }; // Set indicator
+            entryIndicators.isDisbursement = { id: event.id, amount: event.amount }; // Set indicator with ID
         } else if (event.eventType === 'payment') {
             actualPaymentMade = event.amount; 
             if (event.type === 'Prepayment') {
                 openingBalance -= event.amount; 
                 interestForMonth = openingBalance * monthlyInterestRate;
-                entryIndicators.isPrepayment = { amount: event.amount }; // Set indicator
+                entryIndicators.isPrepayment = { id: event.id, amount: event.amount }; // Set indicator with ID
             }
             // For EMI type, actualPaymentMade is set. The principal/interest split will be based on this.
             principalPaidThisMonth = actualPaymentMade - interestForMonth;
@@ -92,10 +92,10 @@ export const generateAmortizationSchedule = (loan: Loan): AmortizationEntry[] =>
                 currentEMI = event.newEMIIfApplicable;
             }
             // If 'adjustTenure', EMI remains same.
-            entryIndicators.isRoiChange = { newRate: event.newRate, preference: event.adjustmentPreference }; // Set indicator
+            entryIndicators.isRoiChange = { id: event.id, newRate: event.newRate, preference: event.adjustmentPreference }; // Set indicator with ID
         } else if (event.eventType === 'emiChange') {
             currentEMI = event.newEMI;
-            entryIndicators.isEmiChange = { newEMI: event.newEMI }; // Set indicator
+            entryIndicators.isEmiChange = { id: event.id, newEMI: event.newEMI }; // Set indicator with ID
         }
         eventPointer++;
         // Re-check if we moved past the Pre-EMI period due to event processing

@@ -66,6 +66,19 @@ const ActionButton = styled.button`
   }
 `;
 
+// Style for delete button
+const DeleteEventButton = styled(ActionButton)`
+  background-color: #f8d7da;
+  color: #721c24;
+  border-color: #f5c6cb;
+  margin-left: 5px; /* Add some space */
+
+  &:hover:not(:disabled) {
+    background-color: #f1b0b7;
+  }
+`;
+
+
 interface AmortizationTableProps {
   schedule: AmortizationEntry[];
   loan: Loan; // Pass the full loan object to check for adjustments
@@ -162,6 +175,41 @@ const AmortizationTable: React.FC<AmortizationTableProps> = ({ schedule, loan })
      }
   };
 
+  // --- Delete Handler ---
+  const handleDeleteEvent = (eventId: string | undefined, eventType: string) => {
+      if (!eventId) return; // Should not happen if button is rendered correctly
+
+      if (!window.confirm(`Are you sure you want to delete this ${eventType} event? This will recalculate the schedule.`)) {
+          return;
+      }
+
+      let updatedLoan = { ...loan };
+
+      if (eventType === 'Prepayment') {
+          updatedLoan.paymentHistory = loan.paymentHistory.filter(p => !(p.type === 'Prepayment' && p.id === eventId));
+      } else if (eventType === 'ROI Change') {
+          updatedLoan.interestRateChanges = loan.interestRateChanges.filter(c => c.id !== eventId);
+      } else if (eventType === 'EMI Change') {
+          updatedLoan.customEMIChanges = loan.customEMIChanges.filter(c => c.id !== eventId);
+      } else if (eventType === 'Disbursement') {
+           // Prevent deleting the very first disbursement? Or allow and delete loan?
+           if (loan.details.disbursements.length <= 1 && loan.details.disbursements[0].id === eventId) {
+               alert("Cannot delete the initial disbursement. Delete the loan instead.");
+               return;
+           }
+          updatedLoan.details = {
+              ...loan.details,
+              disbursements: loan.details.disbursements.filter(d => d.id !== eventId)
+          };
+      } else {
+          console.error("Unknown event type to delete:", eventType);
+          return;
+      }
+
+      dispatch({ type: 'UPDATE_LOAN', payload: updatedLoan });
+  };
+  // --- End Delete Handler ---
+
 
   if (!schedule || schedule.length === 0) {
     return <p>Amortization schedule not available or loan fully paid.</p>;
@@ -180,7 +228,7 @@ const AmortizationTable: React.FC<AmortizationTableProps> = ({ schedule, loan })
             <th>Principal</th>
             <th>Interest</th>
             <th>Closing Balance</th>
-            <th>Event</th> {/* New Event Column */}
+            <th>Event / Delete</th> {/* Combined Column */}
             <th>Actions</th> 
           </tr>
         </thead>
@@ -189,25 +237,35 @@ const AmortizationTable: React.FC<AmortizationTableProps> = ({ schedule, loan })
             const entryDate = new Date(entry.paymentDate); // Restore entryDate for display
             // const isStructureChangeDisabled = false; // Disabling removed
 
-            // Determine highlight class based on indicators
+            // Determine highlight class and event details based on indicators
             let highlightClass = '';
             let eventText = '';
+            let eventIdToDelete: string | undefined = undefined;
+            let eventTypeToDelete: string = '';
+
             if (entry.isPrepayment) { 
                 highlightClass = 'highlight-prepayment'; 
-                eventText += `Prepay: ${entry.isPrepayment.amount.toLocaleString()}; `;
-            }
-            if (entry.isRoiChange) { 
+                eventText = `Prepay: ${entry.isPrepayment.amount.toLocaleString()}`;
+                eventIdToDelete = entry.isPrepayment.id;
+                eventTypeToDelete = 'Prepayment';
+            } else if (entry.isRoiChange) { // Use else-if to prioritize one indicator per row if multiple happen? Or combine text? Combine for now.
                 highlightClass = 'highlight-roi'; 
-                eventText += `ROI: ${entry.isRoiChange.newRate}% (${entry.isRoiChange.preference}); `;
-            }
-            if (entry.isEmiChange) { 
+                eventText = `ROI: ${entry.isRoiChange.newRate}% (${entry.isRoiChange.preference || 'N/A'})`;
+                eventIdToDelete = entry.isRoiChange.id;
+                eventTypeToDelete = 'ROI Change';
+            } else if (entry.isEmiChange) { 
                 highlightClass = 'highlight-emi'; 
-                eventText += `EMI: ${entry.isEmiChange.newEMI.toLocaleString()}; `;
-            }
-             if (entry.isDisbursement) { 
+                eventText = `EMI: ${entry.isEmiChange.newEMI.toLocaleString()}`;
+                eventIdToDelete = entry.isEmiChange.id;
+                eventTypeToDelete = 'EMI Change';
+            } else if (entry.isDisbursement) { 
                 highlightClass = 'highlight-disbursement'; 
-                eventText += `Disburse: ${entry.isDisbursement.amount.toLocaleString()}; `;
+                eventText = `Disburse: ${entry.isDisbursement.amount.toLocaleString()}`;
+                eventIdToDelete = entry.isDisbursement.id;
+                eventTypeToDelete = 'Disbursement';
             }
+            // Note: This simple else-if structure only shows/allows deleting the *first* event type found if multiple occur in one entry. 
+            // A more complex UI might list multiple events or handle deletion differently.
 
 
             return (
@@ -219,7 +277,14 @@ const AmortizationTable: React.FC<AmortizationTableProps> = ({ schedule, loan })
                 <td>{entry.principalPaid.toLocaleString()}</td>
                 <td>{entry.interestPaid.toLocaleString()}</td>
                 <td>{entry.closingBalance.toLocaleString()}</td>
-                <td>{eventText.trim()}</td> {/* Event Cell */}
+                <td> {/* Event/Delete Cell */}
+                    {eventText}
+                    {eventIdToDelete && (
+                        <DeleteEventButton onClick={() => handleDeleteEvent(eventIdToDelete, eventTypeToDelete)} title={`Delete this ${eventTypeToDelete} event`}>
+                           &#x274C; {/* Cross Mark */}
+                        </DeleteEventButton>
+                    )}
+                </td> 
                 <td> {/* Actions Cell */}
                   {/* Buttons are now always enabled */}
                   <ActionButton onClick={() => handleAddPrepayment(entry)} title="Add Prepayment">Prepay</ActionButton>
