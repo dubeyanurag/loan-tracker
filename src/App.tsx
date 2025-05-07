@@ -60,7 +60,7 @@ function App() {
           {selectedLoan ? (
             <div>
               <h2>Loan Details: {selectedLoan.name}</h2>
-              <p>Principal: ₹{selectedLoan.details.principal.toLocaleString()}</p>
+              {/* <p>Principal: ₹{selectedLoan.details.principal.toLocaleString()}</p> */} {/* Removed - Handled in LoanDetailsDisplay */}
               <p>Interest Rate: {selectedLoan.details.originalInterestRate}%</p>
               {/* LoanDetailsDisplay now renders directly inside the second section */}
               <LoanDetailsDisplay loan={selectedLoan} /> 
