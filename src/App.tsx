@@ -26,10 +26,10 @@ const MainTitle = styled.h1`
 const ContentLayout = styled.div`
   display: grid;
   grid-template-columns: 1fr; // Single column for now, can be 2 for wider screens
-  gap: 20px;
+  gap: 30px; // Increased gap slightly
 
   @media (min-width: 768px) {
-    // grid-template-columns: 1fr 2fr; // Example for two columns
+    grid-template-columns: 1fr 2fr; // Enable two columns on wider screens
   }
 `;
 
