@@ -3,6 +3,7 @@ import React, { useMemo } from 'react';
 import styled from 'styled-components';
 import { Loan } from '../types';
 import { calculateEMI, calculateTotalInterestAndPayment } from '../utils/loanCalculations';
+import PaymentForm from './PaymentForm'; // Import PaymentForm
 
 const DetailsContainer = styled.div`
   padding: 20px;
@@ -84,8 +85,26 @@ const LoanDetailsDisplay: React.FC<LoanDetailsDisplayProps> = ({ loan }) => {
       ...
 
       <h4>Pre-EMI Payments</h4>
-      ...
-      */}
+      {loan.preEMIInterestPayments.length > 0 ? (
+        <ul>
+          {loan.preEMIInterestPayments.map(p => <li key={p.id}>{new Date(p.date).toLocaleDateString()}: ₹{p.amount.toLocaleString()} {p.remarks && `(${p.remarks})`}</li>)}
+        </ul>
+      ) : <p>No Pre-EMI interest payments recorded.</p>}
+
+      <h4>Payment History (EMIs & Prepayments)</h4>
+      {loan.paymentHistory.length > 0 ? (
+        <ul>
+          {loan.paymentHistory.map(p => (
+            <li key={p.id}>
+              {new Date(p.date).toLocaleDateString()}: ₹{p.amount.toLocaleString()} ({p.type})
+              - P: ₹{p.principalPaid.toLocaleString()}, I: ₹{p.interestPaid.toLocaleString()}
+              {p.remarks && ` (${p.remarks})`}
+            </li>
+          ))}
+        </ul>
+      ) : <p>No EMI or Prepayment transactions recorded yet.</p>}
+      
+      <PaymentForm /> {/* Add the payment form here */}
     </DetailsContainer>
   );
 };
