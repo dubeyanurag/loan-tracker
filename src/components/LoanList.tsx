@@ -3,6 +3,7 @@ import React from 'react';
 import { useAppState, useAppDispatch } from '../contexts/AppContext';
 import { Loan } from '../types';
 import styled from 'styled-components';
+import { calculateTotalDisbursed } from '../utils/loanCalculations'; // Import helper
 
 const ListContainer = styled.div`
   margin-bottom: 20px;
@@ -74,7 +75,8 @@ const LoanList: React.FC = () => {
           onClick={() => handleSelectLoan(loan.id)}
           $isSelected={loan.id === selectedLoanId} // Pass transient prop with $
         >
-          <span>{loan.name} (Principal: ₹{loan.details.principal.toLocaleString()})</span>
+          {/* Calculate total disbursed for display */}
+          <span>{loan.name} (Total Disbursed: ₹{calculateTotalDisbursed(loan.details.disbursements).toLocaleString()})</span>
           <DeleteButton onClick={(e) => handleDeleteLoan(e, loan.id)}>Delete</DeleteButton>
         </LoanItem>
       ))}

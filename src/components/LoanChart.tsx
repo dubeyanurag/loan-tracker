@@ -135,7 +135,22 @@ const LoanChart: React.FC<LoanChartProps> = ({ schedule, loan }) => {
               type: 'line' as const, scaleID: 'x', value: index,
               borderColor: 'purple', borderWidth: 1, borderDash: [5, 5],
               label: { display: true, content: `EMI: ${c.newEMI.toLocaleString()}`, position: 'end', 
-                       backgroundColor: 'rgba(128,0,128,0.7)', color: 'white', font: { size: 9 } }
+                        backgroundColor: 'rgba(128,0,128,0.7)', color: 'white', font: { size: 9 } }
+          };
+      }
+  });
+
+  // Disbursement Annotations
+  loan.details.disbursements.forEach((d, idx) => {
+      // Skip the first one if it matches loan start date, as it's implicit
+      if (idx === 0 && d.date === loan.details.startDate) return; 
+      const index = findScheduleIndex(d.date);
+      if (index !== -1) {
+          eventAnnotations[`disburse_${idx}`] = {
+              type: 'line' as const, scaleID: 'x', value: index,
+              borderColor: 'cyan', borderWidth: 1, borderDash: [2, 2],
+              label: { display: true, content: `Disburse: ${d.amount.toLocaleString()}`, position: 'end', 
+                       backgroundColor: 'rgba(0,255,255,0.7)', color: 'black', font: { size: 9 } }
           };
       }
   });

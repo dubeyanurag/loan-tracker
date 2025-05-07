@@ -1,7 +1,7 @@
 // src/components/LoanForm.tsx
 import React, { useState, useEffect } from 'react'; // Import useEffect
 import { useAppDispatch, useAppState } from '../contexts/AppContext'; // Import useAppState
-import { Loan, LoanDetails } from '../types';
+import { Loan, LoanDetails, Disbursement } from '../types'; // Import Disbursement type
 import { v4 as uuidv4 } from 'uuid';
 import styled from 'styled-components';
 
@@ -69,7 +69,7 @@ const LoanForm: React.FC = () => {
   }, [loans.length]);
 
   const [name, setName] = useState('');
-  const [principal, setPrincipal] = useState('');
+  const [initialDisbursementAmount, setInitialDisbursementAmount] = useState(''); // Renamed state
   const [interestRate, setInterestRate] = useState('');
   const [tenureMonths, setTenureMonths] = useState('');
   const [startDate, setStartDate] = useState(''); // Loan agreement/disbursement start date
@@ -79,8 +79,26 @@ const LoanForm: React.FC = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
+    const initialAmount = parseFloat(initialDisbursementAmount);
+    if (isNaN(initialAmount) || initialAmount <= 0) {
+        alert('Please enter a valid initial disbursement amount.');
+        return;
+    }
+    if (!startDate) {
+        alert('Please enter the loan start/initial disbursement date.');
+        return;
+    }
+
+    // Create the initial disbursement object
+    const initialDisbursement: Disbursement = {
+        id: uuidv4(),
+        date: startDate,
+        amount: initialAmount,
+        remarks: 'Initial Disbursement'
+    };
+
     const loanDetails: LoanDetails = {
-      principal: parseFloat(principal),
+      disbursements: [initialDisbursement], // Initialize with the first disbursement
       originalInterestRate: parseFloat(interestRate),
       originalTenureMonths: parseInt(tenureMonths),
       startDate: startDate, // Loan agreement start date
@@ -90,7 +108,8 @@ const LoanForm: React.FC = () => {
     };
 
     // Basic validation (can be expanded)
-    if (!name || isNaN(loanDetails.principal) || loanDetails.principal <= 0 ||
+    // Note: principal validation is handled above by checking initialAmount
+    if (!name || 
         isNaN(loanDetails.originalInterestRate) || loanDetails.originalInterestRate <= 0 ||
         isNaN(loanDetails.originalTenureMonths) || loanDetails.originalTenureMonths <= 0 ||
         !loanDetails.startDate ||
@@ -114,7 +133,7 @@ const LoanForm: React.FC = () => {
 
     // Reset form
     setName('');
-    setPrincipal('');
+    setInitialDisbursementAmount(''); // Reset renamed state
     setInterestRate('');
     setTenureMonths('');
     setStartDate('');
@@ -141,8 +160,8 @@ const LoanForm: React.FC = () => {
         <Input type="text" id="loanName" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g., My HDFC Loan" required />
       </FormGroup>
       <FormGroup>
-        <Label htmlFor="principal">Principal Amount (₹):</Label>
-        <Input type="number" id="principal" value={principal} onChange={(e) => setPrincipal(e.target.value)} placeholder="e.g., 5000000" required />
+        <Label htmlFor="initialDisbursementAmount">Initial Disbursement Amount (₹):</Label>
+        <Input type="number" id="initialDisbursementAmount" value={initialDisbursementAmount} onChange={(e) => setInitialDisbursementAmount(e.target.value)} placeholder="e.g., 5000000" required />
       </FormGroup>
       <FormGroup>
         <Label htmlFor="interestRate">Annual Interest Rate (%):</Label>

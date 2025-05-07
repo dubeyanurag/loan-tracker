@@ -2,19 +2,19 @@
 import React, { useMemo } from 'react';
 import styled from 'styled-components';
 import { Loan, AmortizationEntry } from '../types';
-import { calculateEMI, calculateTotalInterestAndPayment } from '../utils/loanCalculations';
-import { generateAmortizationSchedule } from '../utils/amortizationCalculator'; // Import schedule generator
-import PreEmiPaymentForm from './PaymentForm'; // Updated import name
-// import DynamicAdjustmentsForm from './DynamicAdjustmentsForm'; // Removed import
+import { calculateEMI, calculateTotalInterestAndPayment, calculateTotalDisbursed } from '../utils/loanCalculations'; 
+import { generateAmortizationSchedule } from '../utils/amortizationCalculator'; 
+import PreEmiPaymentForm from './PaymentForm'; 
+import AddDisbursementForm from './AddDisbursementForm'; // Import the new form
 import PrepaymentSimulator from './PrepaymentSimulator';
 import AmortizationTable from './AmortizationTable';
 import LoanSummaries from './LoanSummaries';
-import LoanChart from './LoanChart'; // Import LoanChart
+import LoanChart from './LoanChart'; 
 
 const DetailsContainer = styled.div`
-  display: flex; /* Add flex display */
-  flex-direction: column; /* Stack children vertically */
-  gap: 20px; /* Add some gap between child components */
+  display: flex; 
+  flex-direction: column; 
+  gap: 20px; 
   padding: 20px;
   border: 1px solid #e0e0e0;
   border-radius: 8px;
@@ -57,37 +57,38 @@ interface LoanDetailsDisplayProps {
 }
 
 const LoanDetailsDisplay: React.FC<LoanDetailsDisplayProps> = ({ loan }) => {
-  const { details } = loan; // details is LoanDetails, loan is the full Loan object
+  const { details } = loan; 
+
+  const totalDisbursed = useMemo(() => calculateTotalDisbursed(details.disbursements), [details.disbursements]);
 
   const initialEMI = useMemo(() => {
-    return calculateEMI(
-      details.principal,
-      details.originalInterestRate,
-      details.originalTenureMonths
-    );
-  }, [details]);
+    if (details.disbursements.length > 0) {
+         return calculateEMI(totalDisbursed, details.originalInterestRate, details.originalTenureMonths);
+    }
+    return 0;
+  }, [details.disbursements, details.originalInterestRate, details.originalTenureMonths, totalDisbursed]);
 
   const summary = useMemo(() => {
-    if (initialEMI > 0) {
+    if (initialEMI > 0 && totalDisbursed > 0) {
       return calculateTotalInterestAndPayment(
-        details.principal,
+        totalDisbursed, 
         initialEMI,
         details.originalTenureMonths
       );
     }
     return { totalInterest: 0, totalPayment: 0 };
-  }, [details, initialEMI]);
+  }, [totalDisbursed, initialEMI, details.originalTenureMonths]);
 
   const amortizationSchedule: AmortizationEntry[] = useMemo(() => {
     return generateAmortizationSchedule(loan);
-  }, [loan]); // Regenerate if the full loan object changes
+  }, [loan]); 
 
   return (
     <DetailsContainer>
        <h3>{loan.name} - Summary</h3>
-       <DetailItem><strong>Principal:</strong> ₹{details.principal.toLocaleString()}</DetailItem>
+       <DetailItem><strong>Total Disbursed:</strong> ₹{totalDisbursed.toLocaleString()}</DetailItem> 
        <DetailItem><strong>Annual Interest Rate:</strong> {details.originalInterestRate}%</DetailItem>
-       <DetailItem><strong>Tenure:</strong> {details.originalTenureMonths / 12} years ({details.originalTenureMonths} months)</DetailItem>
+       <DetailItem><strong>Original Tenure:</strong> {details.originalTenureMonths / 12} years ({details.originalTenureMonths} months)</DetailItem>
        <DetailItem><strong>Loan Start Date:</strong> {new Date(details.startDate).toLocaleDateString()}</DetailItem>
        {details.startedWithPreEMI && details.emiStartDate && 
          <DetailItem><strong>Full EMI Start Date:</strong> {new Date(details.emiStartDate).toLocaleDateString()}</DetailItem>
@@ -98,11 +99,19 @@ const LoanDetailsDisplay: React.FC<LoanDetailsDisplayProps> = ({ loan }) => {
        
        <hr style={{ margin: '15px 0', borderColor: '#eee' }} />
 
-       <DetailItem><strong>Calculated Initial EMI:</strong> ₹{initialEMI.toLocaleString()}</DetailItem>
-       <DetailItem><strong>Total Interest Payable (Initial):</strong> ₹{summary.totalInterest.toLocaleString()}</DetailItem>
-       <DetailItem><strong>Total Amount Payable (Initial):</strong> ₹{summary.totalPayment.toLocaleString()}</DetailItem>
+       <DetailItem><strong>Calculated Initial EMI (Estimate):</strong> ₹{initialEMI.toLocaleString()}</DetailItem>
+       <DetailItem><strong>Total Interest Payable (Estimate):</strong> ₹{summary.totalInterest.toLocaleString()}</DetailItem>
+       <DetailItem><strong>Total Amount Payable (Estimate):</strong> ₹{summary.totalPayment.toLocaleString()}</DetailItem>
 
        {/* Conditionally render history sections */}
+        {details.disbursements.length > 0 && ( // Always show disbursements if they exist
+             <>
+               <h4>Disbursements</h4>
+               <ul>
+                 {details.disbursements.map(d => <li key={d.id}>{new Date(d.date).toLocaleDateString()}: ₹{d.amount.toLocaleString()} {d.remarks && `(${d.remarks})`}</li>)}
+               </ul>
+             </>
+        )}
 
        {loan.preEMIInterestPayments.length > 0 && (
          <>
@@ -120,7 +129,6 @@ const LoanDetailsDisplay: React.FC<LoanDetailsDisplayProps> = ({ loan }) => {
              {loan.paymentHistory.map(p => (
                <li key={p.id}>
                  {new Date(p.date).toLocaleDateString()}: ₹{p.amount.toLocaleString()} ({p.type})
-                 {/* Display calculated P/I only if available and meaningful */}
                  {p.principalPaid !== undefined && p.interestPaid !== undefined && ` - P: ₹${p.principalPaid.toLocaleString()}, I: ₹${p.interestPaid.toLocaleString()}`}
                  {p.remarks && ` (${p.remarks})`}
                </li>
@@ -159,10 +167,11 @@ const LoanDetailsDisplay: React.FC<LoanDetailsDisplayProps> = ({ loan }) => {
        )}
        
        {/* Render forms and tools */}
-       <PreEmiPaymentForm /> {/* Only renders if loan.details.startedWithPreEMI is true */}
+       <PreEmiPaymentForm /> 
+       <AddDisbursementForm /> {/* Add the new form */}
        <PrepaymentSimulator />
        <LoanSummaries schedule={amortizationSchedule} />
-       <LoanChart schedule={amortizationSchedule} loan={loan} /> {/* Pass loan prop */}
+       <LoanChart schedule={amortizationSchedule} loan={loan} /> 
        <AmortizationTable schedule={amortizationSchedule} loan={loan} /> 
     </DetailsContainer>
   );

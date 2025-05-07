@@ -1,10 +1,28 @@
 // src/utils/loanCalculations.ts
+import { LoanDetails, Disbursement } from '../types'; // Import necessary types
+
+/**
+ * Calculates the total disbursed principal amount from an array of disbursements.
+ * @param disbursements An array of Disbursement objects.
+ * @returns The sum of all disbursement amounts.
+ */
+export const calculateTotalDisbursed = (disbursements: Disbursement[]): number => {
+  if (!disbursements || disbursements.length === 0) {
+    return 0;
+  }
+  return disbursements.reduce((sum, disbursement) => sum + disbursement.amount, 0);
+};
 
 /**
  * Calculates the Equated Monthly Installment (EMI) for a loan.
- * @param principal The principal loan amount.
+ * NOTE: This function currently takes a single principal value. 
+ * For loans with multiple disbursements, the EMI might need recalculation 
+ * after each disbursement based on the total disbursed amount and remaining tenure.
+ * This simple version is suitable for calculating initial EMI based on total expected principal,
+ * or for recalculating based on current outstanding balance.
+ * @param principal The principal loan amount (or current outstanding balance).
  * @param annualInterestRate The annual interest rate (e.g., 8.5 for 8.5%).
- * @param tenureMonths The loan tenure in months.
+ * @param tenureMonths The loan tenure in months (or remaining tenure).
  * @returns The calculated EMI amount.
  */
 export const calculateEMI = (
@@ -15,8 +33,8 @@ export const calculateEMI = (
   if (principal <= 0 || tenureMonths <= 0) {
     return 0;
   }
-  if (annualInterestRate < 0) { // Allow 0% interest rate
-    return principal / tenureMonths; // Or handle as an error if 0% is not allowed
+  if (annualInterestRate < 0) { 
+    return principal / tenureMonths; 
   }
   if (annualInterestRate === 0) {
     return principal / tenureMonths;
@@ -36,7 +54,9 @@ export const calculateEMI = (
 
 /**
  * Calculates total interest and total payment for a loan based on a fixed EMI.
- * @param principal The principal loan amount.
+ * NOTE: This assumes a single principal amount. For multiple disbursements, 
+ * the 'principal' here should likely be the total disbursed amount for an initial estimate.
+ * @param principal The principal loan amount (total disbursed).
  * @param emi The Equated Monthly Installment.
  * @param tenureMonths The loan tenure in months.
  * @returns An object containing totalInterest and totalPayment.
@@ -75,7 +95,6 @@ export const calculateNewTenureAfterPrepayment = (
   if (currentOutstandingPrincipal <= 0) return 0;
   if (emi <= 0) return Infinity; // Or handle as an error
 
-  // If EMI is less than or equal to the interest on the principal, the loan will never be paid off.
   const interestForMonth = currentOutstandingPrincipal * monthlyInterestRate;
   if (emi <= interestForMonth && monthlyInterestRate > 0) {
     return Infinity; // Indicates loan will not be repaid at this EMI
@@ -87,8 +106,6 @@ export const calculateNewTenureAfterPrepayment = (
   const numerator = Math.log(1 - (currentOutstandingPrincipal * monthlyInterestRate) / emi);
   const denominator = Math.log(1 + monthlyInterestRate);
   
-  // Numerator can be NaN if (P*r/EMI) >= 1, which means EMI is too low.
-  // This is partially caught by the interestForMonth check, but this is more robust.
   if (isNaN(numerator) || (currentOutstandingPrincipal * monthlyInterestRate) / emi >=1 ) {
     return Infinity;
   }
@@ -96,7 +113,3 @@ export const calculateNewTenureAfterPrepayment = (
   const newTenureMonths = -numerator / denominator;
   return Math.ceil(newTenureMonths); // Round up to the next whole month
 };
-
-
-// We can add more calculation functions here later, e.g., for amortization schedule,
-// outstanding balance after N payments, impact of prepayments, etc.

@@ -84,6 +84,24 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
             ),
         };
     }
+    case 'ADD_DISBURSEMENT': {
+        const { loanId, disbursement } = action.payload;
+        return {
+            ...state,
+            loans: state.loans.map(loan =>
+                loan.id === loanId
+                ? { 
+                    ...loan, 
+                    details: { 
+                        ...loan.details, 
+                        // Add new disbursement, ensuring array exists
+                        disbursements: [...(loan.details.disbursements || []), { ...disbursement, id: uuidv4() }] 
+                    } 
+                  }
+                : loan
+            ),
+        };
+    }
     default:
       return state;
   }

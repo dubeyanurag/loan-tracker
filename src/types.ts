@@ -34,10 +34,19 @@ export interface CustomEMIChange {
   remarks?: string;
 }
 
+// New interface for disbursements
+export interface Disbursement {
+  id: string; // Unique ID
+  date: string; // ISO date string
+  amount: number;
+  remarks?: string;
+}
+
 export interface LoanDetails {
-  principal: number;
+  // principal: number; // Removed single principal
+  disbursements: Disbursement[]; // Added array for disbursements
   originalInterestRate: number; // Annual percentage
-  originalTenureMonths: number;
+  originalTenureMonths: number; // Original planned tenure for the *total* sanctioned amount
   startDate: string; // ISO date string (Loan disbursement/agreement start)
   startedWithPreEMI?: boolean; // Optional flag
   emiStartDate?: string; // Optional: ISO date string when full EMIs actually started
@@ -79,7 +88,8 @@ export type AppAction =
   | { type: 'ADD_PAYMENT'; payload: { loanId: string; payment: Payment } }
   | { type: 'ADD_PRE_EMI_PAYMENT'; payload: { loanId: string; payment: PreEMIInterestPayment } }
   | { type: 'ADD_INTEREST_RATE_CHANGE'; payload: { loanId: string; change: InterestRateChange } }
-  | { type: 'ADD_CUSTOM_EMI_CHANGE'; payload: { loanId: string; change: CustomEMIChange } };
+  | { type: 'ADD_CUSTOM_EMI_CHANGE'; payload: { loanId: string; change: CustomEMIChange } }
+  | { type: 'ADD_DISBURSEMENT'; payload: { loanId: string; disbursement: Disbursement } }; // New action type
 
 export interface AmortizationEntry {
   monthNumber: number;
