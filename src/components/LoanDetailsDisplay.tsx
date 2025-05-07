@@ -4,7 +4,8 @@ import styled from 'styled-components';
 import { Loan } from '../types';
 import { calculateEMI, calculateTotalInterestAndPayment } from '../utils/loanCalculations';
 import PaymentForm from './PaymentForm';
-import DynamicAdjustmentsForm from './DynamicAdjustmentsForm'; // Import DynamicAdjustmentsForm
+import DynamicAdjustmentsForm from './DynamicAdjustmentsForm';
+import PrepaymentSimulator from './PrepaymentSimulator'; // Import PrepaymentSimulator
 
 const DetailsContainer = styled.div`
   padding: 20px;
@@ -131,7 +132,8 @@ const LoanDetailsDisplay: React.FC<LoanDetailsDisplayProps> = ({ loan }) => {
       ) : <p>No custom EMI changes recorded.</p>}
       
       <PaymentForm />
-      <DynamicAdjustmentsForm /> {/* Add the dynamic adjustments form here */}
+      <DynamicAdjustmentsForm />
+      <PrepaymentSimulator /> {/* Add the prepayment simulator here */}
     </DetailsContainer>
   );
 };

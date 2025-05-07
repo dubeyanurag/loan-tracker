@@ -57,5 +57,46 @@ export const calculateTotalInterestAndPayment = (
   };
 };
 
+/**
+ * Calculates the remaining loan tenure in months after a prepayment,
+ * assuming the EMI remains constant.
+ * P = Principal, r = monthly interest rate, EMI = Equated Monthly Installment
+ * Formula for n (number of EMIs): n = -log(1 - (P * r / EMI)) / log(1 + r)
+ * @param currentOutstandingPrincipal The outstanding principal *after* the prepayment is applied.
+ * @param monthlyInterestRate The current effective monthly interest rate.
+ * @param emi The current EMI being paid.
+ * @returns The new loan tenure in months. Returns Infinity if EMI is too low to cover interest.
+ */
+export const calculateNewTenureAfterPrepayment = (
+  currentOutstandingPrincipal: number,
+  monthlyInterestRate: number,
+  emi: number
+): number => {
+  if (currentOutstandingPrincipal <= 0) return 0;
+  if (emi <= 0) return Infinity; // Or handle as an error
+
+  // If EMI is less than or equal to the interest on the principal, the loan will never be paid off.
+  const interestForMonth = currentOutstandingPrincipal * monthlyInterestRate;
+  if (emi <= interestForMonth && monthlyInterestRate > 0) {
+    return Infinity; // Indicates loan will not be repaid at this EMI
+  }
+  if (monthlyInterestRate === 0) {
+    return Math.ceil(currentOutstandingPrincipal / emi);
+  }
+
+  const numerator = Math.log(1 - (currentOutstandingPrincipal * monthlyInterestRate) / emi);
+  const denominator = Math.log(1 + monthlyInterestRate);
+  
+  // Numerator can be NaN if (P*r/EMI) >= 1, which means EMI is too low.
+  // This is partially caught by the interestForMonth check, but this is more robust.
+  if (isNaN(numerator) || (currentOutstandingPrincipal * monthlyInterestRate) / emi >=1 ) {
+    return Infinity;
+  }
+
+  const newTenureMonths = -numerator / denominator;
+  return Math.ceil(newTenureMonths); // Round up to the next whole month
+};
+
+
 // We can add more calculation functions here later, e.g., for amortization schedule,
 // outstanding balance after N payments, impact of prepayments, etc.
