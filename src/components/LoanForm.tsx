@@ -55,7 +55,7 @@ const LoanForm: React.FC = () => {
   const [name, setName] = useState('');
   const [principal, setPrincipal] = useState('');
   const [interestRate, setInterestRate] = useState('');
-  const [tenureYears, setTenureYears] = useState('');
+  const [tenureMonths, setTenureMonths] = useState(''); // Changed state name
   const [startDate, setStartDate] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -64,7 +64,7 @@ const LoanForm: React.FC = () => {
     const loanDetails: LoanDetails = {
       principal: parseFloat(principal),
       originalInterestRate: parseFloat(interestRate),
-      originalTenureMonths: parseInt(tenureYears) * 12,
+      originalTenureMonths: parseInt(tenureMonths), // Use directly
       startDate: startDate,
     };
 
@@ -93,7 +93,7 @@ const LoanForm: React.FC = () => {
     setName('');
     setPrincipal('');
     setInterestRate('');
-    setTenureYears('');
+    setTenureMonths(''); // Reset months state
     setStartDate('');
   };
 
@@ -113,8 +113,8 @@ const LoanForm: React.FC = () => {
         <Input type="number" step="0.01" id="interestRate" value={interestRate} onChange={(e) => setInterestRate(e.target.value)} placeholder="e.g., 8.5" required />
       </FormGroup>
       <FormGroup>
-        <Label htmlFor="tenureYears">Loan Tenure (Years):</Label>
-        <Input type="number" id="tenureYears" value={tenureYears} onChange={(e) => setTenureYears(e.target.value)} placeholder="e.g., 20" required />
+        <Label htmlFor="tenureMonths">Loan Tenure (Months):</Label> 
+        <Input type="number" id="tenureMonths" value={tenureMonths} onChange={(e) => setTenureMonths(e.target.value)} placeholder="e.g., 240" required /> 
       </FormGroup>
       <FormGroup>
         <Label htmlFor="startDate">Loan Start Date:</Label>
