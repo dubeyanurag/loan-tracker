@@ -12,6 +12,9 @@ import LoanSummaries from './LoanSummaries';
 import LoanChart from './LoanChart'; // Import LoanChart
 
 const DetailsContainer = styled.div`
+  display: flex; /* Add flex display */
+  flex-direction: column; /* Stack children vertically */
+  gap: 20px; /* Add some gap between child components */
   padding: 20px;
   border: 1px solid #e0e0e0;
   border-radius: 8px;
