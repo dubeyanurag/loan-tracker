@@ -72,8 +72,9 @@ const LoanForm: React.FC = () => {
   const [principal, setPrincipal] = useState('');
   const [interestRate, setInterestRate] = useState('');
   const [tenureMonths, setTenureMonths] = useState('');
-  const [startDate, setStartDate] = useState('');
-  const [startedWithPreEMI, setStartedWithPreEMI] = useState(false); // New state for checkbox
+  const [startDate, setStartDate] = useState(''); // Loan agreement/disbursement start date
+  const [startedWithPreEMI, setStartedWithPreEMI] = useState(false); 
+  const [emiStartDate, setEmiStartDate] = useState(''); // State for the conditional EMI start date
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,16 +83,20 @@ const LoanForm: React.FC = () => {
       principal: parseFloat(principal),
       originalInterestRate: parseFloat(interestRate),
       originalTenureMonths: parseInt(tenureMonths),
-      startDate: startDate,
-      startedWithPreEMI: startedWithPreEMI, // Add flag to details
+      startDate: startDate, // Loan agreement start date
+      startedWithPreEMI: startedWithPreEMI,
+      // Only include emiStartDate if startedWithPreEMI is true
+      emiStartDate: startedWithPreEMI ? emiStartDate : undefined, 
     };
 
     // Basic validation (can be expanded)
     if (!name || isNaN(loanDetails.principal) || loanDetails.principal <= 0 ||
         isNaN(loanDetails.originalInterestRate) || loanDetails.originalInterestRate <= 0 ||
         isNaN(loanDetails.originalTenureMonths) || loanDetails.originalTenureMonths <= 0 ||
-        !loanDetails.startDate) {
-      alert('Please fill in all fields correctly.');
+        !loanDetails.startDate ||
+        // Add validation for emiStartDate if startedWithPreEMI is true
+        (startedWithPreEMI && !emiStartDate) ) { 
+      alert('Please fill in all fields correctly, including EMI Start Date if applicable.');
       return;
     }
 
@@ -113,7 +118,8 @@ const LoanForm: React.FC = () => {
     setInterestRate('');
     setTenureMonths('');
     setStartDate('');
-    setStartedWithPreEMI(false); // Reset checkbox state
+    setStartedWithPreEMI(false); 
+    setEmiStartDate(''); // Reset EMI start date state
     setIsCollapsed(true); // Collapse after adding
   };
 
@@ -160,6 +166,21 @@ const LoanForm: React.FC = () => {
         />
         <Label htmlFor="startedWithPreEMI" style={{ marginBottom: 0 }}>Did loan start with a Pre-EMI period?</Label>
       </FormGroup>
+      
+      {/* Conditionally render EMI Start Date input */}
+      {startedWithPreEMI && (
+        <FormGroup>
+          <Label htmlFor="emiStartDate">Full EMI Start Date:</Label>
+          <Input 
+            type="date" 
+            id="emiStartDate" 
+            value={emiStartDate} 
+            onChange={(e) => setEmiStartDate(e.target.value)} 
+            required={startedWithPreEMI} // Make required only if checkbox is checked
+          />
+        </FormGroup>
+      )}
+
       <Button type="submit">Add Loan</Button>
     </FormContainer>
   );

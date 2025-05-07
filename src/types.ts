@@ -38,8 +38,9 @@ export interface LoanDetails {
   principal: number;
   originalInterestRate: number; // Annual percentage
   originalTenureMonths: number;
-  startDate: string; // ISO date string
+  startDate: string; // ISO date string (Loan disbursement/agreement start)
   startedWithPreEMI?: boolean; // Optional flag
+  emiStartDate?: string; // Optional: ISO date string when full EMIs actually started
 }
 
 export interface Loan {

@@ -88,8 +88,13 @@ const LoanDetailsDisplay: React.FC<LoanDetailsDisplayProps> = ({ loan }) => {
        <DetailItem><strong>Principal:</strong> ₹{details.principal.toLocaleString()}</DetailItem>
        <DetailItem><strong>Annual Interest Rate:</strong> {details.originalInterestRate}%</DetailItem>
        <DetailItem><strong>Tenure:</strong> {details.originalTenureMonths / 12} years ({details.originalTenureMonths} months)</DetailItem>
-       <DetailItem><strong>Start Date:</strong> {new Date(details.startDate).toLocaleDateString()}</DetailItem>
-       {details.startedWithPreEMI && <DetailItem><em>(Loan started with Pre-EMI period)</em></DetailItem>}
+       <DetailItem><strong>Loan Start Date:</strong> {new Date(details.startDate).toLocaleDateString()}</DetailItem>
+       {details.startedWithPreEMI && details.emiStartDate && 
+         <DetailItem><strong>Full EMI Start Date:</strong> {new Date(details.emiStartDate).toLocaleDateString()}</DetailItem>
+       }
+       {details.startedWithPreEMI && !details.emiStartDate && 
+         <DetailItem><em>(Loan started with Pre-EMI period - EMI Start Date not set)</em></DetailItem>
+       }
        
        <hr style={{ margin: '15px 0', borderColor: '#eee' }} />
 
