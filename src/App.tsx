@@ -3,7 +3,7 @@ import styled from 'styled-components';
 import LoanForm from './components/LoanForm';
 import LoanList from './components/LoanList';
 import { useAppState } from './contexts/AppContext';
-// import LoanDetailsDisplay from './components/LoanDetailsDisplay'; // To be created
+import LoanDetailsDisplay from './components/LoanDetailsDisplay';
 
 // Basic layout styled components
 const AppContainer = styled.div`
@@ -60,13 +60,10 @@ function App() {
               <h2>Loan Details: {selectedLoan.name}</h2>
               <p>Principal: ₹{selectedLoan.details.principal.toLocaleString()}</p>
               <p>Interest Rate: {selectedLoan.details.originalInterestRate}%</p>
-              <p>Tenure: {selectedLoan.details.originalTenureMonths / 12} years</p>
-              <p>Start Date: {new Date(selectedLoan.details.startDate).toLocaleDateString()}</p>
-              {/* More details and actions for the selected loan will go here */}
-              {/* e.g., <LoanDetailsDisplay loan={selectedLoan} /> */}
+              <LoanDetailsDisplay loan={selectedLoan} />
             </div>
           ) : (
-            <p>Select a loan to see details or add a new loan.</p>
+            <p style={{ textAlign: 'center', color: '#777' }}>Select a loan to see details or add a new loan.</p>
           )}
         </Section>
       </ContentLayout>

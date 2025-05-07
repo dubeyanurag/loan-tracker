@@ -1,0 +1,93 @@
+// src/components/LoanDetailsDisplay.tsx
+import React, { useMemo } from 'react';
+import styled from 'styled-components';
+import { Loan } from '../types';
+import { calculateEMI, calculateTotalInterestAndPayment } from '../utils/loanCalculations';
+
+const DetailsContainer = styled.div`
+  padding: 20px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background-color: #ffffff;
+  margin-top: 10px;
+
+  h3 {
+    margin-top: 0;
+    color: #333;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+  }
+`;
+
+const DetailItem = styled.p`
+  margin: 8px 0;
+  font-size: 1em;
+  color: #555;
+  strong {
+    color: #333;
+  }
+`;
+
+interface LoanDetailsDisplayProps {
+  loan: Loan;
+}
+
+const LoanDetailsDisplay: React.FC<LoanDetailsDisplayProps> = ({ loan }) => {
+  const { details } = loan;
+
+  // Calculate EMI and other summary figures
+  // For now, this uses original loan details. Later, it will need to consider
+  // interest rate changes, prepayments, etc., to show current effective EMI.
+  const initialEMI = useMemo(() => {
+    return calculateEMI(
+      details.principal,
+      details.originalInterestRate,
+      details.originalTenureMonths
+    );
+  }, [details]);
+
+  const summary = useMemo(() => {
+    if (initialEMI > 0) {
+      return calculateTotalInterestAndPayment(
+        details.principal,
+        initialEMI,
+        details.originalTenureMonths
+      );
+    }
+    return { totalInterest: 0, totalPayment: 0 };
+  }, [details, initialEMI]);
+
+  return (
+    <DetailsContainer>
+      <h3>{loan.name} - Summary</h3>
+      <DetailItem><strong>Principal:</strong> ₹{details.principal.toLocaleString()}</DetailItem>
+      <DetailItem><strong>Annual Interest Rate:</strong> {details.originalInterestRate}%</DetailItem>
+      <DetailItem><strong>Tenure:</strong> {details.originalTenureMonths / 12} years ({details.originalTenureMonths} months)</DetailItem>
+      <DetailItem><strong>Start Date:</strong> {new Date(details.startDate).toLocaleDateString()}</DetailItem>
+      
+      <hr style={{ margin: '15px 0', borderColor: '#eee' }} />
+
+      <DetailItem><strong>Calculated Initial EMI:</strong> ₹{initialEMI.toLocaleString()}</DetailItem>
+      <DetailItem><strong>Total Interest Payable (Initial):</strong> ₹{summary.totalInterest.toLocaleString()}</DetailItem>
+      <DetailItem><strong>Total Amount Payable (Initial):</strong> ₹{summary.totalPayment.toLocaleString()}</DetailItem>
+
+      {/* Placeholder for future sections */}
+      {/* 
+      <h4>Payment History</h4>
+      {loan.paymentHistory.length > 0 ? (
+        <ul>
+          {loan.paymentHistory.map(p => <li key={p.id}>{p.date}: ₹{p.amount} ({p.type})</li>)}
+        </ul>
+      ) : <p>No payments recorded yet.</p>}
+
+      <h4>Interest Rate Changes</h4>
+      ...
+
+      <h4>Pre-EMI Payments</h4>
+      ...
+      */}
+    </DetailsContainer>
+  );
+};
+
+export default LoanDetailsDisplay;
