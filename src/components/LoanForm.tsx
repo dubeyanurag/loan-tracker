@@ -1,7 +1,6 @@
 // src/components/LoanForm.tsx
-import React, { useState }
-from 'react';
-import { useAppDispatch } from '../contexts/AppContext';
+import React, { useState, useEffect } from 'react'; // Import useEffect
+import { useAppDispatch, useAppState } from '../contexts/AppContext'; // Import useAppState
 import { Loan, LoanDetails } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 import styled from 'styled-components';
@@ -50,8 +49,25 @@ const Button = styled.button`
   }
 `;
 
+// Simple button for toggling
+const ToggleButton = styled(Button)`
+  background-color: #6c757d;
+  margin-bottom: 10px; // Add margin if needed when collapsed
+  &:hover {
+    background-color: #5a6268;
+  }
+`;
+
 const LoanForm: React.FC = () => {
+  const { loans } = useAppState(); // Get loans state
   const dispatch = useAppDispatch();
+  const [isCollapsed, setIsCollapsed] = useState(loans.length > 0); // Collapse if loans exist
+
+  // Update collapsed state if loans array changes (e.g., last loan deleted)
+  useEffect(() => {
+    setIsCollapsed(loans.length > 0);
+  }, [loans.length]);
+
   const [name, setName] = useState('');
   const [principal, setPrincipal] = useState('');
   const [interestRate, setInterestRate] = useState('');
@@ -98,10 +114,21 @@ const LoanForm: React.FC = () => {
     setTenureMonths('');
     setStartDate('');
     setStartedWithPreEMI(false); // Reset checkbox state
+    setIsCollapsed(true); // Collapse after adding
   };
+
+  if (isCollapsed) {
+    return (
+      <ToggleButton onClick={() => setIsCollapsed(false)} type="button">
+        [ + Add New Loan ]
+      </ToggleButton>
+    );
+  }
 
   return (
     <FormContainer onSubmit={handleSubmit}>
+      {/* Optionally add a collapse button here too */}
+      {/* <button type="button" onClick={() => setIsCollapsed(true)}>Collapse</button> */}
       <h3>Add New Loan</h3>
       <FormGroup>
         <Label htmlFor="loanName">Loan Name:</Label>

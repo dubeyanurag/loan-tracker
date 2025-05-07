@@ -29,13 +29,8 @@ const StyledTable = styled.table`
     z-index: 1;
   }
 
-  td:nth-child(1), td:nth-child(2), td:nth-child(8) { /* Month, Date, Remarks */
+  td:nth-child(1), td:nth-child(2) { /* Month, Date */
     text-align: left;
-  }
-  td:nth-child(8) { /* Remarks */
-    min-width: 200px;
-    font-size: 0.9em;
-    color: #555;
   }
 `;
 
@@ -173,8 +168,8 @@ const AmortizationTable: React.FC<AmortizationTableProps> = ({ schedule, loan })
             <th>Principal</th>
             <th>Interest</th>
             <th>Closing Balance</th>
-            <th>Remarks</th>
-            <th>Actions</th> {/* New Actions Column */}
+            {/* <th>Remarks</th> */} {/* Removed Remarks Column */}
+            <th>Actions</th> 
           </tr>
         </thead>
         <tbody>
@@ -192,7 +187,7 @@ const AmortizationTable: React.FC<AmortizationTableProps> = ({ schedule, loan })
                 <td>{entry.principalPaid.toLocaleString()}</td>
                 <td>{entry.interestPaid.toLocaleString()}</td>
                 <td>{entry.closingBalance.toLocaleString()}</td>
-                <td>{entry.remarks}</td>
+                {/* <td>{entry.remarks}</td> */} {/* Removed Remarks Cell */}
                 <td> {/* Actions Cell */}
                   <ActionButton onClick={() => handleAddPrepayment(entry)} disabled={isDisabled} title="Add Prepayment">Prepay</ActionButton>
                   <ActionButton onClick={() => handleSetROI(entry)} disabled={isDisabled} title="Set New ROI">Set ROI</ActionButton>

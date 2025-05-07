@@ -88,5 +88,5 @@ export interface AmortizationEntry {
   principalPaid: number;
   interestPaid: number;
   closingBalance: number;
-  remarks?: string; // e.g., "Prepayment of X made", "ROI changed to Y%"
+  // remarks?: string; // Removed remarks
 }

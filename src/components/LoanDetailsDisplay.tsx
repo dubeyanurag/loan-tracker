@@ -5,7 +5,7 @@ import { Loan, AmortizationEntry } from '../types';
 import { calculateEMI, calculateTotalInterestAndPayment } from '../utils/loanCalculations';
 import { generateAmortizationSchedule } from '../utils/amortizationCalculator'; // Import schedule generator
 import PreEmiPaymentForm from './PaymentForm'; // Updated import name
-// import DynamicAdjustmentsForm from './DynamicAdjustmentsForm'; // Remove import
+// import DynamicAdjustmentsForm from './DynamicAdjustmentsForm'; // Removed import
 import PrepaymentSimulator from './PrepaymentSimulator';
 import AmortizationTable from './AmortizationTable';
 import LoanSummaries from './LoanSummaries';
@@ -27,6 +27,20 @@ const DetailsContainer = styled.div`
     border-bottom: 1px solid #eee;
     padding-bottom: 10px;
   }
+  h4 {
+    margin-bottom: 5px;
+    margin-top: 15px;
+    color: #444;
+  }
+  ul {
+    margin-top: 5px;
+    padding-left: 20px;
+    font-size: 0.9em;
+    color: #666;
+  }
+  li {
+    margin-bottom: 4px;
+  }
 `;
 
 const DetailItem = styled.p`
@@ -45,9 +59,6 @@ interface LoanDetailsDisplayProps {
 const LoanDetailsDisplay: React.FC<LoanDetailsDisplayProps> = ({ loan }) => {
   const { details } = loan; // details is LoanDetails, loan is the full Loan object
 
-  // Calculate EMI and other summary figures
-  // For now, this uses original loan details. Later, it will need to consider
-  // interest rate changes, prepayments, etc., to show current effective EMI.
   const initialEMI = useMemo(() => {
     return calculateEMI(
       details.principal,
@@ -78,6 +89,7 @@ const LoanDetailsDisplay: React.FC<LoanDetailsDisplayProps> = ({ loan }) => {
        <DetailItem><strong>Annual Interest Rate:</strong> {details.originalInterestRate}%</DetailItem>
        <DetailItem><strong>Tenure:</strong> {details.originalTenureMonths / 12} years ({details.originalTenureMonths} months)</DetailItem>
        <DetailItem><strong>Start Date:</strong> {new Date(details.startDate).toLocaleDateString()}</DetailItem>
+       {details.startedWithPreEMI && <DetailItem><em>(Loan started with Pre-EMI period)</em></DetailItem>}
        
        <hr style={{ margin: '15px 0', borderColor: '#eee' }} />
 
@@ -85,67 +97,68 @@ const LoanDetailsDisplay: React.FC<LoanDetailsDisplayProps> = ({ loan }) => {
        <DetailItem><strong>Total Interest Payable (Initial):</strong> ₹{summary.totalInterest.toLocaleString()}</DetailItem>
        <DetailItem><strong>Total Amount Payable (Initial):</strong> ₹{summary.totalPayment.toLocaleString()}</DetailItem>
 
-       <h4>Payment History</h4>
-      {loan.paymentHistory.length > 0 ? (
-        <ul>
-          {loan.paymentHistory.map(p => <li key={p.id}>{p.date}: ₹{p.amount} ({p.type})</li>)}
-        </ul>
-      ) : <p>No payments recorded yet.</p>}
+       {/* Conditionally render history sections */}
 
-      <h4>Interest Rate Changes</h4>
-      ...
+       {loan.preEMIInterestPayments.length > 0 && (
+         <>
+           <h4>Pre-EMI Payments</h4>
+           <ul>
+             {loan.preEMIInterestPayments.map(p => <li key={p.id}>{new Date(p.date).toLocaleDateString()}: ₹{p.amount.toLocaleString()} {p.remarks && `(${p.remarks})`}</li>)}
+           </ul>
+         </>
+       )}
 
-      <h4>Pre-EMI Payments</h4>
-      {loan.preEMIInterestPayments.length > 0 ? (
-        <ul>
-          {loan.preEMIInterestPayments.map(p => <li key={p.id}>{new Date(p.date).toLocaleDateString()}: ₹{p.amount.toLocaleString()} {p.remarks && `(${p.remarks})`}</li>)}
-        </ul>
-      ) : <p>No Pre-EMI interest payments recorded.</p>}
+       {loan.paymentHistory.length > 0 && (
+         <>
+           <h4>Payment History (EMIs & Prepayments)</h4>
+           <ul>
+             {loan.paymentHistory.map(p => (
+               <li key={p.id}>
+                 {new Date(p.date).toLocaleDateString()}: ₹{p.amount.toLocaleString()} ({p.type})
+                 {/* Display calculated P/I only if available and meaningful */}
+                 {p.principalPaid !== undefined && p.interestPaid !== undefined && ` - P: ₹${p.principalPaid.toLocaleString()}, I: ₹${p.interestPaid.toLocaleString()}`}
+                 {p.remarks && ` (${p.remarks})`}
+               </li>
+             ))}
+           </ul>
+         </>
+       )}
 
-      <h4>Payment History (EMIs & Prepayments)</h4>
-      {loan.paymentHistory.length > 0 ? (
-        <ul>
-          {loan.paymentHistory.map(p => (
-            <li key={p.id}>
-              {new Date(p.date).toLocaleDateString()}: ₹{p.amount.toLocaleString()} ({p.type})
-              - P: ₹{p.principalPaid.toLocaleString()}, I: ₹{p.interestPaid.toLocaleString()}
-              {p.remarks && ` (${p.remarks})`}
-            </li>
-          ))}
-        </ul>
-      ) : <p>No EMI or Prepayment transactions recorded yet.</p>}
+       {loan.interestRateChanges.length > 0 && (
+         <>
+           <h4>Interest Rate Changes</h4>
+           <ul>
+             {loan.interestRateChanges.map(c => (
+               <li key={c.id}>
+                 {new Date(c.date).toLocaleDateString()}: New Rate {c.newRate}%
+                 {c.adjustmentPreference && ` (Pref: ${c.adjustmentPreference})`}
+                 {c.newEMIIfApplicable && ` (New EMI: ₹${c.newEMIIfApplicable.toLocaleString()})`}
+               </li>
+             ))}
+           </ul>
+         </>
+       )}
 
-      <h4>Interest Rate Changes</h4>
-      {loan.interestRateChanges.length > 0 ? (
-        <ul>
-          {loan.interestRateChanges.map(c => (
-            <li key={c.id}>
-              {new Date(c.date).toLocaleDateString()}: New Rate {c.newRate}%
-              {c.adjustmentPreference && ` (Pref: ${c.adjustmentPreference})`}
-              {c.newEMIIfApplicable && ` (New EMI: ₹${c.newEMIIfApplicable.toLocaleString()})`}
-            </li>
-          ))}
-        </ul>
-      ) : <p>No interest rate changes recorded.</p>}
-
-      <h4>Custom EMI Changes</h4>
-      {loan.customEMIChanges.length > 0 ? (
-        <ul>
-          {loan.customEMIChanges.map(c => (
-            <li key={c.id}>
-              {new Date(c.date).toLocaleDateString()}: New EMI ₹{c.newEMI.toLocaleString()}
-              {c.remarks && ` (${c.remarks})`}
-            </li>
-          ))}
-        </ul>
-       ) : <p>No custom EMI changes recorded.</p>}
+       {loan.customEMIChanges.length > 0 && (
+         <>
+           <h4>Custom EMI Changes</h4>
+           <ul>
+             {loan.customEMIChanges.map(c => (
+               <li key={c.id}>
+                 {new Date(c.date).toLocaleDateString()}: New EMI ₹{c.newEMI.toLocaleString()}
+                 {c.remarks && ` (${c.remarks})`}
+               </li>
+             ))}
+           </ul>
+         </>
+       )}
        
-       <PreEmiPaymentForm /> {/* Updated component usage */}
-       {/* <DynamicAdjustmentsForm /> */} {/* Remove usage */}
+       {/* Render forms and tools */}
+       <PreEmiPaymentForm /> {/* Only renders if loan.details.startedWithPreEMI is true */}
        <PrepaymentSimulator />
-      <LoanSummaries schedule={amortizationSchedule} />
-      <LoanChart schedule={amortizationSchedule} /> {/* Add the chart component */}
-      <AmortizationTable schedule={amortizationSchedule} loan={loan} /> {/* Pass loan prop */}
+       <LoanSummaries schedule={amortizationSchedule} />
+       <LoanChart schedule={amortizationSchedule} /> 
+       <AmortizationTable schedule={amortizationSchedule} loan={loan} /> 
     </DetailsContainer>
   );
 };

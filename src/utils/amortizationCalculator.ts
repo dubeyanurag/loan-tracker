@@ -43,7 +43,7 @@ export const generateAmortizationSchedule = (loan: Loan): AmortizationEntry[] =>
     let interestForMonth = openingBalance * monthlyInterestRate;
     let principalPaidThisMonth = currentEMI - interestForMonth;
     let actualPaymentMade = currentEMI; // Assume scheduled EMI is paid
-    let remarks = '';
+    // let remarks = ''; // Removed remarks generation
 
     // Check for events occurring in the current month/period
     // This logic needs to be robust to handle multiple events in a month,
@@ -52,13 +52,13 @@ export const generateAmortizationSchedule = (loan: Loan): AmortizationEntry[] =>
     
     while(eventPointer < allEvents.length && allEvents[eventPointer].date <= currentDate) {
         const event = allEvents[eventPointer];
-        remarks += `${event.eventType} on ${event.date.toLocaleDateString()}. `;
+        // remarks += `${event.eventType} on ${event.date.toLocaleDateString()}. `; // Removed remarks generation
 
         if (event.eventType === 'payment') {
             actualPaymentMade = event.amount; // Actual amount paid
             if (event.type === 'Prepayment') {
                 openingBalance -= event.amount; // Reduce principal directly
-                remarks += `Prepayment: ${event.amount}. `;
+                // remarks += `Prepayment: ${event.amount}. `; // Removed remarks generation
                 // Recalculate interest for the month on new lower balance if prepayment is at start of month
                 interestForMonth = openingBalance * monthlyInterestRate;
             }
@@ -66,7 +66,7 @@ export const generateAmortizationSchedule = (loan: Loan): AmortizationEntry[] =>
             principalPaidThisMonth = actualPaymentMade - interestForMonth;
         } else if (event.eventType === 'roiChange') {
             currentAnnualRate = event.newRate;
-            remarks += `ROI changed to ${currentAnnualRate}%. `;
+            // remarks += `ROI changed to ${currentAnnualRate}%. `; // Removed remarks generation
             // Recalculate EMI or Tenure based on preference
             if (event.adjustmentPreference === 'adjustEMI') {
                 currentEMI = calculateEMI(openingBalance, currentAnnualRate, currentTenureMonths - (monthNumber -1) ); // Remaining tenure
@@ -76,7 +76,7 @@ export const generateAmortizationSchedule = (loan: Loan): AmortizationEntry[] =>
             // If 'adjustTenure', EMI remains same, tenure will naturally adjust or can be recalculated.
         } else if (event.eventType === 'emiChange') {
             currentEMI = event.newEMI;
-            remarks += `EMI changed to ${currentEMI}. `;
+            // remarks += `EMI changed to ${currentEMI}. `; // Removed remarks generation
         }
         eventPointer++;
     }
@@ -103,7 +103,7 @@ export const generateAmortizationSchedule = (loan: Loan): AmortizationEntry[] =>
       principalPaid: parseFloat(principalPaidThisMonth.toFixed(2)),
       interestPaid: parseFloat(interestForMonth.toFixed(2)),
       closingBalance: parseFloat(closingBalance.toFixed(2)),
-      remarks: remarks.trim(),
+      // remarks: remarks.trim(), // Removed remarks
     });
 
     openingBalance = closingBalance;
