@@ -39,6 +39,7 @@ export interface LoanDetails {
   originalInterestRate: number; // Annual percentage
   originalTenureMonths: number;
   startDate: string; // ISO date string
+  startedWithPreEMI?: boolean; // Optional flag
 }
 
 export interface Loan {

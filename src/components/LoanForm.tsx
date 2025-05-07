@@ -55,8 +55,9 @@ const LoanForm: React.FC = () => {
   const [name, setName] = useState('');
   const [principal, setPrincipal] = useState('');
   const [interestRate, setInterestRate] = useState('');
-  const [tenureMonths, setTenureMonths] = useState(''); // Changed state name
+  const [tenureMonths, setTenureMonths] = useState('');
   const [startDate, setStartDate] = useState('');
+  const [startedWithPreEMI, setStartedWithPreEMI] = useState(false); // New state for checkbox
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,8 +65,9 @@ const LoanForm: React.FC = () => {
     const loanDetails: LoanDetails = {
       principal: parseFloat(principal),
       originalInterestRate: parseFloat(interestRate),
-      originalTenureMonths: parseInt(tenureMonths), // Use directly
+      originalTenureMonths: parseInt(tenureMonths),
       startDate: startDate,
+      startedWithPreEMI: startedWithPreEMI, // Add flag to details
     };
 
     // Basic validation (can be expanded)
@@ -93,8 +95,9 @@ const LoanForm: React.FC = () => {
     setName('');
     setPrincipal('');
     setInterestRate('');
-    setTenureMonths(''); // Reset months state
+    setTenureMonths('');
     setStartDate('');
+    setStartedWithPreEMI(false); // Reset checkbox state
   };
 
   return (
@@ -119,6 +122,16 @@ const LoanForm: React.FC = () => {
       <FormGroup>
         <Label htmlFor="startDate">Loan Start Date:</Label>
         <Input type="date" id="startDate" value={startDate} onChange={(e) => setStartDate(e.target.value)} required />
+      </FormGroup>
+      <FormGroup style={{ flexDirection: 'row', alignItems: 'center', gap: '10px' }}> 
+        <Input 
+          type="checkbox" 
+          id="startedWithPreEMI" 
+          checked={startedWithPreEMI} 
+          onChange={(e) => setStartedWithPreEMI(e.target.checked)} 
+          style={{ width: 'auto' }} // Adjust checkbox width
+        />
+        <Label htmlFor="startedWithPreEMI" style={{ marginBottom: 0 }}>Did loan start with a Pre-EMI period?</Label>
       </FormGroup>
       <Button type="submit">Add Loan</Button>
     </FormContainer>
