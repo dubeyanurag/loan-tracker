@@ -37,7 +37,8 @@ const Section = styled.section`
   padding: 15px;
   border-radius: 5px;
   /* background-color: #f0f4f8; */
-  overflow: hidden; /* Add overflow hidden to prevent content spillover/overlap */
+  /* overflow: hidden; */ /* Remove overflow hidden */
+  /* min-height: 100vh; */ /* Revert temporary debug */
 `;
 
 

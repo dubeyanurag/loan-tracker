@@ -12,17 +12,18 @@ const ListContainer = styled.div`
   background-color: #fff;
 `;
 
-const LoanItem = styled.div<{isSelected: boolean}>`
+// Use $isSelected for transient prop
+const LoanItem = styled.div<{$isSelected: boolean}>` 
   padding: 10px;
   margin-bottom: 8px;
   border: 1px solid #ddd;
   border-radius: 4px;
   cursor: pointer;
-  background-color: ${props => props.isSelected ? '#e0efff' : '#f9f9f9'};
+  background-color: ${props => props.$isSelected ? '#e0efff' : '#f9f9f9'}; 
   transition: background-color 0.2s;
 
   &:hover {
-    background-color: ${props => props.isSelected ? '#cce0ff' : '#efefef'};
+    background-color: ${props => props.$isSelected ? '#cce0ff' : '#efefef'}; 
   }
 
   display: flex;
@@ -68,10 +69,10 @@ const LoanList: React.FC = () => {
     <ListContainer>
       <h3>Your Loans</h3>
       {loans.map((loan: Loan) => (
-        <LoanItem 
-          key={loan.id} 
+        <LoanItem
+          key={loan.id}
           onClick={() => handleSelectLoan(loan.id)}
-          isSelected={loan.id === selectedLoanId}
+          $isSelected={loan.id === selectedLoanId} // Pass transient prop with $
         >
           <span>{loan.name} (Principal: ₹{loan.details.principal.toLocaleString()})</span>
           <DeleteButton onClick={(e) => handleDeleteLoan(e, loan.id)}>Delete</DeleteButton>
