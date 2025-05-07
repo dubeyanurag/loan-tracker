@@ -1,7 +1,7 @@
 // src/components/LoanDetailsDisplay.tsx
-import React, { useMemo } from 'react';
+import React, { useMemo, useCallback } from 'react'; // Add useCallback
 import styled from 'styled-components';
-import { Loan, AmortizationEntry } from '../types';
+import { Loan, AmortizationEntry, InterestRateChange, CustomEMIChange } from '../types'; // Import change types
 import { calculateEMI, calculateTotalInterestAndPayment, calculateTotalDisbursed } from '../utils/loanCalculations'; 
 import { generateAmortizationSchedule } from '../utils/amortizationCalculator'; 
 // import PreEmiPaymentForm from './PaymentForm'; // Removed import
@@ -10,6 +10,7 @@ import PrepaymentSimulator from './PrepaymentSimulator';
 import AmortizationTable from './AmortizationTable';
 import LoanSummaries from './LoanSummaries';
 import LoanChart from './LoanChart'; 
+import { useAppDispatch } from '../contexts/AppContext'; // Import dispatch
 
 const DetailsContainer = styled.div`
   display: flex; 
@@ -40,6 +41,9 @@ const DetailsContainer = styled.div`
   }
   li {
     margin-bottom: 4px;
+    display: flex; // Use flex for aligning edit button
+    justify-content: space-between;
+    align-items: center;
   }
 `;
 
@@ -52,12 +56,28 @@ const DetailItem = styled.p`
   }
 `;
 
+// Simple Edit button style
+const EditButton = styled.button`
+  padding: 2px 5px;
+  font-size: 0.8em;
+  margin-left: 10px;
+  cursor: pointer;
+  background-color: #e9ecef;
+  border: 1px solid #ced4da;
+  border-radius: 3px;
+   &:hover {
+     background-color: #dee2e6;
+   }
+`;
+
+
 interface LoanDetailsDisplayProps {
   loan: Loan;
 }
 
 const LoanDetailsDisplay: React.FC<LoanDetailsDisplayProps> = ({ loan }) => {
   const { details } = loan; 
+  const dispatch = useAppDispatch();
 
   const totalDisbursed = useMemo(() => calculateTotalDisbursed(details.disbursements), [details.disbursements]);
 
@@ -83,6 +103,71 @@ const LoanDetailsDisplay: React.FC<LoanDetailsDisplayProps> = ({ loan }) => {
     return generateAmortizationSchedule(loan);
   }, [loan]); 
 
+  // --- Edit Handlers ---
+  const handleEditROIChange = useCallback((changeToEdit: InterestRateChange) => {
+    const newRateStr = window.prompt(`Edit Annual ROI (%) for ${new Date(changeToEdit.date).toLocaleDateString()}:`, String(changeToEdit.newRate));
+    if (newRateStr === null) return; // User cancelled
+
+    const newRate = parseFloat(newRateStr);
+    if (isNaN(newRate) || newRate < 0) {
+      alert('Invalid rate.');
+      return;
+    }
+
+    const preferencePrompt = window.prompt(`New ROI is ${newRate}%. Choose effect:\n1: Reduce Tenure (Keep EMI Same)\n2: Reduce EMI (Keep Tenure Same)`, 
+        changeToEdit.adjustmentPreference === 'adjustEMI' ? "2" : "1"); // Default to current pref
+        
+    // Ensure the type is strictly one of the two allowed for editing
+    let newAdjustmentPreference: 'adjustTenure' | 'adjustEMI'; 
+    if (preferencePrompt === '2') {
+        newAdjustmentPreference = 'adjustEMI';
+    } else { // Default to 'adjustTenure' if prompt is '1' or invalid
+        newAdjustmentPreference = 'adjustTenure';
+        if (preferencePrompt !== '1') {
+             alert('Invalid choice. Defaulting to "Reduce Tenure".');
+        }
+    }
+    
+    const updatedLoan = {
+        ...loan,
+        interestRateChanges: loan.interestRateChanges.map(c =>
+            c.id === changeToEdit.id
+            // Update rate and the strictly typed preference. Remove newEMIIfApplicable if it existed.
+            ? { ...c, newRate: newRate, adjustmentPreference: newAdjustmentPreference, newEMIIfApplicable: undefined } 
+            : c
+        )
+    };
+    dispatch({ type: 'UPDATE_LOAN', payload: updatedLoan });
+
+  }, [dispatch, loan]);
+
+  const handleEditCustomEMIChange = useCallback((changeToEdit: CustomEMIChange) => {
+      const newEmiStr = window.prompt(`Edit Custom EMI (₹) for ${new Date(changeToEdit.date).toLocaleDateString()}:`, String(changeToEdit.newEMI));
+      if (newEmiStr === null) return; // User cancelled
+
+      const newEMI = parseFloat(newEmiStr);
+      if (isNaN(newEMI) || newEMI <= 0) {
+          alert('Invalid EMI amount.');
+          return;
+      }
+      
+      // Optionally edit remarks too? For now, just EMI.
+      // const newRemarks = window.prompt("Edit Remarks (optional):", changeToEdit.remarks || "");
+
+      const updatedLoan = {
+          ...loan,
+          customEMIChanges: loan.customEMIChanges.map(c => 
+              c.id === changeToEdit.id 
+              ? { ...c, newEMI: newEMI /*, remarks: newRemarks || undefined */ } 
+              : c
+          )
+      };
+      dispatch({ type: 'UPDATE_LOAN', payload: updatedLoan });
+
+  }, [dispatch, loan]);
+  // --- End Edit Handlers ---
+
+
   return (
     <DetailsContainer>
        <h3>{loan.name} - Summary</h3>
@@ -104,7 +189,7 @@ const LoanDetailsDisplay: React.FC<LoanDetailsDisplayProps> = ({ loan }) => {
        <DetailItem><strong>Total Amount Payable (Estimate):</strong> ₹{summary.totalPayment.toLocaleString()}</DetailItem>
 
        {/* Conditionally render history sections */}
-        {details.disbursements.length > 0 && ( // Always show disbursements if they exist
+        {details.disbursements.length > 0 && ( 
              <>
                <h4>Disbursements</h4>
                <ul>
@@ -121,9 +206,12 @@ const LoanDetailsDisplay: React.FC<LoanDetailsDisplayProps> = ({ loan }) => {
            <ul>
              {loan.paymentHistory.map(p => (
                <li key={p.id}>
-                 {new Date(p.date).toLocaleDateString()}: ₹{p.amount.toLocaleString()} ({p.type})
-                 {p.principalPaid !== undefined && p.interestPaid !== undefined && ` - P: ₹${p.principalPaid.toLocaleString()}, I: ₹${p.interestPaid.toLocaleString()}`}
-                 {p.remarks && ` (${p.remarks})`}
+                 <span>
+                    {new Date(p.date).toLocaleDateString()}: ₹{p.amount.toLocaleString()} ({p.type})
+                    {p.principalPaid !== undefined && p.interestPaid !== undefined && ` - P: ₹${p.principalPaid.toLocaleString()}, I: ₹${p.interestPaid.toLocaleString()}`}
+                    {p.remarks && ` (${p.remarks})`}
+                 </span>
+                 {/* Add Edit button for payments later if needed */}
                </li>
              ))}
            </ul>
@@ -136,9 +224,12 @@ const LoanDetailsDisplay: React.FC<LoanDetailsDisplayProps> = ({ loan }) => {
            <ul>
              {loan.interestRateChanges.map(c => (
                <li key={c.id}>
-                 {new Date(c.date).toLocaleDateString()}: New Rate {c.newRate}%
-                 {c.adjustmentPreference && ` (Pref: ${c.adjustmentPreference})`}
-                 {c.newEMIIfApplicable && ` (New EMI: ₹${c.newEMIIfApplicable.toLocaleString()})`}
+                 <span>
+                    {new Date(c.date).toLocaleDateString()}: New Rate {c.newRate}%
+                    {c.adjustmentPreference && ` (Pref: ${c.adjustmentPreference})`}
+                    {c.newEMIIfApplicable && ` (New EMI: ₹${c.newEMIIfApplicable.toLocaleString()})`}
+                 </span>
+                 <EditButton onClick={() => handleEditROIChange(c)}>Edit</EditButton>
                </li>
              ))}
            </ul>
@@ -151,8 +242,11 @@ const LoanDetailsDisplay: React.FC<LoanDetailsDisplayProps> = ({ loan }) => {
            <ul>
              {loan.customEMIChanges.map(c => (
                <li key={c.id}>
-                 {new Date(c.date).toLocaleDateString()}: New EMI ₹{c.newEMI.toLocaleString()}
-                 {c.remarks && ` (${c.remarks})`}
+                 <span>
+                    {new Date(c.date).toLocaleDateString()}: New EMI ₹{c.newEMI.toLocaleString()}
+                    {c.remarks && ` (${c.remarks})`}
+                 </span>
+                  <EditButton onClick={() => handleEditCustomEMIChange(c)}>Edit</EditButton>
                </li>
              ))}
            </ul>

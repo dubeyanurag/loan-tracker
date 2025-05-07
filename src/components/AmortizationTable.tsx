@@ -61,16 +61,7 @@ interface AmortizationTableProps {
 const AmortizationTable: React.FC<AmortizationTableProps> = ({ schedule, loan }) => {
   const dispatch = useAppDispatch();
 
-  // Find the date of the latest structural adjustment (ROI or Custom EMI change)
-  const latestAdjustmentDate = useMemo(() => {
-    const roiDates = loan.interestRateChanges.map(c => new Date(c.date).getTime());
-    const emiDates = loan.customEMIChanges.map(c => new Date(c.date).getTime());
-    const allAdjustmentTimestamps = [...roiDates, ...emiDates];
-    if (allAdjustmentTimestamps.length === 0) {
-      return null; // No adjustments made yet
-    }
-    return new Date(Math.max(...allAdjustmentTimestamps));
-  }, [loan.interestRateChanges, loan.customEMIChanges]);
+  // Removed latestAdjustmentDate calculation as disabling logic is removed
 
   const handleAddPrepayment = (entry: AmortizationEntry) => {
     const amountStr = window.prompt(`Enter prepayment amount for ${new Date(entry.paymentDate).toLocaleDateString()}:`);
@@ -182,10 +173,8 @@ const AmortizationTable: React.FC<AmortizationTableProps> = ({ schedule, loan })
         </thead>
         <tbody>
           {schedule.map((entry) => {
-            const entryDate = new Date(entry.paymentDate);
-            // Disable ROI/EMI actions if entry date is on or before the latest structural adjustment
-            const isStructureChangeDisabled = latestAdjustmentDate ? entryDate <= latestAdjustmentDate : false;
-            // Prepay is always enabled (per revised plan)
+            const entryDate = new Date(entry.paymentDate); // Restore entryDate for display
+            // const isStructureChangeDisabled = false; // Disabling removed
 
             return (
               <tr key={entry.monthNumber}>
@@ -198,9 +187,10 @@ const AmortizationTable: React.FC<AmortizationTableProps> = ({ schedule, loan })
                 <td>{entry.closingBalance.toLocaleString()}</td>
                 {/* <td>{entry.remarks}</td> */} {/* Removed Remarks Cell */}
                 <td> {/* Actions Cell */}
+                  {/* Buttons are now always enabled */}
                   <ActionButton onClick={() => handleAddPrepayment(entry)} title="Add Prepayment">Prepay</ActionButton>
-                  <ActionButton onClick={() => handleSetROI(entry)} disabled={isStructureChangeDisabled} title="Set New ROI">Set ROI</ActionButton>
-                  <ActionButton onClick={() => handleSetEMI(entry)} disabled={isStructureChangeDisabled} title="Set Custom EMI">Set EMI</ActionButton>
+                  <ActionButton onClick={() => handleSetROI(entry)} title="Set New ROI">Set ROI</ActionButton>
+                  <ActionButton onClick={() => handleSetEMI(entry)} title="Set Custom EMI">Set EMI</ActionButton>
                 </td>
               </tr>
             );
