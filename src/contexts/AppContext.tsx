@@ -51,17 +51,7 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
         ),
       };
     }
-    case 'ADD_PRE_EMI_PAYMENT': {
-      const { loanId, payment } = action.payload;
-      return {
-        ...state,
-        loans: state.loans.map(loan =>
-          loan.id === loanId
-            ? { ...loan, preEMIInterestPayments: [...loan.preEMIInterestPayments, { ...payment, id: uuidv4() }] }
-            : loan
-        ),
-      };
-    }
+    // Removed ADD_PRE_EMI_PAYMENT case
     case 'ADD_INTEREST_RATE_CHANGE': {
         const { loanId, change } = action.payload;
         return {

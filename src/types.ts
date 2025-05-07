@@ -1,11 +1,6 @@
 // src/types.ts
 
-export interface PreEMIInterestPayment {
-  id: string; // Unique ID for the payment
-  date: string; // ISO date string
-  amount: number;
-  remarks?: string;
-}
+// Removed PreEMIInterestPayment interface
 
 export interface Payment {
   id: string; // Unique ID for the payment
@@ -56,7 +51,7 @@ export interface Loan {
   id: string; // Unique ID for the loan itself, e.g., UUID
   name: string; // User-defined name, e.g., "My HDFC Home Loan"
   details: LoanDetails;
-  preEMIInterestPayments: PreEMIInterestPayment[];
+  // preEMIInterestPayments: PreEMIInterestPayment[]; // Removed
   paymentHistory: Payment[];
   interestRateChanges: InterestRateChange[];
   customEMIChanges: CustomEMIChange[];
@@ -86,7 +81,7 @@ export type AppAction =
   | { type: 'LOAD_STATE'; payload: AppState } // For loading from localStorage
   // More specific actions for loan modifications can be added:
   | { type: 'ADD_PAYMENT'; payload: { loanId: string; payment: Payment } }
-  | { type: 'ADD_PRE_EMI_PAYMENT'; payload: { loanId: string; payment: PreEMIInterestPayment } }
+  // | { type: 'ADD_PRE_EMI_PAYMENT'; payload: { loanId: string; payment: PreEMIInterestPayment } } // Removed
   | { type: 'ADD_INTEREST_RATE_CHANGE'; payload: { loanId: string; change: InterestRateChange } }
   | { type: 'ADD_CUSTOM_EMI_CHANGE'; payload: { loanId: string; change: CustomEMIChange } }
   | { type: 'ADD_DISBURSEMENT'; payload: { loanId: string; disbursement: Disbursement } }; // New action type

@@ -5,7 +5,7 @@ import { Loan, AmortizationEntry } from '../types';
 import { calculateEMI, calculateTotalInterestAndPayment, calculateTotalDisbursed } from '../utils/loanCalculations'; 
 import { generateAmortizationSchedule } from '../utils/amortizationCalculator'; 
 import PreEmiPaymentForm from './PaymentForm'; 
-import AddDisbursementForm from './AddDisbursementForm'; // Import the new form
+import AddDisbursementForm from './AddDisbursementForm'; 
 import PrepaymentSimulator from './PrepaymentSimulator';
 import AmortizationTable from './AmortizationTable';
 import LoanSummaries from './LoanSummaries';
@@ -113,14 +113,7 @@ const LoanDetailsDisplay: React.FC<LoanDetailsDisplayProps> = ({ loan }) => {
              </>
         )}
 
-       {loan.preEMIInterestPayments.length > 0 && (
-         <>
-           <h4>Pre-EMI Payments</h4>
-           <ul>
-             {loan.preEMIInterestPayments.map(p => <li key={p.id}>{new Date(p.date).toLocaleDateString()}: ₹{p.amount.toLocaleString()} {p.remarks && `(${p.remarks})`}</li>)}
-           </ul>
-         </>
-       )}
+       {/* Removed Pre-EMI Payments section */}
 
        {loan.paymentHistory.length > 0 && (
          <>
@@ -168,7 +161,7 @@ const LoanDetailsDisplay: React.FC<LoanDetailsDisplayProps> = ({ loan }) => {
        
        {/* Render forms and tools */}
        <PreEmiPaymentForm /> 
-       <AddDisbursementForm /> {/* Add the new form */}
+       <AddDisbursementForm /> 
        <PrepaymentSimulator />
        <LoanSummaries schedule={amortizationSchedule} />
        <LoanChart schedule={amortizationSchedule} loan={loan} /> 
