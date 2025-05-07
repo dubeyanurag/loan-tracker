@@ -55,7 +55,8 @@ export const generateAmortizationSchedule = (loan: Loan): AmortizationEntry[] =>
     let interestForMonth = openingBalance * monthlyInterestRate;
     let principalPaidThisMonth = currentEMI - interestForMonth;
     let actualPaymentMade = currentEMI; // Assume scheduled EMI is paid
-    // let remarks = ''; // Removed remarks generation
+    // Event indicators for the current month's entry
+    let entryIndicators: Partial<Pick<AmortizationEntry, 'isPrepayment' | 'isRoiChange' | 'isEmiChange' | 'isDisbursement'>> = {};
 
     // Check for events occurring in the current month/period
     // This logic needs to be robust to handle multiple events in a month,
@@ -68,36 +69,33 @@ export const generateAmortizationSchedule = (loan: Loan): AmortizationEntry[] =>
         // remarks += `${event.eventType} on ${event.date.toLocaleDateString()}. `; 
 
         if (event.eventType === 'disbursement') {
-            openingBalance += event.amount; // Add disbursement to balance *after* interest calc for current month
+            openingBalance += event.amount; 
             cumulativeDisbursed += event.amount;
-            // Recalculate EMI based on new total disbursed and remaining tenure? (Bank specific)
-            // Assuming EMI recalculates to maintain original tenure based on new total disbursed
-            const remainingMonths = currentTenureMonths - monthNumber; // Approximation
+            const remainingMonths = currentTenureMonths - monthNumber; 
             currentEMI = calculateEMI(openingBalance, currentAnnualRate, remainingMonths > 0 ? remainingMonths : 1);
-            // remarks += `Disbursement: ${event.amount}. New EMI: ${currentEMI}. `;
+            entryIndicators.isDisbursement = { amount: event.amount }; // Set indicator
         } else if (event.eventType === 'payment') {
             actualPaymentMade = event.amount; 
             if (event.type === 'Prepayment') {
-                openingBalance -= event.amount; // Reduce principal directly
-                // remarks += `Prepayment: ${event.amount}. `; // Removed remarks generation
-                // Recalculate interest for the month on new lower balance if prepayment is at start of month
+                openingBalance -= event.amount; 
                 interestForMonth = openingBalance * monthlyInterestRate;
+                entryIndicators.isPrepayment = { amount: event.amount }; // Set indicator
             }
             // For EMI type, actualPaymentMade is set. The principal/interest split will be based on this.
             principalPaidThisMonth = actualPaymentMade - interestForMonth;
         } else if (event.eventType === 'roiChange') {
             currentAnnualRate = event.newRate;
-            // remarks += `ROI changed to ${currentAnnualRate}%. `; // Removed remarks generation
-            // Recalculate EMI or Tenure based on preference
+            const remainingMonths = currentTenureMonths - (monthNumber -1); // Approx remaining
             if (event.adjustmentPreference === 'adjustEMI') {
-                currentEMI = calculateEMI(openingBalance, currentAnnualRate, currentTenureMonths - (monthNumber -1) ); // Remaining tenure
-            } else if (event.adjustmentPreference === 'customEMI' && event.newEMIIfApplicable) {
+                currentEMI = calculateEMI(openingBalance, currentAnnualRate, remainingMonths > 0 ? remainingMonths : 1); 
+            } else if (event.adjustmentPreference === 'customEMI' && event.newEMIIfApplicable) { // This case might be removed if edit only allows adjustTenure/adjustEMI
                 currentEMI = event.newEMIIfApplicable;
             }
-            // If 'adjustTenure', EMI remains same, tenure will naturally adjust.
+            // If 'adjustTenure', EMI remains same.
+            entryIndicators.isRoiChange = { newRate: event.newRate, preference: event.adjustmentPreference }; // Set indicator
         } else if (event.eventType === 'emiChange') {
             currentEMI = event.newEMI;
-            // remarks += `EMI changed to ${currentEMI}. `;
+            entryIndicators.isEmiChange = { newEMI: event.newEMI }; // Set indicator
         }
         eventPointer++;
         // Re-check if we moved past the Pre-EMI period due to event processing
@@ -141,7 +139,7 @@ export const generateAmortizationSchedule = (loan: Loan): AmortizationEntry[] =>
       principalPaid: parseFloat(principalPaidThisMonth.toFixed(2)),
       interestPaid: parseFloat(interestForMonth.toFixed(2)),
       closingBalance: parseFloat(closingBalance.toFixed(2)),
-      // remarks: remarks.trim(), // Removed remarks
+      ...entryIndicators // Spread the collected indicators for this month
     });
 
     openingBalance = closingBalance;

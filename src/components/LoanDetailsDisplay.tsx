@@ -1,7 +1,7 @@
 // src/components/LoanDetailsDisplay.tsx
-import React, { useMemo, useCallback } from 'react'; // Add useCallback
+import React, { useMemo, useCallback } from 'react'; 
 import styled from 'styled-components';
-import { Loan, AmortizationEntry, InterestRateChange, CustomEMIChange } from '../types'; // Import change types
+import { Loan, AmortizationEntry, InterestRateChange, CustomEMIChange } from '../types'; 
 import { calculateEMI, calculateTotalInterestAndPayment, calculateTotalDisbursed } from '../utils/loanCalculations'; 
 import { generateAmortizationSchedule } from '../utils/amortizationCalculator'; 
 // import PreEmiPaymentForm from './PaymentForm'; // Removed import
@@ -10,7 +10,7 @@ import PrepaymentSimulator from './PrepaymentSimulator';
 import AmortizationTable from './AmortizationTable';
 import LoanSummaries from './LoanSummaries';
 import LoanChart from './LoanChart'; 
-import { useAppDispatch } from '../contexts/AppContext'; // Import dispatch
+import { useAppDispatch } from '../contexts/AppContext'; 
 
 const DetailsContainer = styled.div`
   display: flex; 
@@ -28,22 +28,10 @@ const DetailsContainer = styled.div`
     border-bottom: 1px solid #eee;
     padding-bottom: 10px;
   }
-  h4 {
+  h4 { /* Keep styles for other headings if needed */
     margin-bottom: 5px;
     margin-top: 15px;
     color: #444;
-  }
-  ul {
-    margin-top: 5px;
-    padding-left: 20px;
-    font-size: 0.9em;
-    color: #666;
-  }
-  li {
-    margin-bottom: 4px;
-    display: flex; // Use flex for aligning edit button
-    justify-content: space-between;
-    align-items: center;
   }
 `;
 
@@ -56,7 +44,7 @@ const DetailItem = styled.p`
   }
 `;
 
-// Simple Edit button style
+// Simple Edit button style (Keep if needed elsewhere, or remove if only used in deleted lists)
 const EditButton = styled.button`
   padding: 2px 5px;
   font-size: 0.8em;
@@ -77,7 +65,7 @@ interface LoanDetailsDisplayProps {
 
 const LoanDetailsDisplay: React.FC<LoanDetailsDisplayProps> = ({ loan }) => {
   const { details } = loan; 
-  const dispatch = useAppDispatch();
+  const dispatch = useAppDispatch(); // Keep dispatch if needed for future edits
 
   const totalDisbursed = useMemo(() => calculateTotalDisbursed(details.disbursements), [details.disbursements]);
 
@@ -103,70 +91,8 @@ const LoanDetailsDisplay: React.FC<LoanDetailsDisplayProps> = ({ loan }) => {
     return generateAmortizationSchedule(loan);
   }, [loan]); 
 
-  // --- Edit Handlers ---
-  const handleEditROIChange = useCallback((changeToEdit: InterestRateChange) => {
-    const newRateStr = window.prompt(`Edit Annual ROI (%) for ${new Date(changeToEdit.date).toLocaleDateString()}:`, String(changeToEdit.newRate));
-    if (newRateStr === null) return; // User cancelled
-
-    const newRate = parseFloat(newRateStr);
-    if (isNaN(newRate) || newRate < 0) {
-      alert('Invalid rate.');
-      return;
-    }
-
-    const preferencePrompt = window.prompt(`New ROI is ${newRate}%. Choose effect:\n1: Reduce Tenure (Keep EMI Same)\n2: Reduce EMI (Keep Tenure Same)`, 
-        changeToEdit.adjustmentPreference === 'adjustEMI' ? "2" : "1"); // Default to current pref
-        
-    // Ensure the type is strictly one of the two allowed for editing
-    let newAdjustmentPreference: 'adjustTenure' | 'adjustEMI'; 
-    if (preferencePrompt === '2') {
-        newAdjustmentPreference = 'adjustEMI';
-    } else { // Default to 'adjustTenure' if prompt is '1' or invalid
-        newAdjustmentPreference = 'adjustTenure';
-        if (preferencePrompt !== '1') {
-             alert('Invalid choice. Defaulting to "Reduce Tenure".');
-        }
-    }
-    
-    const updatedLoan = {
-        ...loan,
-        interestRateChanges: loan.interestRateChanges.map(c =>
-            c.id === changeToEdit.id
-            // Update rate and the strictly typed preference. Remove newEMIIfApplicable if it existed.
-            ? { ...c, newRate: newRate, adjustmentPreference: newAdjustmentPreference, newEMIIfApplicable: undefined } 
-            : c
-        )
-    };
-    dispatch({ type: 'UPDATE_LOAN', payload: updatedLoan });
-
-  }, [dispatch, loan]);
-
-  const handleEditCustomEMIChange = useCallback((changeToEdit: CustomEMIChange) => {
-      const newEmiStr = window.prompt(`Edit Custom EMI (₹) for ${new Date(changeToEdit.date).toLocaleDateString()}:`, String(changeToEdit.newEMI));
-      if (newEmiStr === null) return; // User cancelled
-
-      const newEMI = parseFloat(newEmiStr);
-      if (isNaN(newEMI) || newEMI <= 0) {
-          alert('Invalid EMI amount.');
-          return;
-      }
-      
-      // Optionally edit remarks too? For now, just EMI.
-      // const newRemarks = window.prompt("Edit Remarks (optional):", changeToEdit.remarks || "");
-
-      const updatedLoan = {
-          ...loan,
-          customEMIChanges: loan.customEMIChanges.map(c => 
-              c.id === changeToEdit.id 
-              ? { ...c, newEMI: newEMI /*, remarks: newRemarks || undefined */ } 
-              : c
-          )
-      };
-      dispatch({ type: 'UPDATE_LOAN', payload: updatedLoan });
-
-  }, [dispatch, loan]);
-  // --- End Edit Handlers ---
-
+  // Edit Handlers are removed as the lists containing the edit buttons are removed.
+  // If editing is needed later, it would likely be triggered from the AmortizationTable itself.
 
   return (
     <DetailsContainer>
@@ -188,73 +114,10 @@ const LoanDetailsDisplay: React.FC<LoanDetailsDisplayProps> = ({ loan }) => {
        <DetailItem><strong>Total Interest Payable (Estimate):</strong> ₹{summary.totalInterest.toLocaleString()}</DetailItem>
        <DetailItem><strong>Total Amount Payable (Estimate):</strong> ₹{summary.totalPayment.toLocaleString()}</DetailItem>
 
-       {/* Conditionally render history sections */}
-        {details.disbursements.length > 0 && ( 
-             <>
-               <h4>Disbursements</h4>
-               <ul>
-                 {details.disbursements.map(d => <li key={d.id}>{new Date(d.date).toLocaleDateString()}: ₹{d.amount.toLocaleString()} {d.remarks && `(${d.remarks})`}</li>)}
-               </ul>
-             </>
-        )}
-
-       {/* Removed Pre-EMI Payments section */}
-
-       {loan.paymentHistory.length > 0 && (
-         <>
-           <h4>Payment History (EMIs & Prepayments)</h4>
-           <ul>
-             {loan.paymentHistory.map(p => (
-               <li key={p.id}>
-                 <span>
-                    {new Date(p.date).toLocaleDateString()}: ₹{p.amount.toLocaleString()} ({p.type})
-                    {p.principalPaid !== undefined && p.interestPaid !== undefined && ` - P: ₹${p.principalPaid.toLocaleString()}, I: ₹${p.interestPaid.toLocaleString()}`}
-                    {p.remarks && ` (${p.remarks})`}
-                 </span>
-                 {/* Add Edit button for payments later if needed */}
-               </li>
-             ))}
-           </ul>
-         </>
-       )}
-
-       {loan.interestRateChanges.length > 0 && (
-         <>
-           <h4>Interest Rate Changes</h4>
-           <ul>
-             {loan.interestRateChanges.map(c => (
-               <li key={c.id}>
-                 <span>
-                    {new Date(c.date).toLocaleDateString()}: New Rate {c.newRate}%
-                    {c.adjustmentPreference && ` (Pref: ${c.adjustmentPreference})`}
-                    {c.newEMIIfApplicable && ` (New EMI: ₹${c.newEMIIfApplicable.toLocaleString()})`}
-                 </span>
-                 <EditButton onClick={() => handleEditROIChange(c)}>Edit</EditButton>
-               </li>
-             ))}
-           </ul>
-         </>
-       )}
-
-       {loan.customEMIChanges.length > 0 && (
-         <>
-           <h4>Custom EMI Changes</h4>
-           <ul>
-             {loan.customEMIChanges.map(c => (
-               <li key={c.id}>
-                 <span>
-                    {new Date(c.date).toLocaleDateString()}: New EMI ₹{c.newEMI.toLocaleString()}
-                    {c.remarks && ` (${c.remarks})`}
-                 </span>
-                  <EditButton onClick={() => handleEditCustomEMIChange(c)}>Edit</EditButton>
-               </li>
-             ))}
-           </ul>
-         </>
-       )}
+       {/* History sections removed */}
        
        {/* Render forms and tools */}
-       {/* <PreEmiPaymentForm /> */} {/* Removed usage */}
+       {/* <PreEmiPaymentForm /> */} {/* Removed */}
        <AddDisbursementForm /> 
        <PrepaymentSimulator />
        <LoanSummaries schedule={amortizationSchedule} />

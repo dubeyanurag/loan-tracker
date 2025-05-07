@@ -94,5 +94,9 @@ export interface AmortizationEntry {
   principalPaid: number;
   interestPaid: number;
   closingBalance: number;
-  // remarks?: string; // Removed remarks
+  // Indicator fields for events occurring *during* this month/period
+  isPrepayment?: { amount: number };
+  isRoiChange?: { newRate: number; preference?: string };
+  isEmiChange?: { newEMI: number };
+  isDisbursement?: { amount: number };
 }

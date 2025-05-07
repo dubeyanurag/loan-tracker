@@ -29,9 +29,22 @@ const StyledTable = styled.table`
     z-index: 1;
   }
 
-  td:nth-child(1), td:nth-child(2) { /* Month, Date */
+  td:nth-child(1), td:nth-child(2), td:nth-child(8) { /* Month, Date, Event */
     text-align: left;
   }
+  td:nth-child(8) { /* Event column */
+      font-size: 0.85em;
+      font-style: italic;
+      color: #555;
+      min-width: 150px;
+  }
+
+  /* Row highlighting styles */
+  tr.highlight-prepayment { background-color: #e6ffed; }
+  tr.highlight-roi { background-color: #fff3cd; }
+  tr.highlight-emi { background-color: #f3e7ff; }
+  tr.highlight-disbursement { background-color: #d1ecf1; }
+
 `;
 
 // Style for action buttons
@@ -167,7 +180,7 @@ const AmortizationTable: React.FC<AmortizationTableProps> = ({ schedule, loan })
             <th>Principal</th>
             <th>Interest</th>
             <th>Closing Balance</th>
-            {/* <th>Remarks</th> */} {/* Removed Remarks Column */}
+            <th>Event</th> {/* New Event Column */}
             <th>Actions</th> 
           </tr>
         </thead>
@@ -176,8 +189,29 @@ const AmortizationTable: React.FC<AmortizationTableProps> = ({ schedule, loan })
             const entryDate = new Date(entry.paymentDate); // Restore entryDate for display
             // const isStructureChangeDisabled = false; // Disabling removed
 
+            // Determine highlight class based on indicators
+            let highlightClass = '';
+            let eventText = '';
+            if (entry.isPrepayment) { 
+                highlightClass = 'highlight-prepayment'; 
+                eventText += `Prepay: ${entry.isPrepayment.amount.toLocaleString()}; `;
+            }
+            if (entry.isRoiChange) { 
+                highlightClass = 'highlight-roi'; 
+                eventText += `ROI: ${entry.isRoiChange.newRate}% (${entry.isRoiChange.preference}); `;
+            }
+            if (entry.isEmiChange) { 
+                highlightClass = 'highlight-emi'; 
+                eventText += `EMI: ${entry.isEmiChange.newEMI.toLocaleString()}; `;
+            }
+             if (entry.isDisbursement) { 
+                highlightClass = 'highlight-disbursement'; 
+                eventText += `Disburse: ${entry.isDisbursement.amount.toLocaleString()}; `;
+            }
+
+
             return (
-              <tr key={entry.monthNumber}>
+              <tr key={entry.monthNumber} className={highlightClass}>
                 <td>{entry.monthNumber}</td>
                 <td>{entryDate.toLocaleDateString()}</td>
                 <td>{entry.openingBalance.toLocaleString()}</td>
@@ -185,7 +219,7 @@ const AmortizationTable: React.FC<AmortizationTableProps> = ({ schedule, loan })
                 <td>{entry.principalPaid.toLocaleString()}</td>
                 <td>{entry.interestPaid.toLocaleString()}</td>
                 <td>{entry.closingBalance.toLocaleString()}</td>
-                {/* <td>{entry.remarks}</td> */} {/* Removed Remarks Cell */}
+                <td>{eventText.trim()}</td> {/* Event Cell */}
                 <td> {/* Actions Cell */}
                   {/* Buttons are now always enabled */}
                   <ActionButton onClick={() => handleAddPrepayment(entry)} title="Add Prepayment">Prepay</ActionButton>
