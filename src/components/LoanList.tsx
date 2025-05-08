@@ -1,7 +1,7 @@
 // src/components/LoanList.tsx
 import React from 'react';
 import { useAppState, useAppDispatch } from '../contexts/AppContext';
-import { Loan, AmortizationEntry } from '../types'; // Import AmortizationEntry
+import { Loan } from '../types'; // Removed unused AmortizationEntry
 import styled, { css } from 'styled-components'; // Import css
 import { calculateTotalDisbursed } from '../utils/loanCalculations'; 
 import { generateAmortizationSchedule } from '../utils/amortizationCalculator'; // Import schedule generator
