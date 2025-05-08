@@ -14,41 +14,40 @@ This document provides a high-level overview of the application's architecture.
 
 ```mermaid
 graph TD
-    subgraph UI [User Interface (React Components)]
+    subgraph "User Interface (React Components)"
         App[App.tsx] --> CtxProvider(AppContext Provider);
         CtxProvider --> LoanForm[LoanForm.tsx];
         CtxProvider --> LoanList[LoanList.tsx];
         CtxProvider --> LoanDetailsDisplay[LoanDetailsDisplay.tsx];
-        CtxProvider --> ShareState[ShareState.tsx]; %% Added ShareState
-        CtxProvider --> OverallSummary[OverallSummary.tsx]; %% Added OverallSummary
+        CtxProvider --> ShareState[ShareState.tsx]; 
+        CtxProvider --> OverallSummary[OverallSummary.tsx]; 
         
         LoanDetailsDisplay --> AddDisbursementForm[AddDisbursementForm.tsx];
-        %% LoanDetailsDisplay --> PrepaymentSimulator[PrepaymentSimulator.tsx]; %% Removed
         LoanDetailsDisplay --> LoanSummaries[LoanSummaries.tsx];
         LoanDetailsDisplay --> LoanChart[LoanChart.tsx];
         LoanDetailsDisplay --> AmortizationTable[AmortizationTable.tsx];
-        LoanDetailsDisplay --> EditLoanDetailsForm[EditLoanDetailsForm.tsx]; %% Added Edit Form
+        LoanDetailsDisplay --> EditLoanDetailsForm[EditLoanDetailsForm.tsx]; 
 
         LoanForm -- dispatch ADD_LOAN --> Reducer;
         LoanList -- dispatch SELECT_LOAN/DELETE_LOAN --> Reducer;
         AddDisbursementForm -- dispatch ADD_DISBURSEMENT --> Reducer;
         AmortizationTable -- dispatch ADD_PAYMENT/ADD_INTEREST_RATE_CHANGE/ADD_CUSTOM_EMI_CHANGE --> Reducer;
-        AmortizationTable -- dispatch UPDATE_LOAN --> Reducer; %% For Event Deletion
-        LoanDetailsDisplay -- triggers Edit --> EditLoanDetailsForm; %% Edit Trigger
-        EditLoanDetailsForm -- dispatch UPDATE_LOAN --> Reducer; %% Edit Save
+        LoanDetailsDisplay -- triggers Edit --> EditLoanDetailsForm; 
+        EditLoanDetailsForm -- dispatch UPDATE_LOAN --> Reducer; 
+        LoanDetailsDisplay -- triggers Delete --> Reducer; %% For History List Deletion
     end
 
-    subgraph StateMgmt [State Management]
+    subgraph "State Management"
         CtxProvider -- contains --> State(AppState: loans[], selectedLoanId);
         CtxProvider -- contains --> Reducer(appReducer);
         Reducer -- updates --> State;
         State -- persists --> LocalStorage[(localStorage)];
         LocalStorage -- loads --> State;
-        App -- reads URL Param --> State; %% URL Load
-        ShareState -- reads --> State; %% Share Button
+        App -- reads URL Param --> State; 
+        ShareState -- reads --> State; 
     end
     
-    subgraph Utils [Utilities]
+    subgraph "Utilities"
         UtilsCalc[loanCalculations.ts];
         UtilsAmort[amortizationCalculator.ts];
     end
@@ -59,7 +58,6 @@ graph TD
     LoanSummaries -- uses --> UtilsAmort;
     LoanChart -- uses --> UtilsAmort;
     AmortizationTable -- uses --> UtilsAmort; 
-    %% PrepaymentSimulator -- uses --> UtilsCalc; %% Removed
     OverallSummary -- uses --> UtilsAmort;
     OverallSummary -- uses --> UtilsCalc;
     
@@ -68,7 +66,6 @@ graph TD
     LoanList -- reads --> State;
     LoanDetailsDisplay -- reads --> State;
     AddDisbursementForm -- reads --> State;
-    %% PrepaymentSimulator -- reads --> State; %% Removed
     AmortizationTable -- reads --> State; 
     LoanChart -- reads --> State; 
     LoanSummaries -- reads --> State; 
