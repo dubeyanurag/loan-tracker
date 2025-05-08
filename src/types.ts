@@ -45,6 +45,9 @@ export interface LoanDetails {
   startDate: string; // ISO date string (Loan disbursement/agreement start)
   startedWithPreEMI?: boolean; // Optional flag
   emiStartDate?: string; // Optional: ISO date string when full EMIs actually started
+  isTaxDeductible?: boolean; // Is loan eligible for tax deductions?
+  principalDeductionLimit?: number; // Custom limit for Sec 80C (defaults if not set)
+  interestDeductionLimit?: number; // Custom limit for Sec 24b (defaults if not set)
 }
 
 export interface Loan {
