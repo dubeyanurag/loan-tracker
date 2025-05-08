@@ -72,9 +72,13 @@ const LoanForm: React.FC = () => {
   const [initialDisbursementAmount, setInitialDisbursementAmount] = useState(''); // Renamed state
   const [interestRate, setInterestRate] = useState('');
   const [tenureMonths, setTenureMonths] = useState('');
-  const [startDate, setStartDate] = useState(''); // Loan agreement/disbursement start date
+  const [startDate, setStartDate] = useState(''); 
   const [startedWithPreEMI, setStartedWithPreEMI] = useState(false); 
-  const [emiStartDate, setEmiStartDate] = useState(''); // State for the conditional EMI start date
+  const [emiStartDate, setEmiStartDate] = useState(''); 
+  const [isTaxDeductible, setIsTaxDeductible] = useState(true); // Default to true? Or false? Let's default true
+  const [principalLimit, setPrincipalLimit] = useState('150000'); // Default limit
+  const [interestLimit, setInterestLimit] = useState('200000'); // Default limit
+
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -104,7 +108,10 @@ const LoanForm: React.FC = () => {
       startDate: startDate, // Loan agreement start date
       startedWithPreEMI: startedWithPreEMI,
       // Only include emiStartDate if startedWithPreEMI is true
-      emiStartDate: startedWithPreEMI ? emiStartDate : undefined, 
+      emiStartDate: startedWithPreEMI ? emiStartDate : undefined,
+      isTaxDeductible: isTaxDeductible,
+      principalDeductionLimit: isTaxDeductible ? parseFloat(principalLimit) || 150000 : undefined,
+      interestDeductionLimit: isTaxDeductible ? parseFloat(interestLimit) || 200000 : undefined,
     };
 
     // Basic validation (can be expanded)
@@ -138,7 +145,10 @@ const LoanForm: React.FC = () => {
     setTenureMonths('');
     setStartDate('');
     setStartedWithPreEMI(false); 
-    setEmiStartDate(''); // Reset EMI start date state
+    setEmiStartDate(''); 
+    setIsTaxDeductible(true); // Reset tax flag
+    setPrincipalLimit('150000'); // Reset limits
+    setInterestLimit('200000');
     setIsCollapsed(true); // Collapse after adding
   };
 
@@ -152,9 +162,15 @@ const LoanForm: React.FC = () => {
 
   return (
     <FormContainer onSubmit={handleSubmit}>
-      {/* Optionally add a collapse button here too */}
-      {/* <button type="button" onClick={() => setIsCollapsed(true)}>Collapse</button> */}
-      <h3>Add New Loan</h3>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h3>Add New Loan</h3>
+        {/* Add Collapse button only if loans exist (so it doesn't show on initial load) */}
+        {loans.length > 0 && 
+            <ToggleButton type="button" onClick={() => setIsCollapsed(true)} style={{marginBottom: 0, padding: '5px 10px'}}> 
+                Collapse 
+            </ToggleButton>
+        }
+      </div>
       <FormGroup>
         <Label htmlFor="loanName">Loan Name:</Label>
         <Input type="text" id="loanName" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g., My HDFC Loan" required />
@@ -195,10 +211,49 @@ const LoanForm: React.FC = () => {
             id="emiStartDate" 
             value={emiStartDate} 
             onChange={(e) => setEmiStartDate(e.target.value)} 
-            required={startedWithPreEMI} // Make required only if checkbox is checked
+            required={startedWithPreEMI} 
           />
         </FormGroup>
       )}
+
+      {/* Tax Deductibility Section */}
+      <FormGroup style={{ borderTop: '1px solid #eee', paddingTop: '15px' }}>
+         <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+            <Input 
+              type="checkbox" 
+              id="isTaxDeductible" 
+              checked={isTaxDeductible} 
+              onChange={(e) => setIsTaxDeductible(e.target.checked)} 
+              style={{ width: 'auto' }} 
+            />
+            <Label htmlFor="isTaxDeductible" style={{ marginBottom: 0 }}>Is loan eligible for tax deductions?</Label>
+         </div>
+         {isTaxDeductible && (
+            <>
+                <FormGroup style={{marginBottom: '10px'}}>
+                    <Label htmlFor="principalLimit">Principal Deduction Limit (₹) (Sec 80C):</Label>
+                    <Input 
+                        type="number" 
+                        id="principalLimit" 
+                        value={principalLimit} 
+                        onChange={(e) => setPrincipalLimit(e.target.value)} 
+                        placeholder="e.g., 150000" 
+                    />
+                </FormGroup>
+                <FormGroup>
+                    <Label htmlFor="interestLimit">Interest Deduction Limit (₹) (Sec 24b):</Label>
+                    <Input 
+                        type="number" 
+                        id="interestLimit" 
+                        value={interestLimit} 
+                        onChange={(e) => setInterestLimit(e.target.value)} 
+                        placeholder="e.g., 200000" 
+                    />
+                </FormGroup>
+            </>
+         )}
+      </FormGroup>
+
 
       <Button type="submit">Add Loan</Button>
     </FormContainer>

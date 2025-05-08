@@ -1,8 +1,8 @@
 // src/components/LoanSummaries.tsx
 import React, { useMemo, useState } from 'react'; 
 import styled from 'styled-components';
-import { AmortizationEntry, AnnualSummary, LifespanSummary, CurrentSummary } from '../types'; // Import interfaces from types
-import { generateAnnualSummaries, generateLifespanSummary, generateSummaryToDate } from '../utils/amortizationCalculator'; // Import calculation functions
+import { AmortizationEntry, AnnualSummary, LifespanSummary, CurrentSummary, LoanDetails } from '../types'; // Import LoanDetails
+import { generateAnnualSummaries, generateLifespanSummary, generateSummaryToDate } from '../utils/amortizationCalculator'; 
 
 const SummaryContainer = styled.div`
   margin-top: 20px;
@@ -60,6 +60,7 @@ const SummaryTable = styled.table`
 
 interface LoanSummariesProps {
   schedule: AmortizationEntry[];
+  loanDetails: LoanDetails; // Add loanDetails prop
 }
 
 const monthOptions = [
@@ -69,20 +70,22 @@ const monthOptions = [
     { value: 9, label: 'October' }, { value: 10, label: 'November' }, { value: 11, label: 'December' }
 ];
 
-const LoanSummaries: React.FC<LoanSummariesProps> = ({ schedule }) => {
+const LoanSummaries: React.FC<LoanSummariesProps> = ({ schedule, loanDetails }) => { // Destructure loanDetails
   const [fyStartMonth, setFyStartMonth] = useState<number>(3); // Default to April (index 3)
 
   const annualSummaries: AnnualSummary[] = useMemo(() => {
-    return generateAnnualSummaries(schedule, fyStartMonth); 
-  }, [schedule, fyStartMonth]);
+    // Pass loanDetails to generateAnnualSummaries
+    return generateAnnualSummaries(schedule, loanDetails, fyStartMonth); 
+  }, [schedule, loanDetails, fyStartMonth]);
 
   const lifespanSummary: LifespanSummary | null = useMemo(() => {
     return generateLifespanSummary(schedule, annualSummaries); 
   }, [schedule, annualSummaries]); 
 
   const summaryToDate: CurrentSummary | null = useMemo(() => {
-      return generateSummaryToDate(schedule, annualSummaries, fyStartMonth);
-  }, [schedule, annualSummaries, fyStartMonth]);
+      // Pass loanDetails to generateSummaryToDate
+      return generateSummaryToDate(schedule, loanDetails, fyStartMonth); 
+  }, [schedule, loanDetails, fyStartMonth]); // Recalculate if loanDetails changes too
 
   // Determine current FY label for highlighting
   const now = new Date();
@@ -98,6 +101,11 @@ const LoanSummaries: React.FC<LoanSummariesProps> = ({ schedule }) => {
   if (!schedule || schedule.length === 0) {
     return null; 
   }
+
+  // Determine tax limit headers based on loan details
+  const principalLimitHeader = `Deductible Principal (Max ₹${(loanDetails.principalDeductionLimit ?? 150000).toLocaleString()})`;
+  const interestLimitHeader = `Deductible Interest (Max ₹${(loanDetails.interestDeductionLimit ?? 200000).toLocaleString()})`;
+
 
   return (
     <SummaryContainer>
@@ -124,8 +132,11 @@ const LoanSummaries: React.FC<LoanSummariesProps> = ({ schedule }) => {
                 <th>Principal Paid</th>
                 <th>Interest Paid</th>
                 <th>Total Payment</th>
-                <th>Deductible Principal (Max ₹1.5L)</th> 
-                <th>Deductible Interest (Max ₹2L)</th>
+                {/* Show tax columns only if eligible */}
+                {loanDetails.isTaxDeductible && <> 
+                    <th>{principalLimitHeader}</th> 
+                    <th>{interestLimitHeader}</th>
+                </>}
               </tr>
             </thead>
             <tbody>
@@ -134,14 +145,17 @@ const LoanSummaries: React.FC<LoanSummariesProps> = ({ schedule }) => {
                 return (
                   <tr 
                     key={summary.startYear} 
-                    className={isCurrentFY ? 'highlight-current-fy' : ''} // Apply highlight class
+                    className={isCurrentFY ? 'highlight-current-fy' : ''} 
                   > 
                     <td>{summary.yearLabel}</td> 
                     <td>{summary.totalPrincipalPaid.toLocaleString()}</td>
                     <td>{summary.totalInterestPaid.toLocaleString()}</td>
                     <td>{summary.totalPayment.toLocaleString()}</td>
-                    <td>{summary.deductiblePrincipal.toLocaleString()}</td> 
-                    <td>{summary.deductibleInterest.toLocaleString()}</td>
+                    {/* Show tax columns only if eligible */}
+                    {loanDetails.isTaxDeductible && <>
+                        <td>{summary.deductiblePrincipal.toLocaleString()}</td> 
+                        <td>{summary.deductibleInterest.toLocaleString()}</td>
+                    </>}
                   </tr>
                 );
               })}
@@ -161,8 +175,11 @@ const LoanSummaries: React.FC<LoanSummariesProps> = ({ schedule }) => {
                 <p><strong>Total Principal Paid:</strong> ₹{lifespanSummary.totalPrincipalPaid.toLocaleString()}</p>
                 <p><strong>Total Interest Paid:</strong> ₹{lifespanSummary.totalInterestPaid.toLocaleString()}</p>
                 <p><strong>Total Amount Paid:</strong> ₹{lifespanSummary.totalPayment.toLocaleString()}</p>
-                <p><strong>Total Deductible Principal (Max):</strong> ₹{lifespanSummary.totalDeductiblePrincipal.toLocaleString()}</p>
-                <p><strong>Total Deductible Interest (Max):</strong> ₹{lifespanSummary.totalDeductibleInterest.toLocaleString()}</p>
+                {/* Show tax lines only if eligible */}
+                {loanDetails.isTaxDeductible && <>
+                    <p><strong>Total Deductible Principal (Max):</strong> ₹{lifespanSummary.totalDeductiblePrincipal.toLocaleString()}</p>
+                    <p><strong>Total Deductible Interest (Max):</strong> ₹{lifespanSummary.totalDeductibleInterest.toLocaleString()}</p>
+                </>}
               </div>
             ) : (
               <p>No lifespan summary data available.</p>
@@ -178,8 +195,11 @@ const LoanSummaries: React.FC<LoanSummariesProps> = ({ schedule }) => {
                  <p><strong>Total Principal Paid:</strong> ₹{summaryToDate.totalPrincipalPaid.toLocaleString()}</p>
                  <p><strong>Total Interest Paid:</strong> ₹{summaryToDate.totalInterestPaid.toLocaleString()}</p>
                  <p><strong>Total Amount Paid:</strong> ₹{summaryToDate.totalPayment.toLocaleString()}</p>
-                 <p><strong>Total Deductible Principal (Max):</strong> ₹{summaryToDate.totalDeductiblePrincipal.toLocaleString()}</p>
-                 <p><strong>Total Deductible Interest (Max):</strong> ₹{summaryToDate.totalDeductibleInterest.toLocaleString()}</p>
+                 {/* Show tax lines only if eligible */}
+                 {loanDetails.isTaxDeductible && <>
+                    <p><strong>Total Deductible Principal (Max):</strong> ₹{summaryToDate.totalDeductiblePrincipal.toLocaleString()}</p>
+                    <p><strong>Total Deductible Interest (Max):</strong> ₹{summaryToDate.totalDeductibleInterest.toLocaleString()}</p>
+                 </>}
               </div>
             ) : (
               <p>No summary data available for current date.</p>

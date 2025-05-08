@@ -1,5 +1,5 @@
 // src/utils/amortizationCalculator.ts
-import { Loan, AmortizationEntry, Payment, InterestRateChange, CustomEMIChange, Disbursement, CurrentSummary, AnnualSummary, LifespanSummary } from '../types'; // Add LifespanSummary
+import { Loan, AmortizationEntry, Payment, InterestRateChange, CustomEMIChange, Disbursement, CurrentSummary, AnnualSummary, LifespanSummary, LoanDetails } from '../types'; // Add LoanDetails
 import { calculateEMI } from './loanCalculations'; 
 
 // Define a union type for all possible events with a consistent structure
@@ -7,8 +7,6 @@ type LoanEvent =
   | (Omit<Payment, 'date'> & { eventType: 'payment'; date: Date })
   | (Omit<InterestRateChange, 'date'> & { eventType: 'roiChange'; date: Date })
   | (Omit<CustomEMIChange, 'date'> & { eventType: 'emiChange'; date: Date });
-
-// Removed unused EffectiveLoanParams interface
 
 export const generateAmortizationSchedule = (loan: Loan): AmortizationEntry[] => {
   const schedule: AmortizationEntry[] = [];
@@ -126,22 +124,26 @@ export const generateAmortizationSchedule = (loan: Loan): AmortizationEntry[] =>
 
 // --- Summary Calculation Functions ---
 
-const PRINCIPAL_DEDUCTION_LIMIT = 150000;
-const INTEREST_DEDUCTION_LIMIT = 200000;
+const DEFAULT_PRINCIPAL_DEDUCTION_LIMIT = 150000;
+const DEFAULT_INTEREST_DEDUCTION_LIMIT = 200000;
 
-// Ensure LifespanSummary is imported from types
 export const generateAnnualSummaries = (
     schedule: AmortizationEntry[], 
-    fyStartMonth: number = 3 // Default to April (month index 3)
+    loanDetails: LoanDetails, // Pass loan details for tax eligibility/limits
+    fyStartMonth: number = 3 
 ): AnnualSummary[] => {
   if (!schedule || schedule.length === 0) return [];
+
+  const principalLimit = loanDetails.principalDeductionLimit ?? DEFAULT_PRINCIPAL_DEDUCTION_LIMIT;
+  const interestLimit = loanDetails.interestDeductionLimit ?? DEFAULT_INTEREST_DEDUCTION_LIMIT;
+  const isEligible = loanDetails.isTaxDeductible ?? false; // Default to false if not set
 
   const summariesByFY: { [fyLabel: string]: Omit<AnnualSummary, 'yearLabel' | 'startYear'> & { startYear: number } } = {}; 
 
   schedule.forEach(entry => {
     const entryDate = new Date(entry.paymentDate);
     const year = entryDate.getFullYear();
-    const month = entryDate.getMonth(); // 0-11
+    const month = entryDate.getMonth(); 
 
     let financialYearStart = year;
     if (month < fyStartMonth) {
@@ -155,7 +157,7 @@ export const generateAnnualSummaries = (
         totalPrincipalPaid: 0,
         totalInterestPaid: 0,
         totalPayment: 0,
-        deductiblePrincipal: 0, // Initialize tax fields
+        deductiblePrincipal: 0, 
         deductibleInterest: 0,
       };
     }
@@ -164,18 +166,21 @@ export const generateAnnualSummaries = (
     summariesByFY[fyLabel].totalPayment += entry.emi; 
   });
 
-  // Calculate deductible amounts after summing up totals for the year
   Object.keys(summariesByFY).forEach(fyLabel => {
       const summary = summariesByFY[fyLabel];
-      summary.deductiblePrincipal = Math.min(summary.totalPrincipalPaid, PRINCIPAL_DEDUCTION_LIMIT);
-      summary.deductibleInterest = Math.min(summary.totalInterestPaid, INTEREST_DEDUCTION_LIMIT);
+      if (isEligible) {
+          summary.deductiblePrincipal = Math.min(summary.totalPrincipalPaid, principalLimit);
+          summary.deductibleInterest = Math.min(summary.totalInterestPaid, interestLimit);
+      } else {
+          summary.deductiblePrincipal = 0;
+          summary.deductibleInterest = 0;
+      }
   });
-
 
   return Object.values(summariesByFY)
     .map(summary => ({
         ...summary,
-        yearLabel: `FY ${summary.startYear}-${(summary.startYear + 1).toString().slice(-2)}`, // Add label back
+        yearLabel: `FY ${summary.startYear}-${(summary.startYear + 1).toString().slice(-2)}`, 
         totalPrincipalPaid: parseFloat(summary.totalPrincipalPaid.toFixed(2)),
         totalInterestPaid: parseFloat(summary.totalInterestPaid.toFixed(2)),
         totalPayment: parseFloat(summary.totalPayment.toFixed(2)),
@@ -187,7 +192,7 @@ export const generateAnnualSummaries = (
 
 export const generateLifespanSummary = (
     schedule: AmortizationEntry[], 
-    annualSummaries: AnnualSummary[] // Pass calculated annual summaries
+    annualSummaries: AnnualSummary[] 
 ): LifespanSummary | null => {
   if (!schedule || schedule.length === 0) return null;
 
@@ -196,8 +201,8 @@ export const generateLifespanSummary = (
     totalInterestPaid: 0,
     totalPayment: 0,
     actualTenureMonths: schedule.length,
-    totalDeductiblePrincipal: 0, // Initialize
-    totalDeductibleInterest: 0, // Initialize
+    totalDeductiblePrincipal: 0, 
+    totalDeductibleInterest: 0, 
   };
 
   schedule.forEach(entry => {
@@ -206,7 +211,6 @@ export const generateLifespanSummary = (
     summary.totalPayment += entry.emi; 
   });
 
-  // Sum up deductible amounts from annual summaries
   annualSummaries.forEach(annual => {
       summary.totalDeductiblePrincipal += annual.deductiblePrincipal;
       summary.totalDeductibleInterest += annual.deductibleInterest;
@@ -222,17 +226,20 @@ export const generateLifespanSummary = (
 };
 
 // --- Generate Summary To Date ---
-// Ensure CurrentSummary is imported from types
 export const generateSummaryToDate = (
     schedule: AmortizationEntry[],
-    annualSummaries: AnnualSummary[], // Need annual summaries to get deductible amounts
-    fyStartMonth: number = 3 // Need fyStartMonth as well
+    loanDetails: LoanDetails, // Pass loan details for tax eligibility/limits
+    fyStartMonth: number = 3 
 ): CurrentSummary | null => {
     if (!schedule || schedule.length === 0) return null;
 
+    const principalLimit = loanDetails.principalDeductionLimit ?? DEFAULT_PRINCIPAL_DEDUCTION_LIMIT;
+    const interestLimit = loanDetails.interestDeductionLimit ?? DEFAULT_INTEREST_DEDUCTION_LIMIT;
+    const isEligible = loanDetails.isTaxDeductible ?? false;
+
     const now = new Date();
     const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth(); // 0-indexed
+    const currentMonth = now.getMonth(); 
 
     let monthsElapsed = 0;
     let totalPrincipalPaid = 0;
@@ -240,75 +247,49 @@ export const generateSummaryToDate = (
     let totalPayment = 0;
     let totalDeductiblePrincipal = 0;
     let totalDeductibleInterest = 0;
-    let currentOutstandingBalance = schedule[0].openingBalance; // Start with initial balance
+    let currentOutstandingBalance = schedule[0].openingBalance; 
 
-    // Find the index of the current month in the schedule
     let currentMonthIndex = -1;
     for(let i = 0; i < schedule.length; i++) {
         const entryDate = new Date(schedule[i].paymentDate);
         if (entryDate.getFullYear() > currentYear || (entryDate.getFullYear() === currentYear && entryDate.getMonth() > currentMonth)) {
-            break; // Stop if we've passed the current month
+            break; 
         }
         currentMonthIndex = i;
-        currentOutstandingBalance = schedule[i].closingBalance; // Update balance
+        currentOutstandingBalance = schedule[i].closingBalance; 
     }
     
-    // If current date is before the first payment date
     if (currentMonthIndex === -1) {
          const firstEntryDate = new Date(schedule[0].paymentDate);
          if (firstEntryDate > now) {
              return {
                  monthsElapsed: 0, totalPrincipalPaid: 0, totalInterestPaid: 0, totalPayment: 0,
                  totalDeductiblePrincipal: 0, totalDeductibleInterest: 0, 
-                 currentOutstandingBalance: schedule[0].openingBalance // Show initial balance
+                 currentOutstandingBalance: schedule[0].openingBalance 
              };
          }
-         // If current date is somehow before first payment but not caught above, assume last entry? Or 0?
-         // Let's default to last entry if loop didn't find current month but schedule exists
          currentMonthIndex = schedule.length - 1;
          currentOutstandingBalance = schedule[currentMonthIndex].closingBalance;
-
     }
 
     monthsElapsed = currentMonthIndex + 1;
 
-    // Sum totals up to the current month index
-    for (let i = 0; i <= currentMonthIndex; i++) {
-        totalPrincipalPaid += schedule[i].principalPaid;
-        totalInterestPaid += schedule[i].interestPaid;
-        totalPayment += schedule[i].emi;
-    }
-
-    // Sum deductible amounts from relevant annual summaries
-    annualSummaries.forEach(annual => {
-        if (annual.startYear < currentYear) {
-            // Include full deductible for past financial years
-            totalDeductiblePrincipal += annual.deductiblePrincipal;
-            totalDeductibleInterest += annual.deductibleInterest;
-        } else if (annual.startYear === currentYear) {
-            // For the current FY, calculate deductible amounts *up to the current month*
-            // This requires recalculating based on payments *within* this FY *up to now*
-            // Simpler approach: Use the already calculated annual deductible as an estimate for the ongoing year
-            // More accurate: Recalculate based on schedule entries <= current date within this FY
-            let principalThisFYtoDate = 0;
-            let interestThisFYtoDate = 0;
-            for(let i = 0; i <= currentMonthIndex; i++) {
-                 const entryDate = new Date(schedule[i].paymentDate);
-                 // Use the passed fyStartMonth
-                 let entryFYStartYear = entryDate.getFullYear();
-                 if (entryDate.getMonth() < fyStartMonth) entryFYStartYear--;
-
-                 if (entryFYStartYear === currentYear) { // Compare with currentYear from this function scope
-                     principalThisFYtoDate += schedule[i].principalPaid;
-                     interestThisFYtoDate += schedule[i].interestPaid;
-                 }
-            }
-             totalDeductiblePrincipal += Math.min(principalThisFYtoDate, PRINCIPAL_DEDUCTION_LIMIT);
-             totalDeductibleInterest += Math.min(interestThisFYtoDate, INTEREST_DEDUCTION_LIMIT);
-        }
-        // Ignore future financial years
+    // Calculate totals up to current month
+    const currentScheduleSlice = schedule.slice(0, monthsElapsed);
+    currentScheduleSlice.forEach(entry => {
+        totalPrincipalPaid += entry.principalPaid;
+        totalInterestPaid += entry.interestPaid;
+        totalPayment += entry.emi;
     });
 
+    // Calculate deductible amounts up to current date
+    if (isEligible) {
+        const annualSummariesToDate = generateAnnualSummaries(currentScheduleSlice, loanDetails, fyStartMonth);
+        annualSummariesToDate.forEach(annual => {
+            totalDeductiblePrincipal += annual.deductiblePrincipal;
+            totalDeductibleInterest += annual.deductibleInterest;
+        });
+    }
 
     return {
         monthsElapsed,

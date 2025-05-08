@@ -1,7 +1,7 @@
 // src/components/LoanDetailsDisplay.tsx
 import React, { useMemo, useCallback } from 'react'; 
 import styled from 'styled-components';
-import { Loan, AmortizationEntry } from '../types'; // Removed unused types
+import { Loan, AmortizationEntry, InterestRateChange, CustomEMIChange, Payment, Disbursement } from '../types'; 
 import { calculateEMI, calculateTotalInterestAndPayment, calculateTotalDisbursed } from '../utils/loanCalculations'; 
 import { generateAmortizationSchedule } from '../utils/amortizationCalculator'; 
 import AddDisbursementForm from './AddDisbursementForm'; 
@@ -163,7 +163,6 @@ const HistoryHeading = styled.h4`
 
 
     // --- Delete Handlers ---
-    // Removed edit handlers as they are no longer used
     const createDeleteHandler = useCallback((eventType: 'Disbursement' | 'Payment' | 'ROI Change' | 'EMI Change') => (eventId: string) => {
         if (!window.confirm(`Are you sure you want to delete this ${eventType} event? This will recalculate the schedule.`)) {
             return;
@@ -200,7 +199,7 @@ const HistoryHeading = styled.h4`
 
 
    return (
-    <DetailsLayoutContainer> {/* Ensure this is the correct container */}
+    <DetailsLayoutContainer> 
        {/* Initial Summary Section (Full Width) */}
        <div> 
             <h3>{loan.name} - Summary</h3>
@@ -299,7 +298,7 @@ const HistoryHeading = styled.h4`
        )}
        
        {/* Render remaining tools/summaries (Full Width) */}
-       <LoanSummaries schedule={amortizationSchedule} />
+       <LoanSummaries schedule={amortizationSchedule} loanDetails={details} /> {/* Pass loanDetails */}
        <LoanChart schedule={amortizationSchedule} loan={loan} /> 
        <AmortizationTable schedule={amortizationSchedule} loan={loan} /> 
     </DetailsLayoutContainer> 
