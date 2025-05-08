@@ -1,5 +1,5 @@
 // src/utils/amortizationCalculator.ts
-import { Loan, AmortizationEntry, Payment, InterestRateChange, CustomEMIChange, Disbursement } from '../types'; 
+import { Loan, AmortizationEntry, Payment, InterestRateChange, CustomEMIChange, Disbursement, CurrentSummary, AnnualSummary, LifespanSummary } from '../types'; // Add LifespanSummary
 import { calculateEMI } from './loanCalculations'; 
 
 // Define a union type for all possible events with a consistent structure
@@ -124,31 +124,12 @@ export const generateAmortizationSchedule = (loan: Loan): AmortizationEntry[] =>
   return schedule;
 };
 
-// --- Summary Interfaces ---
-export interface AnnualSummary {
-  yearLabel: string; 
-  startYear: number; 
-  totalPrincipalPaid: number;
-  totalInterestPaid: number;
-  totalPayment: number;
-  deductiblePrincipal: number; // Max 1.5L (Sec 80C)
-  deductibleInterest: number; // Max 2L (Sec 24b)
-}
-
-export interface LifespanSummary {
-  totalPrincipalPaid: number;
-  totalInterestPaid: number;
-  totalPayment: number;
-  actualTenureMonths: number;
-  totalDeductiblePrincipal: number;
-  totalDeductibleInterest: number;
-}
-
 // --- Summary Calculation Functions ---
 
 const PRINCIPAL_DEDUCTION_LIMIT = 150000;
 const INTEREST_DEDUCTION_LIMIT = 200000;
 
+// Ensure LifespanSummary is imported from types
 export const generateAnnualSummaries = (
     schedule: AmortizationEntry[], 
     fyStartMonth: number = 3 // Default to April (month index 3)
@@ -238,4 +219,104 @@ export const generateLifespanSummary = (
   summary.totalDeductibleInterest = parseFloat(summary.totalDeductibleInterest.toFixed(2));
 
   return summary;
+};
+
+// --- Generate Summary To Date ---
+// Ensure CurrentSummary is imported from types
+export const generateSummaryToDate = (
+    schedule: AmortizationEntry[],
+    annualSummaries: AnnualSummary[], // Need annual summaries to get deductible amounts
+    fyStartMonth: number = 3 // Need fyStartMonth as well
+): CurrentSummary | null => {
+    if (!schedule || schedule.length === 0) return null;
+
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth(); // 0-indexed
+
+    let monthsElapsed = 0;
+    let totalPrincipalPaid = 0;
+    let totalInterestPaid = 0;
+    let totalPayment = 0;
+    let totalDeductiblePrincipal = 0;
+    let totalDeductibleInterest = 0;
+    let currentOutstandingBalance = schedule[0].openingBalance; // Start with initial balance
+
+    // Find the index of the current month in the schedule
+    let currentMonthIndex = -1;
+    for(let i = 0; i < schedule.length; i++) {
+        const entryDate = new Date(schedule[i].paymentDate);
+        if (entryDate.getFullYear() > currentYear || (entryDate.getFullYear() === currentYear && entryDate.getMonth() > currentMonth)) {
+            break; // Stop if we've passed the current month
+        }
+        currentMonthIndex = i;
+        currentOutstandingBalance = schedule[i].closingBalance; // Update balance
+    }
+    
+    // If current date is before the first payment date
+    if (currentMonthIndex === -1) {
+         const firstEntryDate = new Date(schedule[0].paymentDate);
+         if (firstEntryDate > now) {
+             return {
+                 monthsElapsed: 0, totalPrincipalPaid: 0, totalInterestPaid: 0, totalPayment: 0,
+                 totalDeductiblePrincipal: 0, totalDeductibleInterest: 0, 
+                 currentOutstandingBalance: schedule[0].openingBalance // Show initial balance
+             };
+         }
+         // If current date is somehow before first payment but not caught above, assume last entry? Or 0?
+         // Let's default to last entry if loop didn't find current month but schedule exists
+         currentMonthIndex = schedule.length - 1;
+         currentOutstandingBalance = schedule[currentMonthIndex].closingBalance;
+
+    }
+
+    monthsElapsed = currentMonthIndex + 1;
+
+    // Sum totals up to the current month index
+    for (let i = 0; i <= currentMonthIndex; i++) {
+        totalPrincipalPaid += schedule[i].principalPaid;
+        totalInterestPaid += schedule[i].interestPaid;
+        totalPayment += schedule[i].emi;
+    }
+
+    // Sum deductible amounts from relevant annual summaries
+    annualSummaries.forEach(annual => {
+        if (annual.startYear < currentYear) {
+            // Include full deductible for past financial years
+            totalDeductiblePrincipal += annual.deductiblePrincipal;
+            totalDeductibleInterest += annual.deductibleInterest;
+        } else if (annual.startYear === currentYear) {
+            // For the current FY, calculate deductible amounts *up to the current month*
+            // This requires recalculating based on payments *within* this FY *up to now*
+            // Simpler approach: Use the already calculated annual deductible as an estimate for the ongoing year
+            // More accurate: Recalculate based on schedule entries <= current date within this FY
+            let principalThisFYtoDate = 0;
+            let interestThisFYtoDate = 0;
+            for(let i = 0; i <= currentMonthIndex; i++) {
+                 const entryDate = new Date(schedule[i].paymentDate);
+                 // Use the passed fyStartMonth
+                 let entryFYStartYear = entryDate.getFullYear();
+                 if (entryDate.getMonth() < fyStartMonth) entryFYStartYear--;
+
+                 if (entryFYStartYear === currentYear) { // Compare with currentYear from this function scope
+                     principalThisFYtoDate += schedule[i].principalPaid;
+                     interestThisFYtoDate += schedule[i].interestPaid;
+                 }
+            }
+             totalDeductiblePrincipal += Math.min(principalThisFYtoDate, PRINCIPAL_DEDUCTION_LIMIT);
+             totalDeductibleInterest += Math.min(interestThisFYtoDate, INTEREST_DEDUCTION_LIMIT);
+        }
+        // Ignore future financial years
+    });
+
+
+    return {
+        monthsElapsed,
+        totalPrincipalPaid: parseFloat(totalPrincipalPaid.toFixed(2)),
+        totalInterestPaid: parseFloat(totalInterestPaid.toFixed(2)),
+        totalPayment: parseFloat(totalPayment.toFixed(2)),
+        totalDeductiblePrincipal: parseFloat(totalDeductiblePrincipal.toFixed(2)),
+        totalDeductibleInterest: parseFloat(totalDeductibleInterest.toFixed(2)),
+        currentOutstandingBalance: parseFloat(currentOutstandingBalance.toFixed(2)),
+    };
 };

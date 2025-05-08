@@ -100,3 +100,34 @@ export interface AmortizationEntry {
   roiChanges?: Array<{ id: string; newRate: number; preference?: string }>;
   emiChanges?: Array<{ id: string; newEMI: number }>;
 }
+
+// --- Summary Interfaces ---
+export interface AnnualSummary {
+  yearLabel: string; 
+  startYear: number; 
+  totalPrincipalPaid: number;
+  totalInterestPaid: number;
+  totalPayment: number;
+  deductiblePrincipal: number; // Max 1.5L (Sec 80C)
+  deductibleInterest: number; // Max 2L (Sec 24b)
+}
+
+export interface LifespanSummary {
+  totalPrincipalPaid: number;
+  totalInterestPaid: number;
+  totalPayment: number;
+  actualTenureMonths: number;
+  totalDeductiblePrincipal: number;
+  totalDeductibleInterest: number;
+}
+
+// Interface for the "Summary To Date"
+export interface CurrentSummary {
+  monthsElapsed: number;
+  totalPrincipalPaid: number;
+  totalInterestPaid: number;
+  totalPayment: number;
+  totalDeductiblePrincipal: number;
+  totalDeductibleInterest: number;
+  currentOutstandingBalance: number;
+}
