@@ -1,7 +1,7 @@
 // src/components/LoanDetailsDisplay.tsx
-import React, { useMemo, useCallback } from 'react'; 
+import React, { useMemo } from 'react'; // Removed unused useCallback
 import styled from 'styled-components';
-import { Loan, AmortizationEntry, InterestRateChange, CustomEMIChange } from '../types'; 
+import { Loan, AmortizationEntry } from '../types'; // Removed unused InterestRateChange, CustomEMIChange
 import { calculateEMI, calculateTotalInterestAndPayment, calculateTotalDisbursed } from '../utils/loanCalculations'; 
 import { generateAmortizationSchedule } from '../utils/amortizationCalculator'; 
 // import PreEmiPaymentForm from './PaymentForm'; // Removed import
@@ -10,7 +10,7 @@ import PrepaymentSimulator from './PrepaymentSimulator';
 import AmortizationTable from './AmortizationTable';
 import LoanSummaries from './LoanSummaries';
 import LoanChart from './LoanChart'; 
-import { useAppDispatch } from '../contexts/AppContext'; 
+// import { useAppDispatch } from '../contexts/AppContext'; // Removed unused dispatch import
 
 const DetailsContainer = styled.div`
   display: flex; 
@@ -41,22 +41,21 @@ const DetailItem = styled.p`
   color: #555;
   strong {
     color: #333;
-  }
-`;
+   }
+ `;
 
-// Simple Edit button style (No longer needed here)
-// const EditButton = styled.button` ... `;
+ // Removed EditButton style
 
 
-interface LoanDetailsDisplayProps {
+ interface LoanDetailsDisplayProps {
   loan: Loan;
 }
 
-const LoanDetailsDisplay: React.FC<LoanDetailsDisplayProps> = ({ loan }) => {
-  const { details } = loan; 
-  const dispatch = useAppDispatch(); // Keep dispatch if needed for future edits from table
+ const LoanDetailsDisplay: React.FC<LoanDetailsDisplayProps> = ({ loan }) => {
+   const { details } = loan; 
+   // const dispatch = useAppDispatch(); // Removed unused dispatch variable
 
-  const totalDisbursed = useMemo(() => calculateTotalDisbursed(details.disbursements), [details.disbursements]);
+   const totalDisbursed = useMemo(() => calculateTotalDisbursed(details.disbursements), [details.disbursements]);
 
   const initialEMI = useMemo(() => {
     if (details.disbursements.length > 0) {
@@ -77,12 +76,12 @@ const LoanDetailsDisplay: React.FC<LoanDetailsDisplayProps> = ({ loan }) => {
   }, [totalDisbursed, initialEMI, details.originalTenureMonths]);
 
   const amortizationSchedule: AmortizationEntry[] = useMemo(() => {
-    return generateAmortizationSchedule(loan);
-  }, [loan]); 
+     return generateAmortizationSchedule(loan);
+   }, [loan]); 
 
-  // Edit Handlers removed as they were tied to the deleted lists
+   // Edit Handlers removed
 
-  return (
+   return (
     <DetailsContainer>
        <h3>{loan.name} - Summary</h3>
        <DetailItem><strong>Total Disbursed:</strong> ₹{totalDisbursed.toLocaleString()}</DetailItem> 

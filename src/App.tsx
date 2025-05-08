@@ -1,4 +1,4 @@
-import React from 'react';
+// import React from 'react'; // Removed unused import
 import styled from 'styled-components';
 import LoanForm from './components/LoanForm';
 import LoanList from './components/LoanList';

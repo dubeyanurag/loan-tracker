@@ -1,5 +1,5 @@
 // src/components/AmortizationTable.tsx
-import React, { useMemo } from 'react'; // Import useMemo
+import React from 'react'; // Removed unused useMemo
 import styled from 'styled-components';
 import { AmortizationEntry, Loan } from '../types'; // Import Loan type
 import { useAppDispatch } from '../contexts/AppContext'; // Import dispatch

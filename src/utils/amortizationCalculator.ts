@@ -1,6 +1,6 @@
 // src/utils/amortizationCalculator.ts
-import { Loan, AmortizationEntry, Payment, InterestRateChange, CustomEMIChange, LoanDetails, Disbursement } from '../types'; // Added LoanDetails, Disbursement
-import { calculateEMI, calculateTotalDisbursed } from './loanCalculations'; // Added calculateTotalDisbursed
+import { Loan, AmortizationEntry, Payment, InterestRateChange, CustomEMIChange, Disbursement } from '../types'; 
+import { calculateEMI } from './loanCalculations'; 
 
 // Define a union type for all possible events with a consistent structure
 type LoanEvent = 
@@ -8,17 +8,11 @@ type LoanEvent =
   | (Omit<InterestRateChange, 'date'> & { eventType: 'roiChange'; date: Date })
   | (Omit<CustomEMIChange, 'date'> & { eventType: 'emiChange'; date: Date });
 
-
-interface EffectiveLoanParams {
-  currentPrincipal: number;
-  currentAnnualRate: number;
-  currentEMI: number;
-  remainingTenureMonths: number; // This might be recalculated
-}
+// Removed unused EffectiveLoanParams interface
 
 export const generateAmortizationSchedule = (loan: Loan): AmortizationEntry[] => {
   const schedule: AmortizationEntry[] = [];
-  if (!loan || !loan.details || loan.details.disbursements.length === 0) return schedule;
+  if (!loan || !loan.details || !loan.details.disbursements || loan.details.disbursements.length === 0) return schedule;
 
   // Sort disbursements by date to process them correctly
   const sortedDisbursements = [...loan.details.disbursements].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
@@ -31,13 +25,13 @@ export const generateAmortizationSchedule = (loan: Loan): AmortizationEntry[] =>
   let currentTenureMonths = loan.details.originalTenureMonths;
   // Initial EMI calculation might need adjustment based on disbursement schedule / total expected principal
   // For now, calculate based on first disbursement and original terms - this will likely be recalculated soon
-  let currentEMI = calculateEMI(cumulativeDisbursed, currentAnnualRate, currentTenureMonths); // Initial EMI based on first disbursement or total? Needs clarification. Let's use cumulative for now.
+  let currentEMI = calculateEMI(cumulativeDisbursed, currentAnnualRate, currentTenureMonths); 
   
   // Combine and sort all events including disbursements
   const allEvents: (LoanEvent | (Omit<Disbursement, 'date'> & { eventType: 'disbursement'; date: Date }))[] = [
-    ...loan.paymentHistory.map(p => ({ ...p, eventType: 'payment' as const, date: new Date(p.date) })),
-    ...loan.interestRateChanges.map(c => ({ ...c, eventType: 'roiChange' as const, date: new Date(c.date) })),
-    ...loan.customEMIChanges.map(c => ({ ...c, eventType: 'emiChange' as const, date: new Date(c.date) })),
+    ...(loan.paymentHistory || []).map(p => ({ ...p, eventType: 'payment' as const, date: new Date(p.date) })),
+    ...(loan.interestRateChanges || []).map(c => ({ ...c, eventType: 'roiChange' as const, date: new Date(c.date) })),
+    ...(loan.customEMIChanges || []).map(c => ({ ...c, eventType: 'emiChange' as const, date: new Date(c.date) })),
     // Add disbursements as events (skip the first one as it sets initial balance)
     ...sortedDisbursements.slice(1).map(d => ({ ...d, eventType: 'disbursement' as const, date: new Date(d.date) })) 
   ].sort((a, b) => a.date.getTime() - b.date.getTime());
@@ -62,87 +56,70 @@ export const generateAmortizationSchedule = (loan: Loan): AmortizationEntry[] =>
     let emiChangesThisMonth: AmortizationEntry['emiChanges'] = [];
 
     // Check for events occurring in the current month/period
-    // This logic needs to be robust to handle multiple events in a month,
-    // and how they affect calculations for *that* month vs subsequent months.
-    // For simplicity, we'll assume events apply from the start of the month they occur in.
     let isPreEmiPeriod = loan.details.startedWithPreEMI && currentDate < emiStartDate;
 
     while(eventPointer < allEvents.length && allEvents[eventPointer].date <= currentDate) {
         const event = allEvents[eventPointer];
-        // remarks += `${event.eventType} on ${event.date.toLocaleDateString()}. `; 
 
         if (event.eventType === 'disbursement') {
             openingBalance += event.amount; 
             cumulativeDisbursed += event.amount;
             const remainingMonths = currentTenureMonths - monthNumber; 
             currentEMI = calculateEMI(openingBalance, currentAnnualRate, remainingMonths > 0 ? remainingMonths : 1);
-            disbursementsThisMonth.push({ id: event.id, amount: event.amount }); // Add to array
+            disbursementsThisMonth.push({ id: event.id, amount: event.amount }); 
         } else if (event.eventType === 'payment') {
             actualPaymentMade = event.amount; 
             if (event.type === 'Prepayment') {
                 openingBalance -= event.amount; 
                 interestForMonth = openingBalance * monthlyInterestRate;
-                prepaymentsThisMonth.push({ id: event.id, amount: event.amount }); // Add to array
+                prepaymentsThisMonth.push({ id: event.id, amount: event.amount }); 
             }
-            // For EMI type, actualPaymentMade is set. The principal/interest split will be based on this.
             principalPaidThisMonth = actualPaymentMade - interestForMonth;
         } else if (event.eventType === 'roiChange') {
             currentAnnualRate = event.newRate;
-            const remainingMonths = currentTenureMonths - (monthNumber -1); // Approx remaining
+            const remainingMonths = currentTenureMonths - (monthNumber -1); 
             if (event.adjustmentPreference === 'adjustEMI') {
                 currentEMI = calculateEMI(openingBalance, currentAnnualRate, remainingMonths > 0 ? remainingMonths : 1); 
-            } else if (event.adjustmentPreference === 'customEMI' && event.newEMIIfApplicable) { // This case might be removed if edit only allows adjustTenure/adjustEMI
+            } else if (event.adjustmentPreference === 'customEMI' && event.newEMIIfApplicable) { 
                 currentEMI = event.newEMIIfApplicable;
             }
-            // If 'adjustTenure', EMI remains same.
-            roiChangesThisMonth.push({ id: event.id, newRate: event.newRate, preference: event.adjustmentPreference }); // Add to array
+            roiChangesThisMonth.push({ id: event.id, newRate: event.newRate, preference: event.adjustmentPreference }); 
         } else if (event.eventType === 'emiChange') {
             currentEMI = event.newEMI;
-            emiChangesThisMonth.push({ id: event.id, newEMI: event.newEMI }); // Add to array
+            emiChangesThisMonth.push({ id: event.id, newEMI: event.newEMI }); 
         }
         eventPointer++;
-        // Re-check if we moved past the Pre-EMI period due to event processing
         isPreEmiPeriod = loan.details.startedWithPreEMI && currentDate < emiStartDate; 
     }
 
-    // Handle Pre-EMI period: Only interest is paid, principal reduction starts after emiStartDate
     if (isPreEmiPeriod) {
-        principalPaidThisMonth = 0; // No principal reduction during Pre-EMI
-        // Actual payment during Pre-EMI might be just the interest, or zero if logged separately
-        // For simplicity, let's assume logged PreEmiPayments cover this. Here we calculate scheduled payment.
-        actualPaymentMade = interestForMonth; // Scheduled payment is just interest
-        // We should check logged PreEMIInterestPayments here to see if actual payment was made/different
+        principalPaidThisMonth = 0; 
+        actualPaymentMade = interestForMonth; 
     } else {
-         // Normal EMI period calculation (already done above, but adjust for final payment)
          principalPaidThisMonth = actualPaymentMade - interestForMonth;
-         if (principalPaidThisMonth < 0) principalPaidThisMonth = 0; // Cannot pay negative principal
+         if (principalPaidThisMonth < 0) principalPaidThisMonth = 0; 
     }
-
 
     if (principalPaidThisMonth > openingBalance) {
       principalPaidThisMonth = openingBalance;
-      // Recalculate actual payment if it's the final one
       actualPaymentMade = principalPaidThisMonth + interestForMonth; 
     }
-     // Ensure final payment clears the balance exactly
     if (openingBalance - principalPaidThisMonth < 0.01 && openingBalance > 0) { 
         principalPaidThisMonth = openingBalance;
         actualPaymentMade = principalPaidThisMonth + interestForMonth;
-        interestForMonth = actualPaymentMade - principalPaidThisMonth; // ensure interest is correct for final payment
+        interestForMonth = actualPaymentMade - principalPaidThisMonth; 
     }
-
 
     const closingBalance = openingBalance - principalPaidThisMonth;
 
     schedule.push({
       monthNumber,
-      paymentDate: currentDate.toISOString().split('T')[0], // Approximate payment date
+      paymentDate: currentDate.toISOString().split('T')[0], 
       openingBalance: parseFloat(openingBalance.toFixed(2)),
       emi: parseFloat(actualPaymentMade.toFixed(2)),
       principalPaid: parseFloat(principalPaidThisMonth.toFixed(2)),
       interestPaid: parseFloat(interestForMonth.toFixed(2)),
       closingBalance: parseFloat(closingBalance.toFixed(2)),
-      // Add event arrays only if they have items
       ...(disbursementsThisMonth.length > 0 && { disbursements: disbursementsThisMonth }),
       ...(prepaymentsThisMonth.length > 0 && { prepayments: prepaymentsThisMonth }),
       ...(roiChangesThisMonth.length > 0 && { roiChanges: roiChangesThisMonth }),
@@ -151,9 +128,8 @@ export const generateAmortizationSchedule = (loan: Loan): AmortizationEntry[] =>
 
     openingBalance = closingBalance;
     
-    // Advance to next month
     currentDate.setMonth(currentDate.getMonth() + 1);
-    if (openingBalance <= 0.01) break; // Loan paid off
+    if (openingBalance <= 0.01) break; 
   }
 
   return schedule;
@@ -190,7 +166,7 @@ export const generateAnnualSummaries = (schedule: AmortizationEntry[]): AnnualSu
     }
     summariesByYear[year].totalPrincipalPaid += entry.principalPaid;
     summariesByYear[year].totalInterestPaid += entry.interestPaid;
-    summariesByYear[year].totalPayment += entry.emi; // emi here is actual payment made
+    summariesByYear[year].totalPayment += entry.emi; 
   });
 
   return Object.values(summariesByYear).sort((a, b) => a.year - b.year);
@@ -209,14 +185,12 @@ export const generateLifespanSummary = (schedule: AmortizationEntry[]): Lifespan
   schedule.forEach(entry => {
     summary.totalPrincipalPaid += entry.principalPaid;
     summary.totalInterestPaid += entry.interestPaid;
-    summary.totalPayment += entry.emi; // emi here is actual payment made
+    summary.totalPayment += entry.emi; 
   });
   
-  // Round to 2 decimal places
   summary.totalPrincipalPaid = parseFloat(summary.totalPrincipalPaid.toFixed(2));
   summary.totalInterestPaid = parseFloat(summary.totalInterestPaid.toFixed(2));
   summary.totalPayment = parseFloat(summary.totalPayment.toFixed(2));
-
 
   return summary;
 };

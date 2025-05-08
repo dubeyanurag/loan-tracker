@@ -2,7 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import styled from 'styled-components';
 import { useAppState } from '../contexts/AppContext';
-import { calculateEMI, calculateNewTenureAfterPrepayment, calculateTotalInterestAndPayment } from '../utils/loanCalculations';
+import { calculateEMI, calculateNewTenureAfterPrepayment, calculateTotalInterestAndPayment, calculateTotalDisbursed } from '../utils/loanCalculations'; // Import helper
 
 const SimulatorContainer = styled.div`
   padding: 20px;
@@ -58,25 +58,30 @@ const PrepaymentSimulator: React.FC = () => {
 
   const selectedLoan = loans.find(loan => loan.id === selectedLoanId);
 
-  // This is a simplified current EMI. A real app would derive this from the loan's history.
+  // Calculate total disbursed amount
+  const totalDisbursed = useMemo(() => 
+    selectedLoan ? calculateTotalDisbursed(selectedLoan.details.disbursements) : 0, 
+    [selectedLoan]
+  );
+
+  // Estimate current EMI based on total disbursed and original terms.
+  // This remains a simplification for the simulator's baseline.
   const currentEMI = useMemo(() => {
-    if (!selectedLoan) return 0;
-    // For now, use initial EMI. Later, this needs to be dynamic based on ROI changes etc.
+    if (!selectedLoan || totalDisbursed <= 0) return 0;
     return calculateEMI(
-      selectedLoan.details.principal,
+      totalDisbursed, // Use total disbursed
       selectedLoan.details.originalInterestRate,
       selectedLoan.details.originalTenureMonths
     );
   }, [selectedLoan]);
   
-  // This is a simplified outstanding principal. A real app would derive this from payment history.
+  // Simplified outstanding principal for simulator baseline.
+  // Uses total disbursed minus logged prepayments. Still inaccurate.
   const currentOutstandingPrincipal = useMemo(() => {
       if (!selectedLoan) return 0;
-      // For now, assume full principal. This needs to be calculated based on payments made.
-      // This is a MAJOR simplification for the simulator at this stage.
-      let outstanding = selectedLoan.details.principal;
-      // Crude reduction based on logged prepayments only for demo
-      selectedLoan.paymentHistory.forEach(p => {
+      let outstanding = totalDisbursed; // Start with total disbursed
+      // Crude reduction based on logged prepayments only
+      selectedLoan.paymentHistory.forEach(p => { 
           if (p.type === 'Prepayment') outstanding -= p.principalPaid;
       });
       return outstanding > 0 ? outstanding : 0;
