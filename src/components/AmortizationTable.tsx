@@ -1,12 +1,12 @@
 // src/components/AmortizationTable.tsx
-import React from 'react'; 
+import React, { useEffect, useRef } from 'react'; // Import useEffect, useRef
 import styled from 'styled-components';
 import { AmortizationEntry, Loan } from '../types'; 
 import { useAppDispatch } from '../contexts/AppContext'; 
 
 const TableContainer = styled.div`
   margin-top: 20px;
-  max-height: 500px; /* Or any desired height */
+  max-height: 500px; 
   overflow-y: auto;
   border: 1px solid #ddd;
 `;
@@ -63,17 +63,37 @@ const ActionButton = styled.button`
   }
 `;
 
-// Delete button style removed as it's no longer used here
-
 interface AmortizationTableProps {
   schedule: AmortizationEntry[];
-  loan: Loan; // Still needed for context if actions remain complex, but not for delete logic now
+  loan: Loan; 
 }
 
 const AmortizationTable: React.FC<AmortizationTableProps> = ({ schedule, loan }) => {
   const dispatch = useAppDispatch();
+  const currentRowRef = useRef<HTMLTableRowElement | null>(null); 
+  const tableContainerRef = useRef<HTMLDivElement | null>(null); 
+  const tableBodyRef = useRef<HTMLTableSectionElement | null>(null); // Declare tableBodyRef
 
-  // --- Action Handlers (kept for adding events) ---
+  // Get current month/year for highlighting and scrolling
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth();
+
+  // Effect to scroll to current month row
+  useEffect(() => {
+    if (currentRowRef.current && tableContainerRef.current) {
+        // Calculate offset to center the row if possible
+        const containerHeight = tableContainerRef.current.clientHeight;
+        const rowTop = currentRowRef.current.offsetTop;
+        const rowHeight = currentRowRef.current.clientHeight;
+        const scrollTo = rowTop - (containerHeight / 2) + (rowHeight / 2);
+        
+        tableContainerRef.current.scrollTo({ top: scrollTo, behavior: 'smooth' });
+    }
+  }, [schedule]); // Run when schedule changes (might need refinement if schedule updates frequently without month change)
+
+
+  // --- Action Handlers ---
   const handleAddPrepayment = (entry: AmortizationEntry) => {
     const amountStr = window.prompt(`Enter prepayment amount for ${new Date(entry.paymentDate).toLocaleDateString()}:`);
     if (amountStr) {
@@ -84,7 +104,7 @@ const AmortizationTable: React.FC<AmortizationTableProps> = ({ schedule, loan })
           payload: {
             loanId: loan.id,
             payment: {
-              id: '', // Will be set by reducer
+              id: '', 
               date: entry.paymentDate,
               amount: amount,
               type: 'Prepayment',
@@ -158,19 +178,12 @@ const AmortizationTable: React.FC<AmortizationTableProps> = ({ schedule, loan })
   };
   // --- End Action Handlers ---
 
-  // Delete Handler removed
-
   if (!schedule || schedule.length === 0) {
     return <p>Amortization schedule not available or loan fully paid.</p>;
   }
 
-  // Get current month/year for highlighting
-  const now = new Date();
-  const currentYear = now.getFullYear();
-  const currentMonth = now.getMonth();
-
   return (
-    <TableContainer>
+    <TableContainer ref={tableContainerRef}> {/* Add ref to scrollable container */}
       <h4>Full Amortization Schedule</h4>
       <StyledTable>
         <thead>
@@ -186,23 +199,26 @@ const AmortizationTable: React.FC<AmortizationTableProps> = ({ schedule, loan })
             <th>Actions</th> 
           </tr>
         </thead>
-        <tbody>
+        <tbody ref={tableBodyRef}> {/* Optional: ref on tbody */}
           {schedule.map((entry) => {
             const entryDate = new Date(entry.paymentDate); 
             
-            // Determine highlight class based on indicators
             let highlightClass = '';
             if (entry.disbursements) highlightClass = 'highlight-disbursement';
-            if (entry.prepayments) highlightClass = 'highlight-prepayment'; // Overrides disbursement if both happen
-            if (entry.roiChanges) highlightClass = 'highlight-roi'; // Overrides others
-            if (entry.emiChanges) highlightClass = 'highlight-emi'; // Overrides others
+            if (entry.prepayments) highlightClass = 'highlight-prepayment'; 
+            if (entry.roiChanges) highlightClass = 'highlight-roi'; 
+            if (entry.emiChanges) highlightClass = 'highlight-emi'; 
 
-            // Check if this row is the current month
             const isCurrentMonth = entryDate.getFullYear() === currentYear && entryDate.getMonth() === currentMonth;
             const rowClass = `${highlightClass} ${isCurrentMonth ? 'highlight-current-month' : ''}`.trim();
 
             return (
-              <tr key={entry.monthNumber} className={rowClass || undefined}> {/* Apply highlight classes */}
+              // Add ref conditionally to the current month row
+              <tr 
+                key={entry.monthNumber} 
+                className={rowClass || undefined} 
+                ref={isCurrentMonth ? currentRowRef : null} 
+              > 
                 <td>{entry.monthNumber}</td>
                 <td>{entryDate.toLocaleDateString()}</td>
                 <td>{entry.openingBalance.toLocaleString()}</td>
@@ -212,9 +228,9 @@ const AmortizationTable: React.FC<AmortizationTableProps> = ({ schedule, loan })
                 <td>{entry.closingBalance.toLocaleString()}</td>
                 {/* Event/Delete Cell Removed */}
                 <td> {/* Actions Cell */}
-                  <ActionButton onClick={() => handleAddPrepayment(entry)} title="Add Prepayment">Prepay</ActionButton>
-                  <ActionButton onClick={() => handleSetROI(entry)} title="Set New ROI">Set ROI</ActionButton>
-                  <ActionButton onClick={() => handleSetEMI(entry)} title="Set Custom EMI">Set EMI</ActionButton>
+                  <ActionButton onClick={() => handleAddPrepayment(entry)} title={`Log a prepayment for ${entryDate.toLocaleDateString()}`}>Prepay</ActionButton>
+                  <ActionButton onClick={() => handleSetROI(entry)} title={`Log an ROI change effective ${entryDate.toLocaleDateString()}`}>Set ROI</ActionButton>
+                  <ActionButton onClick={() => handleSetEMI(entry)} title={`Log a custom EMI effective ${entryDate.toLocaleDateString()}`}>Set EMI</ActionButton>
                 </td>
               </tr>
             );

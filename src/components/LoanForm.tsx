@@ -201,7 +201,7 @@ const LoanForm: React.FC = () => {
           onChange={(e) => setStartedWithPreEMI(e.target.checked)} 
           style={{ width: 'auto' }} // Adjust checkbox width
         />
-        <Label htmlFor="startedWithPreEMI" style={{ marginBottom: 0 }}>Did loan start with a Pre-EMI period?</Label>
+        <Label htmlFor="startedWithPreEMI" style={{ marginBottom: 0 }} title="Check if you only paid interest for an initial period before regular EMIs began.">Did loan start with a Pre-EMI period?</Label>
       </FormGroup>
       
       {/* Conditionally render EMI Start Date input */}
@@ -228,12 +228,12 @@ const LoanForm: React.FC = () => {
               onChange={(e) => setIsTaxDeductible(e.target.checked)} 
               style={{ width: 'auto' }} 
             />
-            <Label htmlFor="isTaxDeductible" style={{ marginBottom: 0 }}>Is loan eligible for tax deductions?</Label>
+            <Label htmlFor="isTaxDeductible" style={{ marginBottom: 0 }} title="Check if principal (Sec 80C) and interest (Sec 24b) payments qualify for tax deductions.">Is loan eligible for tax deductions?</Label>
          </div>
          {isTaxDeductible && (
             <>
                 <FormGroup style={{marginBottom: '10px'}}>
-                    <Label htmlFor="principalLimit">Principal Deduction Limit (₹) (Sec 80C):</Label>
+                    <Label htmlFor="principalLimit" title="Maximum principal amount deductible under Section 80C per financial year (Default: ₹1,50,000)">Principal Deduction Limit (₹) (Sec 80C):</Label>
                     <Input 
                         type="number" 
                         id="principalLimit" 
@@ -243,7 +243,7 @@ const LoanForm: React.FC = () => {
                     />
                 </FormGroup>
                 <FormGroup>
-                    <Label htmlFor="interestLimit">Interest Deduction Limit (₹) (Sec 24b):</Label>
+                    <Label htmlFor="interestLimit" title="Maximum interest amount deductible under Section 24(b) per financial year (Default: ₹2,00,000 for self-occupied)">Interest Deduction Limit (₹) (Sec 24b):</Label>
                     <Input 
                         type="number" 
                         id="interestLimit" 

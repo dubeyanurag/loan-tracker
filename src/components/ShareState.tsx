@@ -51,9 +51,8 @@ const ShareState: React.FC = () => {
     try {
       const jsonState = JSON.stringify(state);
       const base64State = btoa(jsonState);
-      // Construct URL relative to the deployment base path
-      const baseUrl = window.location.origin + (import.meta.env.BASE_URL || '/'); 
-      const url = `${baseUrl}?loadState=${encodeURIComponent(base64State)}`;
+      // Construct URL using current origin and pathname
+      const url = `${window.location.origin}${window.location.pathname}?loadState=${encodeURIComponent(base64State)}`;
       setShareUrl(url);
       setCopied(false); // Reset copied status
     } catch (error) {

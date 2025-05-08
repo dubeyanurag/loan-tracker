@@ -234,10 +234,14 @@ const EditDetailsButton = styled(DeleteButton)` // Reuse button style
        {/* Initial Summary Section (Full Width) */}
        <div> 
             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
-                <h3>{loan.name} - Summary</h3>
+                <h3>Loan Summary</h3> 
                 <EditDetailsButton onClick={() => setIsEditing(true)}>Edit Details</EditDetailsButton>
             </div>
-            <DetailItem><strong>Total Disbursed:</strong> ₹{totalDisbursed.toLocaleString()}</DetailItem> 
+            {/* Wrap Disbursed and Initial EMI */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.5rem' }}> 
+                <DetailItem><strong>Total Disbursed:</strong> ₹{totalDisbursed.toLocaleString()}</DetailItem> 
+                <DetailItem><strong>Calculated Initial EMI (Estimate):</strong> ₹{initialEMI.toLocaleString()}</DetailItem>
+            </div>
             <DetailItem><strong>Original Rate:</strong> {details.originalInterestRate}%</DetailItem>
             <DetailItem><strong>Current Rate (Est):</strong> {currentValues.currentRate}%</DetailItem>
             <DetailItem><strong>Original Tenure:</strong> {details.originalTenureMonths / 12} years ({details.originalTenureMonths} months)</DetailItem>
@@ -254,7 +258,7 @@ const EditDetailsButton = styled(DeleteButton)` // Reuse button style
                  </DetailItem>
              )}
             <hr style={{ margin: '15px 0', borderColor: '#eee' }} />
-            <DetailItem><strong>Calculated Initial EMI (Estimate):</strong> ₹{initialEMI.toLocaleString()}</DetailItem>
+            {/* Initial EMI moved up */}
             <DetailItem><strong>Current EMI (Estimate):</strong> ₹{currentValues.currentEMI.toLocaleString()}</DetailItem>
             <DetailItem><strong>Total Interest Payable (Initial Est):</strong> ₹{summary.totalInterest.toLocaleString()}</DetailItem>
             <DetailItem><strong>Total Amount Payable (Initial Est):</strong> ₹{summary.totalPayment.toLocaleString()}</DetailItem>

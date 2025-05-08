@@ -140,7 +140,7 @@ const EditLoanDetailsForm: React.FC<EditLoanDetailsFormProps> = ({ loan, onClose
           onChange={(e) => setStartedWithPreEMI(e.target.checked)} 
           style={{ width: 'auto', height: 'auto', marginRight: '0.5rem' }} 
         />
-        <Label htmlFor="editStartedWithPreEMI" style={{ marginBottom: 0, fontWeight: 'normal' }}>Started with Pre-EMI period?</Label>
+        <Label htmlFor="editStartedWithPreEMI" style={{ marginBottom: 0, fontWeight: 'normal' }} title="Check if you only paid interest for an initial period before regular EMIs began.">Started with Pre-EMI period?</Label>
       </FormGroup>
       
       {startedWithPreEMI && (
@@ -166,12 +166,12 @@ const EditLoanDetailsForm: React.FC<EditLoanDetailsFormProps> = ({ loan, onClose
               onChange={(e) => setIsTaxDeductible(e.target.checked)} 
               style={{ width: 'auto', height: 'auto', marginRight: '0.5rem' }} 
             />
-            <Label htmlFor="editIsTaxDeductible" style={{ marginBottom: 0, fontWeight: 'normal' }}>Eligible for tax deductions?</Label>
+            <Label htmlFor="editIsTaxDeductible" style={{ marginBottom: 0, fontWeight: 'normal' }} title="Check if principal (Sec 80C) and interest (Sec 24b) payments qualify for tax deductions.">Eligible for tax deductions?</Label>
          </div>
          {isTaxDeductible && (
             <>
                 <FormGroup style={{marginBottom: '0.75rem'}}>
-                    <Label htmlFor="editPrincipalLimit">Principal Deduction Limit (₹):</Label>
+                    <Label htmlFor="editPrincipalLimit" title="Maximum principal amount deductible under Section 80C per financial year (Default: ₹1,50,000)">Principal Deduction Limit (₹):</Label>
                     <Input 
                         type="number" 
                         id="editPrincipalLimit" 
@@ -180,7 +180,7 @@ const EditLoanDetailsForm: React.FC<EditLoanDetailsFormProps> = ({ loan, onClose
                     />
                 </FormGroup>
                 <FormGroup>
-                    <Label htmlFor="editInterestLimit">Interest Deduction Limit (₹):</Label>
+                    <Label htmlFor="editInterestLimit" title="Maximum interest amount deductible under Section 24(b) per financial year (Default: ₹2,00,000 for self-occupied)">Interest Deduction Limit (₹):</Label>
                     <Input 
                         type="number" 
                         id="editInterestLimit" 

@@ -1,7 +1,7 @@
 // src/components/LoanSummaries.tsx
-import React, { useMemo, useState } from 'react'; 
+import React, { useMemo, useState, useRef, useEffect } from 'react'; // Import useRef, useEffect
 import styled from 'styled-components';
-import { AmortizationEntry, AnnualSummary, LifespanSummary, CurrentSummary, LoanDetails } from '../types'; // Import LoanDetails
+import { AmortizationEntry, AnnualSummary, LifespanSummary, CurrentSummary, LoanDetails } from '../types'; 
 import { generateAnnualSummaries, generateLifespanSummary, generateSummaryToDate } from '../utils/amortizationCalculator'; 
 
 const SummaryContainer = styled.div`
@@ -21,25 +21,32 @@ const SummaryColumns = styled.div`
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
-    gap: 30px; /* Gap between columns */
+    gap: 30px; 
 
-    & > div { /* Style for each column */
+    & > div { 
         flex: 1;
-        min-width: 250px; /* Ensure columns don't get too narrow */
+        min-width: 250px; 
         
-        p { /* Style paragraphs within columns */
+        p { 
              margin: 5px 0;
              font-size: 0.95em;
         }
     }
 `;
 
+// Container for the annual summary table to allow scrolling
+const AnnualTableContainer = styled.div`
+    max-height: 300px; /* Limit height */
+    overflow-y: auto;
+    border: 1px solid #eee; /* Add border for clarity */
+    margin-top: 10px;
+`;
 
 const SummaryTable = styled.table`
   width: 100%;
   border-collapse: collapse;
   font-size: 0.9em;
-  margin-top: 10px;
+  /* margin-top: 10px; // Moved margin to container */
 
   th, td {
     border: 1px solid #ddd;
@@ -48,6 +55,9 @@ const SummaryTable = styled.table`
   }
   th {
     background-color: #f8f9fa;
+    position: sticky; /* Make header sticky */
+    top: 0;
+    z-index: 1;
   }
   td:first-child {
       text-align: left;
@@ -60,7 +70,7 @@ const SummaryTable = styled.table`
 
 interface LoanSummariesProps {
   schedule: AmortizationEntry[];
-  loanDetails: LoanDetails; // Add loanDetails prop
+  loanDetails: LoanDetails; 
 }
 
 const monthOptions = [
@@ -70,11 +80,12 @@ const monthOptions = [
     { value: 9, label: 'October' }, { value: 10, label: 'November' }, { value: 11, label: 'December' }
 ];
 
-const LoanSummaries: React.FC<LoanSummariesProps> = ({ schedule, loanDetails }) => { // Destructure loanDetails
-  const [fyStartMonth, setFyStartMonth] = useState<number>(3); // Default to April (index 3)
+const LoanSummaries: React.FC<LoanSummariesProps> = ({ schedule, loanDetails }) => { 
+  const [fyStartMonth, setFyStartMonth] = useState<number>(3); 
+  const currentFYRowRef = useRef<HTMLTableRowElement | null>(null); // Ref for current FY row
+  const annualTableContainerRef = useRef<HTMLDivElement | null>(null); // Ref for scrollable container
 
   const annualSummaries: AnnualSummary[] = useMemo(() => {
-    // Pass loanDetails to generateAnnualSummaries
     return generateAnnualSummaries(schedule, loanDetails, fyStartMonth); 
   }, [schedule, loanDetails, fyStartMonth]);
 
@@ -83,11 +94,10 @@ const LoanSummaries: React.FC<LoanSummariesProps> = ({ schedule, loanDetails }) 
   }, [schedule, annualSummaries]); 
 
   const summaryToDate: CurrentSummary | null = useMemo(() => {
-      // Pass loanDetails to generateSummaryToDate
       return generateSummaryToDate(schedule, loanDetails, fyStartMonth); 
-  }, [schedule, loanDetails, fyStartMonth]); // Recalculate if loanDetails changes too
+  }, [schedule, loanDetails, fyStartMonth]); 
 
-  // Determine current FY label for highlighting
+  // Determine current FY label for highlighting and scrolling
   const now = new Date();
   const currentCalendarYear = now.getFullYear();
   const currentMonth = now.getMonth();
@@ -97,12 +107,24 @@ const LoanSummaries: React.FC<LoanSummariesProps> = ({ schedule, loanDetails }) 
   }
   const currentFYLabel = `FY ${currentFYStartYear}-${(currentFYStartYear + 1).toString().slice(-2)}`;
 
+  // Effect to scroll to current FY row
+  useEffect(() => {
+      if (currentFYRowRef.current && annualTableContainerRef.current) {
+          const containerHeight = annualTableContainerRef.current.clientHeight;
+          const rowTop = currentFYRowRef.current.offsetTop;
+          const rowHeight = currentFYRowRef.current.clientHeight;
+          // Adjust scroll position to try and center the row
+          const scrollTo = rowTop - (containerHeight / 2) + (rowHeight / 2);
+          
+          annualTableContainerRef.current.scrollTo({ top: scrollTo, behavior: 'smooth' });
+      }
+  }, [annualSummaries]); // Run when annual summaries recalculate
+
 
   if (!schedule || schedule.length === 0) {
     return null; 
   }
 
-  // Determine tax limit headers based on loan details
   const principalLimitHeader = `Deductible Principal (Max ₹${(loanDetails.principalDeductionLimit ?? 150000).toLocaleString()})`;
   const interestLimitHeader = `Deductible Interest (Max ₹${(loanDetails.interestDeductionLimit ?? 200000).toLocaleString()})`;
 
@@ -125,42 +147,43 @@ const LoanSummaries: React.FC<LoanSummariesProps> = ({ schedule, loanDetails }) 
             </div>
         </div>
         {annualSummaries.length > 0 ? (
-          <SummaryTable>
-            <thead>
-              <tr>
-                <th>Financial Year</th>
-                <th>Principal Paid</th>
-                <th>Interest Paid</th>
-                <th>Total Payment</th>
-                {/* Show tax columns only if eligible */}
-                {loanDetails.isTaxDeductible && <> 
-                    <th>{principalLimitHeader}</th> 
-                    <th>{interestLimitHeader}</th>
-                </>}
-              </tr>
-            </thead>
-            <tbody>
-              {annualSummaries.map(summary => {
-                const isCurrentFY = summary.yearLabel === currentFYLabel;
-                return (
-                  <tr 
-                    key={summary.startYear} 
-                    className={isCurrentFY ? 'highlight-current-fy' : ''} 
-                  > 
-                    <td>{summary.yearLabel}</td> 
-                    <td>{summary.totalPrincipalPaid.toLocaleString()}</td>
-                    <td>{summary.totalInterestPaid.toLocaleString()}</td>
-                    <td>{summary.totalPayment.toLocaleString()}</td>
-                    {/* Show tax columns only if eligible */}
-                    {loanDetails.isTaxDeductible && <>
-                        <td>{summary.deductiblePrincipal.toLocaleString()}</td> 
-                        <td>{summary.deductibleInterest.toLocaleString()}</td>
-                    </>}
-                  </tr>
-                );
-              })}
-            </tbody>
-          </SummaryTable>
+          <AnnualTableContainer ref={annualTableContainerRef}> {/* Wrap table in scrollable container */}
+            <SummaryTable>
+              <thead>
+                <tr>
+                  <th>Financial Year</th>
+                  <th>Principal Paid</th>
+                  <th>Interest Paid</th>
+                  <th>Total Payment</th>
+                  {loanDetails.isTaxDeductible && <> 
+                      <th>{principalLimitHeader}</th> 
+                      <th>{interestLimitHeader}</th>
+                  </>}
+                </tr>
+              </thead>
+              <tbody>
+                {annualSummaries.map(summary => {
+                  const isCurrentFY = summary.yearLabel === currentFYLabel;
+                  return (
+                    <tr 
+                      key={summary.startYear} 
+                      className={isCurrentFY ? 'highlight-current-fy' : ''} 
+                      ref={isCurrentFY ? currentFYRowRef : null} // Add ref to current FY row
+                    > 
+                      <td>{summary.yearLabel}</td> 
+                      <td>{summary.totalPrincipalPaid.toLocaleString()}</td>
+                      <td>{summary.totalInterestPaid.toLocaleString()}</td>
+                      <td>{summary.totalPayment.toLocaleString()}</td>
+                      {loanDetails.isTaxDeductible && <>
+                          <td>{summary.deductiblePrincipal.toLocaleString()}</td> 
+                          <td>{summary.deductibleInterest.toLocaleString()}</td>
+                      </>}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </SummaryTable>
+          </AnnualTableContainer>
         ) : (
           <p>No annual summary data available.</p>
         )}
@@ -175,7 +198,6 @@ const LoanSummaries: React.FC<LoanSummariesProps> = ({ schedule, loanDetails }) 
                 <p><strong>Total Principal Paid:</strong> ₹{lifespanSummary.totalPrincipalPaid.toLocaleString()}</p>
                 <p><strong>Total Interest Paid:</strong> ₹{lifespanSummary.totalInterestPaid.toLocaleString()}</p>
                 <p><strong>Total Amount Paid:</strong> ₹{lifespanSummary.totalPayment.toLocaleString()}</p>
-                {/* Show tax lines only if eligible */}
                 {loanDetails.isTaxDeductible && <>
                     <p><strong>Total Deductible Principal (Max):</strong> ₹{lifespanSummary.totalDeductiblePrincipal.toLocaleString()}</p>
                     <p><strong>Total Deductible Interest (Max):</strong> ₹{lifespanSummary.totalDeductibleInterest.toLocaleString()}</p>
@@ -195,7 +217,6 @@ const LoanSummaries: React.FC<LoanSummariesProps> = ({ schedule, loanDetails }) 
                  <p><strong>Total Principal Paid:</strong> ₹{summaryToDate.totalPrincipalPaid.toLocaleString()}</p>
                  <p><strong>Total Interest Paid:</strong> ₹{summaryToDate.totalInterestPaid.toLocaleString()}</p>
                  <p><strong>Total Amount Paid:</strong> ₹{summaryToDate.totalPayment.toLocaleString()}</p>
-                 {/* Show tax lines only if eligible */}
                  {loanDetails.isTaxDeductible && <>
                     <p><strong>Total Deductible Principal (Max):</strong> ₹{summaryToDate.totalDeductiblePrincipal.toLocaleString()}</p>
                     <p><strong>Total Deductible Interest (Max):</strong> ₹{summaryToDate.totalDeductibleInterest.toLocaleString()}</p>

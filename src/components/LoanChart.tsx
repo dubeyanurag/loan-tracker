@@ -252,8 +252,10 @@ const LoanChart: React.FC<LoanChartProps> = ({ schedule, loan }) => {
       }
     }, 
     scales: { 
-        x: { // Ensure x-axis is defined for scaleID reference
+        x: { 
             type: 'category' as const, 
+            min: 0, // Start zoom from the beginning
+            max: currentMonthIndex !== -1 ? Math.min(currentMonthIndex + 12, schedule.length - 1) : schedule.length -1 // Zoom to current month + 1 year (or end)
         },
         yBalance: { // Primary Y-axis for Balance
             type: 'linear' as const,
