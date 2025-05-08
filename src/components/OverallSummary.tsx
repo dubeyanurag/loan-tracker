@@ -4,7 +4,7 @@ import styled from 'styled-components';
 import { useAppState } from '../contexts/AppContext';
 import { generateAmortizationSchedule, generateAnnualSummaries, generateSummaryToDate } from '../utils/amortizationCalculator';
 import { calculateEMI, calculateTotalDisbursed } from '../utils/loanCalculations';
-import { Loan, LoanDetails, CurrentSummary } from '../types';
+import { Loan } from '../types'; // Removed unused LoanDetails, CurrentSummary
 
 const SummaryContainer = styled.div`
   padding: 20px;
@@ -89,8 +89,9 @@ const OverallSummary: React.FC = () => {
     loans.forEach(loan => {
         const schedule = generateAmortizationSchedule(loan);
         // Assume default FY start for this overall summary (April)
+        // Need annual summaries to calculate total deductible amounts to date
         const annualSummaries = generateAnnualSummaries(schedule, loan.details, 3); 
-        const summaryToDate = generateSummaryToDate(schedule, loan.details, 3);
+        const summaryToDate = generateSummaryToDate(schedule, loan.details, 3); 
         const currentVals = calculateCurrentValues(loan);
 
         if(summaryToDate) {
