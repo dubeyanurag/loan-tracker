@@ -2,9 +2,9 @@
 import React, { useMemo } from 'react';
 import styled from 'styled-components';
 import { useAppState } from '../contexts/AppContext';
-import { generateAmortizationSchedule, generateAnnualSummaries, generateSummaryToDate } from '../utils/amortizationCalculator';
+import { generateAmortizationSchedule, generateSummaryToDate } from '../utils/amortizationCalculator'; // Removed unused generateAnnualSummaries
 import { calculateEMI, calculateTotalDisbursed } from '../utils/loanCalculations';
-import { Loan } from '../types'; // Removed unused LoanDetails, CurrentSummary
+import { Loan } from '../types'; 
 
 const SummaryContainer = styled.div`
   padding: 20px;
@@ -89,7 +89,6 @@ const OverallSummary: React.FC = () => {
     loans.forEach(loan => {
         const schedule = generateAmortizationSchedule(loan);
         // Assume default FY start for this overall summary (April)
-        // const annualSummaries = generateAnnualSummaries(schedule, loan.details, 3); // No longer needed here
         const summaryToDate = generateSummaryToDate(schedule, loan.details, 3); 
         const currentVals = calculateCurrentValues(loan);
 
