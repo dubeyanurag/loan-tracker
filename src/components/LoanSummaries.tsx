@@ -1,5 +1,5 @@
 // src/components/LoanSummaries.tsx
-import React, { useMemo, useState, useRef, useEffect } from 'react'; // Import useRef, useEffect
+import React, { useMemo, useState, useRef, useEffect } from 'react'; 
 import styled from 'styled-components';
 import { AmortizationEntry, AnnualSummary, LifespanSummary, CurrentSummary, LoanDetails } from '../types'; 
 import { generateAnnualSummaries, generateLifespanSummary, generateSummaryToDate } from '../utils/amortizationCalculator'; 
@@ -16,7 +16,6 @@ const SummarySection = styled.div`
   margin-bottom: 20px;
 `;
 
-// Container for the two summary columns (Lifespan vs To Date)
 const SummaryColumns = styled.div`
     display: flex;
     flex-direction: row;
@@ -34,11 +33,10 @@ const SummaryColumns = styled.div`
     }
 `;
 
-// Container for the annual summary table to allow scrolling
 const AnnualTableContainer = styled.div`
-    max-height: 300px; /* Limit height */
+    max-height: 300px; 
     overflow-y: auto;
-    border: 1px solid #eee; /* Add border for clarity */
+    border: 1px solid #eee; 
     margin-top: 10px;
 `;
 
@@ -46,7 +44,6 @@ const SummaryTable = styled.table`
   width: 100%;
   border-collapse: collapse;
   font-size: 0.9em;
-  /* margin-top: 10px; // Moved margin to container */
 
   th, td {
     border: 1px solid #ddd;
@@ -55,7 +52,7 @@ const SummaryTable = styled.table`
   }
   th {
     background-color: #f8f9fa;
-    position: sticky; /* Make header sticky */
+    position: sticky; 
     top: 0;
     z-index: 1;
   }
@@ -82,8 +79,8 @@ const monthOptions = [
 
 const LoanSummaries: React.FC<LoanSummariesProps> = ({ schedule, loanDetails }) => { 
   const [fyStartMonth, setFyStartMonth] = useState<number>(3); 
-  const currentFYRowRef = useRef<HTMLTableRowElement | null>(null); // Ref for current FY row
-  const annualTableContainerRef = useRef<HTMLDivElement | null>(null); // Ref for scrollable container
+  const currentFYRowRef = useRef<HTMLTableRowElement | null>(null); 
+  const annualTableContainerRef = useRef<HTMLDivElement | null>(null); 
 
   const annualSummaries: AnnualSummary[] = useMemo(() => {
     return generateAnnualSummaries(schedule, loanDetails, fyStartMonth); 
@@ -97,7 +94,6 @@ const LoanSummaries: React.FC<LoanSummariesProps> = ({ schedule, loanDetails }) 
       return generateSummaryToDate(schedule, loanDetails, fyStartMonth); 
   }, [schedule, loanDetails, fyStartMonth]); 
 
-  // Determine current FY label for highlighting and scrolling
   const now = new Date();
   const currentCalendarYear = now.getFullYear();
   const currentMonth = now.getMonth();
@@ -107,18 +103,16 @@ const LoanSummaries: React.FC<LoanSummariesProps> = ({ schedule, loanDetails }) 
   }
   const currentFYLabel = `FY ${currentFYStartYear}-${(currentFYStartYear + 1).toString().slice(-2)}`;
 
-  // Effect to scroll to current FY row
   useEffect(() => {
       if (currentFYRowRef.current && annualTableContainerRef.current) {
           const containerHeight = annualTableContainerRef.current.clientHeight;
           const rowTop = currentFYRowRef.current.offsetTop;
           const rowHeight = currentFYRowRef.current.clientHeight;
-          // Adjust scroll position to try and center the row
           const scrollTo = rowTop - (containerHeight / 2) + (rowHeight / 2);
           
           annualTableContainerRef.current.scrollTo({ top: scrollTo, behavior: 'smooth' });
       }
-  }, [annualSummaries]); // Run when annual summaries recalculate
+  }, [annualSummaries]); 
 
 
   if (!schedule || schedule.length === 0) {
@@ -147,7 +141,7 @@ const LoanSummaries: React.FC<LoanSummariesProps> = ({ schedule, loanDetails }) 
             </div>
         </div>
         {annualSummaries.length > 0 ? (
-          <AnnualTableContainer ref={annualTableContainerRef}> {/* Wrap table in scrollable container */}
+          <AnnualTableContainer ref={annualTableContainerRef}> 
             <SummaryTable>
               <thead>
                 <tr>
@@ -155,10 +149,13 @@ const LoanSummaries: React.FC<LoanSummariesProps> = ({ schedule, loanDetails }) 
                   <th>Principal Paid</th>
                   <th>Interest Paid</th>
                   <th>Total Payment</th>
-                  {loanDetails.isTaxDeductible && <> 
+                  {/* Ensure conditional rendering for headers */}
+                  {loanDetails.isTaxDeductible && ( 
+                    <> 
                       <th>{principalLimitHeader}</th> 
                       <th>{interestLimitHeader}</th>
-                  </>}
+                    </>
+                  )}
                 </tr>
               </thead>
               <tbody>
@@ -168,16 +165,19 @@ const LoanSummaries: React.FC<LoanSummariesProps> = ({ schedule, loanDetails }) 
                     <tr 
                       key={summary.startYear} 
                       className={isCurrentFY ? 'highlight-current-fy' : ''} 
-                      ref={isCurrentFY ? currentFYRowRef : null} // Add ref to current FY row
+                      ref={isCurrentFY ? currentFYRowRef : null} 
                     > 
                       <td>{summary.yearLabel}</td> 
                       <td>{summary.totalPrincipalPaid.toLocaleString()}</td>
                       <td>{summary.totalInterestPaid.toLocaleString()}</td>
                       <td>{summary.totalPayment.toLocaleString()}</td>
-                      {loanDetails.isTaxDeductible && <>
+                      {/* Ensure conditional rendering for data cells */}
+                      {loanDetails.isTaxDeductible && ( 
+                        <>
                           <td>{summary.deductiblePrincipal.toLocaleString()}</td> 
                           <td>{summary.deductibleInterest.toLocaleString()}</td>
-                      </>}
+                        </>
+                      )}
                     </tr>
                   );
                 })}
@@ -199,10 +199,12 @@ const LoanSummaries: React.FC<LoanSummariesProps> = ({ schedule, loanDetails }) 
                 <p><strong>Total Interest Paid:</strong> ₹{lifespanSummary.totalInterestPaid.toLocaleString()}</p>
                 <p><strong>Total Amount Paid:</strong> ₹{lifespanSummary.totalPayment.toLocaleString()}</p>
                 {/* Restore conditional display for lifespan deductibles */}
-                {loanDetails.isTaxDeductible && <>
+                {loanDetails.isTaxDeductible && (
+                  <>
                     <p><strong>Total Deductible Principal (Lifespan):</strong> ₹{lifespanSummary.totalDeductiblePrincipal.toLocaleString()}</p>
                     <p><strong>Total Deductible Interest (Lifespan):</strong> ₹{lifespanSummary.totalDeductibleInterest.toLocaleString()}</p>
-                </>}
+                  </>
+                )}
               </div>
             ) : (
               <p>No lifespan summary data available.</p>
@@ -215,14 +217,16 @@ const LoanSummaries: React.FC<LoanSummariesProps> = ({ schedule, loanDetails }) 
               <div>
                  <p><strong>Months Elapsed:</strong> {summaryToDate.monthsElapsed}</p>
                  <p><strong>Outstanding Balance:</strong> ₹{summaryToDate.currentOutstandingBalance.toLocaleString()}</p>
-                 <p><strong>Total Principal Paid (To Date):</strong> ₹{summaryToDate.uncappedTotalPrincipalPaid.toLocaleString()}</p> {/* Use uncapped */}
-                 <p><strong>Total Interest Paid (To Date):</strong> ₹{summaryToDate.uncappedTotalInterestPaid.toLocaleString()}</p> {/* Use uncapped */}
+                 <p><strong>Total Principal Paid (To Date):</strong> ₹{summaryToDate.uncappedTotalPrincipalPaid.toLocaleString()}</p> 
+                 <p><strong>Total Interest Paid (To Date):</strong> ₹{summaryToDate.uncappedTotalInterestPaid.toLocaleString()}</p> 
                  <p><strong>Total Amount Paid (To Date):</strong> ₹{summaryToDate.totalPayment.toLocaleString()}</p>
                  {/* Restore conditional display for to-date deductibles */}
-                 {loanDetails.isTaxDeductible && <>
+                 {loanDetails.isTaxDeductible && (
+                   <>
                     <p><strong>Total Deductible Principal (To Date):</strong> ₹{summaryToDate.totalDeductiblePrincipal.toLocaleString()}</p>
                     <p><strong>Total Deductible Interest (To Date):</strong> ₹{summaryToDate.totalDeductibleInterest.toLocaleString()}</p>
-                 </>}
+                   </>
+                 )}
               </div>
             ) : (
               <p>No summary data available for current date.</p>
