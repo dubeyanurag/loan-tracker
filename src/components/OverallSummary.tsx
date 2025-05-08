@@ -46,12 +46,15 @@ const OverallSummary: React.FC = () => {
     let totalDeductiblePrincipal = 0;
     let totalDeductibleInterest = 0;
 
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth(); // 0-indexed
+
     loans.forEach(loan => {
         const schedule = generateAmortizationSchedule(loan);
-        if (schedule.length === 0) return; // Skip if no schedule generated
+        if (schedule.length === 0) return; 
 
         // Assume default FY start for this overall summary (April)
-        // const annualSummaries = generateAnnualSummaries(schedule, loan.details, 3); // Removed unused variable
         const summaryToDate = generateSummaryToDate(schedule, loan.details, 3); 
         
         if(summaryToDate) {
@@ -61,16 +64,30 @@ const OverallSummary: React.FC = () => {
             totalDeductiblePrincipal += summaryToDate.totalDeductiblePrincipal;
             totalDeductibleInterest += summaryToDate.totalDeductibleInterest;
 
-            // Use EMI from the latest schedule entry if the loan is still active
+            // --- Corrected Current EMI Calculation ---
             if (summaryToDate.currentOutstandingBalance > 0) {
-                 const lastEntry = schedule[schedule.length - 1];
-                 if (lastEntry) {
-                     // Simple sum of last EMI - might not be accurate if loans end at different times
-                     // A weighted average or just total payment might be better?
-                     // Sticking with simple sum for now.
-                     totalCurrentEMI += lastEntry.emi;
+                // Find the schedule entry for the current calendar month/year
+                let currentMonthEntry = null;
+                 for(let i = 0; i < schedule.length; i++) {
+                    const entryDate = new Date(schedule[i].paymentDate);
+                    if (entryDate.getFullYear() === currentYear && entryDate.getMonth() === currentMonth) {
+                        currentMonthEntry = schedule[i];
+                        break;
+                    }
+                    // If current date is past the schedule end, use the last entry's EMI if balance > 0
+                    if (i === schedule.length - 1 && schedule[i].closingBalance > 0) {
+                         // This case might indicate an issue or a very long loan
+                         // Using last EMI as fallback if current month not found but balance exists
+                         // currentMonthEntry = schedule[i]; 
+                    }
                  }
+
+                 if (currentMonthEntry) {
+                     totalCurrentEMI += currentMonthEntry.emi;
+                 }
+                 // If currentMonthEntry is null (e.g., loan starts in future), EMI is 0 for this loan's contribution
             }
+            // --- End Corrected Current EMI Calculation ---
         }
     });
 
@@ -86,7 +103,7 @@ const OverallSummary: React.FC = () => {
   }, [loans]);
 
   if (loans.length === 0) {
-    return null; // Don't show summary if no loans exist
+    return null; 
   }
 
   return (
