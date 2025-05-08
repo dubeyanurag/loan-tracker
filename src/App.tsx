@@ -4,7 +4,8 @@ import LoanForm from './components/LoanForm';
 import LoanList from './components/LoanList';
 import { useAppState } from './contexts/AppContext';
 import LoanDetailsDisplay from './components/LoanDetailsDisplay';
-import ShareState from './components/ShareState'; // Import ShareState
+import ShareState from './components/ShareState'; 
+import OverallSummary from './components/OverallSummary'; // Import OverallSummary
 
 // Basic layout styled components
 const AppContainer = styled.div`
@@ -62,6 +63,8 @@ function App() {
         <MainTitle>Loan Tracker</MainTitle> 
         <ShareState /> 
       </HeaderContainer>
+
+      <OverallSummary /> {/* Add Overall Summary Component */}
       
       <ContentLayout>
         <Section>
