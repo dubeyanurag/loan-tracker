@@ -19,10 +19,18 @@ const AppContainer = styled.div`
   box-shadow: 0 0 10px rgba(0,0,0,0.1);
 `;
 
+// New Header Container using Flexbox
+const HeaderContainer = styled.div`
+  display: flex;
+  justify-content: space-between; /* Pushes title left, share right */
+  align-items: center; /* Vertically align items */
+  margin-bottom: 30px; /* Keep margin below header */
+`;
+
 const MainTitle = styled.h1`
-  text-align: center;
+  /* text-align: center; */ /* No longer needed */
   color: #2c3e50;
-  margin-bottom: 30px;
+  margin: 0; /* Remove default h1 margin */
 `;
 
 const ContentLayout = styled.div`
@@ -50,7 +58,10 @@ function App() {
 
   return (
     <AppContainer>
-      <MainTitle>Home Loan Tracker</MainTitle>
+      <HeaderContainer>
+        <MainTitle>Home Loan Tracker</MainTitle>
+        <ShareState /> {/* Move ShareState into Header */}
+      </HeaderContainer>
       
       <ContentLayout>
         <Section>
@@ -72,10 +83,7 @@ function App() {
           )}
         </Section>
       </ContentLayout>
-      {/* Position ShareState at top right */}
-      <div style={{ position: 'absolute', top: '20px', right: '20px' }}>
-        <ShareState /> 
-      </div>
+      {/* ShareState moved into HeaderContainer */}
     </AppContainer>
   );
 }
