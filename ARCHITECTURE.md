@@ -34,7 +34,7 @@ graph TD
         AmortizationTable -- dispatch ADD_PAYMENT/ADD_INTEREST_RATE_CHANGE/ADD_CUSTOM_EMI_CHANGE --> Reducer;
         LoanDetailsDisplay -- triggers Edit --> EditLoanDetailsForm; 
         EditLoanDetailsForm -- dispatch UPDATE_LOAN --> Reducer; 
-        LoanDetailsDisplay -- triggers Delete --> Reducer; %% History List Deletion triggers UPDATE_LOAN
+        LoanDetailsDisplay -- triggers Delete --> Reducer; 
     end
 
     subgraph "State Management"
