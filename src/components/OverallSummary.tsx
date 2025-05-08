@@ -89,8 +89,7 @@ const OverallSummary: React.FC = () => {
     loans.forEach(loan => {
         const schedule = generateAmortizationSchedule(loan);
         // Assume default FY start for this overall summary (April)
-        // Need annual summaries to calculate total deductible amounts to date
-        const annualSummaries = generateAnnualSummaries(schedule, loan.details, 3); 
+        // const annualSummaries = generateAnnualSummaries(schedule, loan.details, 3); // No longer needed here
         const summaryToDate = generateSummaryToDate(schedule, loan.details, 3); 
         const currentVals = calculateCurrentValues(loan);
 
