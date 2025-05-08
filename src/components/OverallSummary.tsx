@@ -2,8 +2,8 @@
 import React, { useMemo } from 'react';
 import styled from 'styled-components';
 import { useAppState } from '../contexts/AppContext';
-import { generateAmortizationSchedule, generateSummaryToDate } from '../utils/amortizationCalculator'; // Removed unused generateAnnualSummaries
-import { calculateEMI, calculateTotalDisbursed } from '../utils/loanCalculations';
+import { generateAmortizationSchedule, generateAnnualSummaries, generateSummaryToDate } from '../utils/amortizationCalculator'; 
+// Removed unused calculateEMI, calculateTotalDisbursed imports from loanCalculations
 import { Loan } from '../types'; 
 
 const SummaryContainer = styled.div`
@@ -34,46 +34,7 @@ const SummaryItem = styled.div`
     }
 `;
 
-// Helper function to calculate current values for a single loan
-const calculateCurrentValues = (loan: Loan) => {
-    const amortizationSchedule = generateAmortizationSchedule(loan);
-    if (amortizationSchedule.length === 0) {
-        const totalDisbursed = calculateTotalDisbursed(loan.details.disbursements);
-        const initialEMI = calculateEMI(totalDisbursed, loan.details.originalInterestRate, loan.details.originalTenureMonths);
-        return { currentRate: loan.details.originalInterestRate, currentEMI: initialEMI };
-    }
-    const lastEntry = amortizationSchedule[amortizationSchedule.length - 1];
-    let effectiveRate = loan.details.originalInterestRate;
-    let effectiveEMI = calculateEMI(calculateTotalDisbursed(loan.details.disbursements), loan.details.originalInterestRate, loan.details.originalTenureMonths); // Fallback
-
-    const lastRoiChange = [...(loan.interestRateChanges || [])]
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-        .find(change => new Date(change.date) <= new Date(lastEntry.paymentDate));
-    if(lastRoiChange) effectiveRate = lastRoiChange.newRate;
-
-    const lastEmiEvent = [...(loan.interestRateChanges || []), ...(loan.customEMIChanges || [])]
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-        .find(change => new Date(change.date) <= new Date(lastEntry.paymentDate));
-     if(lastEmiEvent) {
-          if ('newRate' in lastEmiEvent && lastEmiEvent.adjustmentPreference === 'adjustEMI') {
-              effectiveEMI = lastEntry.emi; 
-          } else if ('newEMI' in lastEmiEvent) {
-              effectiveEMI = lastEmiEvent.newEMI;
-          } else if ('newRate' in lastEmiEvent && lastEmiEvent.adjustmentPreference === 'customEMI' && lastEmiEvent.newEMIIfApplicable) {
-               effectiveEMI = lastEmiEvent.newEMIIfApplicable;
-          } else {
-              effectiveEMI = lastEntry.emi;
-          }
-     } else if (amortizationSchedule.length > 0) { 
-          effectiveEMI = lastEntry.emi; 
-     }
-
-    return {
-        currentRate: effectiveRate,
-        currentEMI: effectiveEMI,
-    };
-};
-
+// Removed calculateCurrentValues helper function
 
 const OverallSummary: React.FC = () => {
   const { loans } = useAppState();
@@ -88,20 +49,26 @@ const OverallSummary: React.FC = () => {
 
     loans.forEach(loan => {
         const schedule = generateAmortizationSchedule(loan);
-        // Assume default FY start for this overall summary (April)
-        const summaryToDate = generateSummaryToDate(schedule, loan.details, 3); 
-        const currentVals = calculateCurrentValues(loan);
+        if (schedule.length === 0) return; // Skip if no schedule generated
 
+        // Assume default FY start for this overall summary (April)
+        const annualSummaries = generateAnnualSummaries(schedule, loan.details, 3); 
+        const summaryToDate = generateSummaryToDate(schedule, loan.details, 3); 
+        
         if(summaryToDate) {
             totalOutstanding += summaryToDate.currentOutstandingBalance;
             totalPrincipalPaid += summaryToDate.totalPrincipalPaid;
             totalInterestPaid += summaryToDate.totalInterestPaid;
             totalDeductiblePrincipal += summaryToDate.totalDeductiblePrincipal;
             totalDeductibleInterest += summaryToDate.totalDeductibleInterest;
-        }
-        // Add current EMI only if loan is not fully paid (outstanding > 0)
-        if (summaryToDate && summaryToDate.currentOutstandingBalance > 0) {
-             totalCurrentEMI += currentVals.currentEMI;
+
+            // Use EMI from the latest schedule entry if the loan is still active
+            if (summaryToDate.currentOutstandingBalance > 0) {
+                 const lastEntry = schedule[schedule.length - 1];
+                 if (lastEntry) {
+                     totalCurrentEMI += lastEntry.emi;
+                 }
+            }
         }
     });
 
