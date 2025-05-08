@@ -1,15 +1,15 @@
 // src/components/LoanDetailsDisplay.tsx
-import React, { useMemo, useCallback, useState } from 'react'; // Add useState
+import React, { useMemo, useCallback, useState } from 'react'; 
 import styled from 'styled-components';
 import { Loan, AmortizationEntry } from '../types'; 
-import { calculateEMI, calculateTotalInterestAndPayment, calculateTotalDisbursed } from '../utils/loanCalculations'; 
+import { calculateTotalInterestAndPayment, calculateTotalDisbursed } from '../utils/loanCalculations'; // Keep calculateTotalInterestAndPayment for potential future use? No, remove.
 import { generateAmortizationSchedule } from '../utils/amortizationCalculator'; 
 import AddDisbursementForm from './AddDisbursementForm'; 
 import AmortizationTable from './AmortizationTable';
 import LoanSummaries from './LoanSummaries';
 import LoanChart from './LoanChart'; 
 import { useAppDispatch } from '../contexts/AppContext'; 
-import EditLoanDetailsForm from './EditLoanDetailsForm'; // Import Edit Form
+import EditLoanDetailsForm from './EditLoanDetailsForm'; 
 
 // Main container for the layout
 const DetailsLayoutContainer = styled.div`
@@ -94,7 +94,7 @@ const HistoryHeading = styled.h4`
 
 // Simple Modal Overlay Style
 const ModalOverlay = styled.div`
-    position: fixed; /* Use fixed to cover viewport */
+    position: fixed; 
     top: 0;
     left: 0;
     right: 0;
@@ -117,7 +117,7 @@ const ModalContent = styled.div`
 `;
 
 // Button to trigger edit modal
-const EditDetailsButton = styled(DeleteButton)` // Reuse button style
+const EditDetailsButton = styled(DeleteButton)` 
     background-color: #ffc107;
     color: #333;
     border-color: #ffc107;
@@ -134,67 +134,56 @@ const EditDetailsButton = styled(DeleteButton)` // Reuse button style
  const LoanDetailsDisplay: React.FC<LoanDetailsDisplayProps> = ({ loan }) => {
    const { details } = loan; 
    const dispatch = useAppDispatch(); 
-   const [isEditing, setIsEditing] = useState(false); // State for modal visibility
+   const [isEditing, setIsEditing] = useState(false); 
 
    const totalDisbursed = useMemo(() => calculateTotalDisbursed(details.disbursements), [details.disbursements]);
 
-  const initialEMI = useMemo(() => {
-    if (details.disbursements.length > 0) {
-         return calculateEMI(totalDisbursed, details.originalInterestRate, details.originalTenureMonths);
-    }
-    return 0;
-  }, [details.disbursements, details.originalInterestRate, details.originalTenureMonths, totalDisbursed]);
-
-  const summary = useMemo(() => {
-    if (initialEMI > 0 && totalDisbursed > 0) {
-      return calculateTotalInterestAndPayment(
-        totalDisbursed, 
-        initialEMI,
-        details.originalTenureMonths
-      );
-    }
-    return { totalInterest: 0, totalPayment: 0 };
-  }, [totalDisbursed, initialEMI, details.originalTenureMonths]);
+   // Removed initialEMI calculation
+   // Removed summary calculation (Initial Total Interest/Payment)
 
   const amortizationSchedule: AmortizationEntry[] = useMemo(() => {
      return generateAmortizationSchedule(loan);
    }, [loan]); 
 
+   // --- Calculate Current Rate and EMI ---
    const currentValues = useMemo(() => {
-       if (amortizationSchedule.length === 0) {
-           return { currentRate: details.originalInterestRate, currentEMI: initialEMI };
-       }
-       const lastEntry = amortizationSchedule[amortizationSchedule.length - 1];
        let effectiveRate = details.originalInterestRate;
-       let effectiveEMI = initialEMI;
+       let effectiveEMI: number | string = 'N/A'; // Default to N/A
 
-       const lastRoiChange = [...(loan.interestRateChanges || [])]
-           .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-           .find(change => new Date(change.date) <= new Date(lastEntry.paymentDate));
-       if(lastRoiChange) effectiveRate = lastRoiChange.newRate;
+       if (amortizationSchedule.length > 0) {
+           const lastEntry = amortizationSchedule[amortizationSchedule.length - 1];
+           
+           // Find last applicable rate change
+           const lastRoiChange = [...(loan.interestRateChanges || [])]
+               .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+               .find(change => new Date(change.date) <= new Date(lastEntry.paymentDate));
+           if(lastRoiChange) effectiveRate = lastRoiChange.newRate;
 
-       const lastEmiEvent = [...(loan.interestRateChanges || []), ...(loan.customEMIChanges || [])]
-           .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-           .find(change => new Date(change.date) <= new Date(lastEntry.paymentDate));
-        if(lastEmiEvent) {
-             if ('newRate' in lastEmiEvent && lastEmiEvent.adjustmentPreference === 'adjustEMI') {
-                 effectiveEMI = lastEntry.emi; 
-             } else if ('newEMI' in lastEmiEvent) {
-                 effectiveEMI = lastEmiEvent.newEMI;
-             } else if ('newRate' in lastEmiEvent && lastEmiEvent.adjustmentPreference === 'customEMI' && lastEmiEvent.newEMIIfApplicable) {
-                  effectiveEMI = lastEmiEvent.newEMIIfApplicable;
-             } else {
-                 effectiveEMI = lastEntry.emi;
-             }
-        } else if (amortizationSchedule.length > 0) { 
-             effectiveEMI = lastEntry.emi; 
-        }
+           // Find current month's entry to get current EMI
+           const now = new Date();
+           const currentYear = now.getFullYear();
+           const currentMonth = now.getMonth();
+           // Use amortizationSchedule and add type for entry
+           const currentMonthEntry = amortizationSchedule.find((entry: AmortizationEntry) => { 
+               const entryDate = new Date(entry.paymentDate);
+               return entryDate.getFullYear() === currentYear && entryDate.getMonth() === currentMonth;
+           });
 
+           if (currentMonthEntry && currentMonthEntry.openingBalance > 0) {
+               effectiveEMI = currentMonthEntry.emi;
+           } else if (lastEntry.closingBalance <= 0.01) {
+               effectiveEMI = 0; // Loan closed
+           }
+           // If current month entry not found but loan not closed, EMI remains 'N/A' or could use last known EMI
+           // Let's stick with 'N/A' if current month isn't in schedule yet
+       }
+       
        return {
            currentRate: effectiveRate,
            currentEMI: effectiveEMI,
        };
-   }, [amortizationSchedule, details, initialEMI, loan.interestRateChanges, loan.customEMIChanges]);
+   }, [amortizationSchedule, details, loan.interestRateChanges, loan.customEMIChanges]); // Removed initialEMI dependency
+   // --- End Calculate Current Values ---
    
     const createDeleteHandler = useCallback((eventType: 'Disbursement' | 'Payment' | 'ROI Change' | 'EMI Change') => (eventId: string) => {
         if (!window.confirm(`Are you sure you want to delete this ${eventType} event? This will recalculate the schedule.`)) {
@@ -237,11 +226,8 @@ const EditDetailsButton = styled(DeleteButton)` // Reuse button style
                 <h3>Loan Summary</h3> 
                 <EditDetailsButton onClick={() => setIsEditing(true)}>Edit Details</EditDetailsButton>
             </div>
-            {/* Wrap Disbursed and Initial EMI */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.5rem' }}> 
-                <DetailItem><strong>Total Disbursed:</strong> ₹{totalDisbursed.toLocaleString()}</DetailItem> 
-                <DetailItem><strong>Calculated Initial EMI (Estimate):</strong> ₹{initialEMI.toLocaleString()}</DetailItem>
-            </div>
+            {/* Removed side-by-side layout for these */}
+            <DetailItem><strong>Total Disbursed:</strong> ₹{totalDisbursed.toLocaleString()}</DetailItem> 
             <DetailItem><strong>Original Rate:</strong> {details.originalInterestRate}%</DetailItem>
             <DetailItem><strong>Current Rate (Est):</strong> {currentValues.currentRate}%</DetailItem>
             <DetailItem><strong>Original Tenure:</strong> {details.originalTenureMonths / 12} years ({details.originalTenureMonths} months)</DetailItem>
@@ -258,10 +244,8 @@ const EditDetailsButton = styled(DeleteButton)` // Reuse button style
                  </DetailItem>
              )}
             <hr style={{ margin: '15px 0', borderColor: '#eee' }} />
-            {/* Initial EMI moved up */}
-            <DetailItem><strong>Current EMI (Estimate):</strong> ₹{currentValues.currentEMI.toLocaleString()}</DetailItem>
-            <DetailItem><strong>Total Interest Payable (Initial Est):</strong> ₹{summary.totalInterest.toLocaleString()}</DetailItem>
-            <DetailItem><strong>Total Amount Payable (Initial Est):</strong> ₹{summary.totalPayment.toLocaleString()}</DetailItem>
+            {/* Removed Initial EMI, Total Interest, Total Payment */}
+            <DetailItem><strong>Current EMI (Est):</strong> {typeof currentValues.currentEMI === 'number' ? `₹${currentValues.currentEMI.toLocaleString()}` : currentValues.currentEMI}</DetailItem>
        </div>
 
         {/* Row for Disbursements List and Add Form */}
@@ -347,8 +331,8 @@ const EditDetailsButton = styled(DeleteButton)` // Reuse button style
 
         {/* Edit Modal */}
         {isEditing && (
-            <ModalOverlay onClick={() => setIsEditing(false)}> {/* Close on overlay click */}
-                 <ModalContent onClick={e => e.stopPropagation()}> {/* Prevent closing when clicking inside modal */}
+            <ModalOverlay onClick={() => setIsEditing(false)}> 
+                 <ModalContent onClick={e => e.stopPropagation()}> 
                      <EditLoanDetailsForm loan={loan} onClose={() => setIsEditing(false)} />
                  </ModalContent>
             </ModalOverlay>

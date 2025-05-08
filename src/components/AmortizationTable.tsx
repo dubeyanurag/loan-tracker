@@ -183,10 +183,11 @@ const AmortizationTable: React.FC<AmortizationTableProps> = ({ schedule, loan })
   }
 
   return (
-    <TableContainer ref={tableContainerRef}> {/* Add ref to scrollable container */}
+    <div style={{marginTop: '20px'}}> {/* Wrap heading and table */}
       <h4>Full Amortization Schedule</h4>
-      <StyledTable>
-        <thead>
+      <TableContainer ref={tableContainerRef}> {/* Add ref to scrollable container */}
+        <StyledTable>
+          <thead>
           <tr>
             <th>#</th>
             <th>Date</th>
@@ -235,9 +236,10 @@ const AmortizationTable: React.FC<AmortizationTableProps> = ({ schedule, loan })
               </tr>
             );
           })}
-        </tbody>
-      </StyledTable>
-    </TableContainer>
+          </tbody>
+        </StyledTable>
+      </TableContainer>
+    </div>
   );
 };
 
