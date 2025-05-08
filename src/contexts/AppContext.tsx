@@ -1,6 +1,6 @@
 // src/contexts/AppContext.tsx
 import React, { createContext, useReducer, useContext, ReactNode, useEffect } from 'react';
-import { AppState, AppAction } from '../types'; // Removed unused Loan import
+import { AppState, AppAction, Loan } from '../types'; // Re-add Loan import
 import { v4 as uuidv4 } from 'uuid'; 
 
 const LOCAL_STORAGE_KEY = 'homeLoanTrackerAppState';
@@ -151,23 +151,54 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
                      console.error("Error loading state from localStorage during merge:", localError);
                 }
 
-                // Merge loans (simple concatenation for now, might create duplicates)
-                const mergedLoans = [
-                    ...(existingState.loans || []), 
-                    ...(parsedStateFromUrl.loans || [])
-                ];
+                // --- Merge Logic: Replace existing by ID, append new ---
+                const urlLoansMap = new Map<string, Loan>();
+                (parsedStateFromUrl.loans || []).forEach(loan => {
+                    if (loan && loan.id) { // Basic check
+                       urlLoansMap.set(loan.id, loan);
+                    }
+                });
+
+                const mergedLoans: Loan[] = [];
+                const processedUrlLoanIds = new Set<string>();
+
+                // Process existing loans: keep or replace
+                (existingState.loans || []).forEach(existingLoan => {
+                    if (existingLoan && existingLoan.id) {
+                        if (urlLoansMap.has(existingLoan.id)) {
+                            // Replace with URL version
+                            mergedLoans.push(urlLoansMap.get(existingLoan.id)!);
+                            processedUrlLoanIds.add(existingLoan.id);
+                        } else {
+                            // Keep existing version
+                            mergedLoans.push(existingLoan);
+                        }
+                    }
+                });
+
+                // Add new loans from URL that weren't replacements
+                urlLoansMap.forEach((urlLoan, urlLoanId) => {
+                    if (!processedUrlLoanIds.has(urlLoanId)) {
+                        mergedLoans.push(urlLoan);
+                    }
+                });
+                // --- End Merge Logic ---
                 
-                // Decide on selectedLoanId (e.g., select first from URL load, fallback to existing)
-                const newSelectedLoanId = parsedStateFromUrl.loans?.[0]?.id || existingState.selectedLoanId;
+                // Decide on selectedLoanId (select first from URL load if it exists, else keep existing, else null)
+                const firstUrlLoanId = parsedStateFromUrl.loans?.[0]?.id;
+                const newSelectedLoanId = urlLoansMap.has(firstUrlLoanId || '') 
+                                            ? firstUrlLoanId 
+                                            : (mergedLoans.some(l => l.id === existingState.selectedLoanId) ? existingState.selectedLoanId : null);
+
 
                 const mergedState: AppState = {
                     loans: mergedLoans,
                     selectedLoanId: newSelectedLoanId
                 };
 
-                console.log("Merged state from URL and existing state.");
-                 // Clear the URL parameter after loading? Optional.
-                 // window.history.replaceState({}, document.title, window.location.pathname); 
+                console.log("Merged/Replaced state from URL and existing state.");
+                 // Clear the URL parameter after loading
+                 window.history.replaceState({}, document.title, window.location.pathname + window.location.hash); 
                 return mergedState;
 
             } else {
