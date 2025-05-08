@@ -233,8 +233,8 @@ export const generateSummaryToDate = (
 ): CurrentSummary | null => {
     if (!schedule || schedule.length === 0) return null;
 
-    const principalLimit = loanDetails.principalDeductionLimit ?? DEFAULT_PRINCIPAL_DEDUCTION_LIMIT;
-    const interestLimit = loanDetails.interestDeductionLimit ?? DEFAULT_INTEREST_DEDUCTION_LIMIT;
+    // const principalLimit = loanDetails.principalDeductionLimit ?? DEFAULT_PRINCIPAL_DEDUCTION_LIMIT; // Unused here
+    // const interestLimit = loanDetails.interestDeductionLimit ?? DEFAULT_INTEREST_DEDUCTION_LIMIT; // Unused here
     const isEligible = loanDetails.isTaxDeductible ?? false;
 
     const now = new Date();

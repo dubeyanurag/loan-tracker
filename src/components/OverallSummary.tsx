@@ -43,8 +43,8 @@ const OverallSummary: React.FC = () => {
     let totalCurrentEMI = 0;
     let totalPrincipalPaid = 0;
     let totalInterestPaid = 0;
-    let totalDeductiblePrincipal = 0;
-    let totalDeductibleInterest = 0;
+    // let totalDeductiblePrincipal = 0; // Removed unused
+    // let totalDeductibleInterest = 0; // Removed unused
 
     const now = new Date();
     const currentYear = now.getFullYear();
