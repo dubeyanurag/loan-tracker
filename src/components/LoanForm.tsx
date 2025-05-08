@@ -34,11 +34,12 @@ const Input = styled.input`
   font-size: 1em;
 `;
 
-const Button = styled.button`
-  padding: 10px 15px;
-  background-color: #007bff;
+const Button = styled.button` // Inherits base button styles from index.css
+  padding: 0.6rem 1.2rem; /* Adjusted padding */
+  margin-top: 0.5rem; /* Add margin top */
+  background-color: #1976d2; /* Material Blue */
   color: white;
-  border: none;
+  /* border: none; */ /* Base style handles border */
   border-radius: 4px;
   cursor: pointer;
   font-size: 1em;
@@ -51,10 +52,11 @@ const Button = styled.button`
 
 // Simple button for toggling
 const ToggleButton = styled(Button)`
-  background-color: #6c757d;
-  margin-bottom: 10px; // Add margin if needed when collapsed
+  background-color: #607d8b; /* Material Blue Grey */
+  margin-bottom: 1rem; 
+  align-self: flex-start; /* Prevent stretching */
   &:hover {
-    background-color: #5a6268;
+    background-color: #455a64;
   }
 `;
 
@@ -166,8 +168,8 @@ const LoanForm: React.FC = () => {
         <h3>Add New Loan</h3>
         {/* Add Collapse button only if loans exist (so it doesn't show on initial load) */}
         {loans.length > 0 && 
-            <ToggleButton type="button" onClick={() => setIsCollapsed(true)} style={{marginBottom: 0, padding: '5px 10px'}}> 
-                Collapse 
+            <ToggleButton type="button" onClick={() => setIsCollapsed(true)} style={{marginBottom: 0, padding: '0.4rem 0.8rem', marginTop: 0}}> 
+                Collapse [-]
             </ToggleButton>
         }
       </div>
@@ -217,8 +219,8 @@ const LoanForm: React.FC = () => {
       )}
 
       {/* Tax Deductibility Section */}
-      <FormGroup style={{ borderTop: '1px solid #eee', paddingTop: '15px' }}>
-         <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+      <FormGroup style={{ borderTop: '1px solid #e0e0e0', paddingTop: '1rem', marginTop: '0.5rem' }}>
+         <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
             <Input 
               type="checkbox" 
               id="isTaxDeductible" 

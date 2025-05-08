@@ -1,0 +1,252 @@
+@import url('https://fonts.googleapis.com/css?family=Source+Sans+Pro:300');
+html {
+  height:100%;
+}
+body {
+	font-family: 'Source Sans Pro', sans-serif;
+	margin:0;
+    background-size: cover;
+    height: 100vh;
+ }
+
+.bg {
+  animation:slide 36s ease-in-out infinite alternate;
+  background-image: linear-gradient(-60deg, #09f 50%, #6c3 50%);
+  bottom:0;
+  left:-50%;
+  opacity:.5;
+  position:fixed;
+  right:-50%;
+  top:0;
+  z-index:-1;
+}
+
+.bg2 {
+  animation-direction:alternate-reverse;
+  animation-duration:48s;
+}
+
+.bg3 {
+  animation-duration:60s;
+}
+@keyframes slide {
+  0% {
+    transform:translateX(-25%);
+  }
+  100% {
+    transform:translateX(25%);
+  }
+}
+.fadeInLoad {
+    animation: fadeInLoad 2s;
+}
+
+@keyframes fadeInLoad {
+    from {
+        opacity:0;
+    }
+    to {
+        opacity:1;
+    }
+}
+
+.name {
+	font-size: 2em;
+	margin-top: 0px; /* Adjusted margin */
+	margin-bottom: 5px;
+}
+
+.info {
+	margin-top: 10px; /* Adjusted margin */
+	margin-bottom: 10px; /* Adjusted margin */
+	font-size: 1.2em; /* Slightly smaller */
+}
+
+.card {
+    box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
+    transition: 0.3s;
+    width: 650px; /* Increased width */
+    max-width: 90%; /* Responsive */
+    height: auto; /* Auto height based on content */
+    max-height: 85vh; /* Max height with scroll */
+    overflow-y: auto; /* Enable vertical scroll if needed */
+    padding: 20px; /* Adjusted padding */
+    background-color: #fff;
+    border-radius: 8px; /* Added subtle rounding */
+}
+
+.card:hover {
+    box-shadow: 0 8px 16px 0 rgba(0,0,0,0.2);
+}
+
+.container {
+    padding-left: 10px; /* Reduced padding */
+    padding-right: 10px; /* Reduced padding */
+    text-align: center;
+}
+
+.centered {
+	position: fixed;
+	top: 50%;
+	left: 50%;
+	/* bring your own prefixes */
+	transform: translate(-50%, -50%);
+}
+
+.btn {
+	display: inline-block;
+    color: #585657;
+    margin-left: 15px; /* Adjusted spacing */
+    margin-right: 15px; /* Adjusted spacing */
+    margin-top: 10px; /* Added top margin */
+}
+
+.link:hover {
+	font-weight: bolder;
+}
+
+.btn:hover {
+	color: black;
+}
+
+.fa-linkedin:hover {
+	color: #0074b1;
+}
+
+.fa-github-alt:hover {
+	color: black;
+}
+
+.fa-file-text-o:hover {
+	color: #34495e;
+}
+
+.fa-medium:hover {
+	color: #01ab6c;
+}
+
+.fa-envelope-o:hover {
+	color: #c3452c;
+}
+
+.fa {
+	text-align: center;
+	margin-top: 10px; /* Adjusted margin */
+}
+
+/* Styles for profile photo */
+.profile-photo {
+  width: 120px; /* Adjust size */
+  height: 120px;
+  border-radius: 50%; /* Make it circular */
+  display: block;
+  margin: 5px auto 15px; /* Center and add margin */
+  object-fit: cover; /* Ensure the image covers the area */
+  border: 3px solid #eee; /* Optional border */
+}
+
+/* Styles for experience section */
+.experience-section {
+  margin-top: 25px;
+  text-align: left; /* Align text left within the section */
+  padding: 0 5px; /* Add some padding */
+  border-top: 1px solid #eee; /* Separator line */
+  padding-top: 20px;
+}
+
+.experience-section h2 {
+  text-align: center; /* Center the section title */
+  margin-top: 0;
+  margin-bottom: 20px;
+  font-size: 1.6em;
+  color: #333;
+}
+
+.experience-item {
+  margin-bottom: 25px; /* Space between items */
+  padding-left: 10px; /* Indent items slightly */
+  border-left: 3px solid #09f; /* Add a visual indicator */
+}
+
+.experience-item h3 {
+  font-size: 1.2em;
+  margin-bottom: 3px;
+  color: #222;
+}
+
+.experience-item h4 {
+  font-size: 0.95em;
+  color: #666;
+  margin-top: 0;
+  margin-bottom: 10px;
+  font-weight: normal;
+}
+
+.experience-item ul {
+  list-style: disc;
+  margin-left: 20px;
+  padding-left: 5px;
+  font-size: 0.9em;
+  line-height: 1.5;
+  color: #444;
+}
+
+.experience-item li {
+  margin-bottom: 6px;
+}
+
+
+/* Keep existing media queries, but ensure card adjustments are considered */
+@media (max-width:700px) {
+	.card {
+		width: 90%; /* Use percentage */
+    	height: auto;
+		max-height: 85vh;
+		padding: 15px;
+	}
+
+	.name {
+		font-size: 1.5em;
+		margin-top: 10px;
+		margin-bottom: 5px;
+	}
+
+	.info {
+		margin-top: 10px;
+		margin-bottom: 10px;
+		font-size: 1em;
+	}
+
+	.fa-2x {
+		font-size: 1.5em !important;
+	}
+
+	.btn {
+		margin-left: 10px;
+		margin-right: 10px;
+	}
+
+    .profile-photo {
+        width: 100px;
+        height: 100px;
+    }
+
+    .experience-section h2 {
+        font-size: 1.4em;
+    }
+    .experience-item h3 {
+        font-size: 1.1em;
+    }
+    .experience-item h4 {
+        font-size: 0.9em;
+    }
+    .experience-item ul {
+        font-size: 0.85em;
+    }
+}
+
+/* Remove or adjust the max-height media queries if they conflict */
+/*
+@media (max-height:500px) { ... }
+@media (max-height:400px) { ... }
+*/

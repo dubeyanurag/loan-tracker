@@ -1,5 +1,5 @@
 // src/components/EditLoanDetailsForm.tsx
-import React, { useState } from 'react'; // Removed unused useEffect
+import React, { useState } from 'react'; 
 import styled from 'styled-components';
 import { useAppDispatch } from '../contexts/AppContext';
 import { Loan, LoanDetails } from '../types';
@@ -8,10 +8,10 @@ import { Loan, LoanDetails } from '../types';
 const FormContainer = styled.form`
   display: flex;
   flex-direction: column;
-  gap: 15px;
-  padding: 20px;
-  background-color: #f9f9f9;
-  border: 1px solid #ccc;
+  gap: 1rem; /* Use rem */
+  padding: 1.5rem; /* Use rem */
+  background-color: #ffffff; /* White background for modal content */
+  border: none; /* Remove border if inside modal */
   border-radius: 8px;
 `;
 
@@ -21,34 +21,33 @@ const FormGroup = styled.div`
 `;
 
 const Label = styled.label`
-  margin-bottom: 5px;
-  font-weight: bold;
+  margin-bottom: 0.3rem; /* Use rem */
+  font-weight: 500; /* Slightly bolder labels */
+  font-size: 0.9rem;
 `;
 
 const Input = styled.input`
-  padding: 10px;
-  border: 1px solid #ddd;
+  padding: 0.6rem; /* Use rem */
+  border: 1px solid #ccc; /* Lighter border */
   border-radius: 4px;
-  font-size: 1em;
+  font-size: 1rem;
 `;
 
-const Button = styled.button`
-  padding: 10px 15px;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 1em;
-  margin-right: 10px;
+const Button = styled.button` // Inherits base button styles from index.css
+  padding: 0.6rem 1.2rem; 
+  margin-top: 0.5rem; 
+  margin-right: 0.5rem; /* Add right margin */
 `;
 
 const SaveButton = styled(Button)`
-  background-color: #28a745;
-  &:hover { background-color: #218838; }
+  background-color: #4caf50; /* Material Green */
+  color: white;
+  &:hover { background-color: #388e3c; }
 `;
 
 const CancelButton = styled(Button)`
-  background-color: #6c757d;
+  background-color: #6c757d; /* Grey */
+  color: white;
    &:hover { background-color: #5a6268; }
 `;
 
@@ -75,7 +74,7 @@ const EditLoanDetailsForm: React.FC<EditLoanDetailsFormProps> = ({ loan, onClose
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validate inputs (similar to LoanForm, but allow 0 rate)
+    // Validate inputs 
      if (!name || 
         isNaN(parseFloat(interestRate)) || parseFloat(interestRate) < 0 ||
         isNaN(parseInt(tenureMonths)) || parseInt(tenureMonths) <= 0 ||
@@ -93,7 +92,7 @@ const EditLoanDetailsForm: React.FC<EditLoanDetailsFormProps> = ({ loan, onClose
 
 
     const updatedDetails: LoanDetails = {
-      ...loan.details, // Keep existing disbursements
+      ...loan.details, 
       originalInterestRate: parseFloat(interestRate),
       originalTenureMonths: parseInt(tenureMonths),
       startDate: startDate, 
@@ -111,7 +110,7 @@ const EditLoanDetailsForm: React.FC<EditLoanDetailsFormProps> = ({ loan, onClose
     };
 
     dispatch({ type: 'UPDATE_LOAN', payload: updatedLoan });
-    onClose(); // Close the form/modal after saving
+    onClose(); 
   };
 
   return (
@@ -133,15 +132,15 @@ const EditLoanDetailsForm: React.FC<EditLoanDetailsFormProps> = ({ loan, onClose
         <Label htmlFor="editStartDate">Loan Start Date:</Label>
         <Input type="date" id="editStartDate" value={startDate} onChange={(e) => setStartDate(e.target.value)} required />
       </FormGroup>
-      <FormGroup style={{ flexDirection: 'row', alignItems: 'center', gap: '10px' }}> 
+      <FormGroup style={{ flexDirection: 'row', alignItems: 'center', gap: '0.5rem' }}> 
         <Input 
           type="checkbox" 
           id="editStartedWithPreEMI" 
           checked={startedWithPreEMI} 
           onChange={(e) => setStartedWithPreEMI(e.target.checked)} 
-          style={{ width: 'auto' }} 
+          style={{ width: 'auto', height: 'auto', marginRight: '0.5rem' }} 
         />
-        <Label htmlFor="editStartedWithPreEMI" style={{ marginBottom: 0 }}>Started with Pre-EMI period?</Label>
+        <Label htmlFor="editStartedWithPreEMI" style={{ marginBottom: 0, fontWeight: 'normal' }}>Started with Pre-EMI period?</Label>
       </FormGroup>
       
       {startedWithPreEMI && (
@@ -158,20 +157,20 @@ const EditLoanDetailsForm: React.FC<EditLoanDetailsFormProps> = ({ loan, onClose
       )}
 
       {/* Tax Deductibility Section */}
-      <FormGroup style={{ borderTop: '1px solid #eee', paddingTop: '15px' }}>
-         <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+      <FormGroup style={{ borderTop: '1px solid #e0e0e0', paddingTop: '1rem', marginTop: '0.5rem' }}>
+         <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
             <Input 
               type="checkbox" 
               id="editIsTaxDeductible" 
               checked={isTaxDeductible} 
               onChange={(e) => setIsTaxDeductible(e.target.checked)} 
-              style={{ width: 'auto' }} 
+              style={{ width: 'auto', height: 'auto', marginRight: '0.5rem' }} 
             />
-            <Label htmlFor="editIsTaxDeductible" style={{ marginBottom: 0 }}>Eligible for tax deductions?</Label>
+            <Label htmlFor="editIsTaxDeductible" style={{ marginBottom: 0, fontWeight: 'normal' }}>Eligible for tax deductions?</Label>
          </div>
          {isTaxDeductible && (
             <>
-                <FormGroup style={{marginBottom: '10px'}}>
+                <FormGroup style={{marginBottom: '0.75rem'}}>
                     <Label htmlFor="editPrincipalLimit">Principal Deduction Limit (₹):</Label>
                     <Input 
                         type="number" 
@@ -193,7 +192,7 @@ const EditLoanDetailsForm: React.FC<EditLoanDetailsFormProps> = ({ loan, onClose
          )}
       </FormGroup>
 
-      <div>
+      <div style={{marginTop: '1rem'}}>
           <SaveButton type="submit">Save Changes</SaveButton>
           <CancelButton type="button" onClick={onClose}>Cancel</CancelButton>
       </div>

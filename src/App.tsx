@@ -12,44 +12,46 @@ const AppContainer = styled.div`
   position: relative; /* Needed for absolute positioning of children */
   /* max-width: 900px; */ 
   margin: 0; 
-  padding: 20px; 
-  font-family: Arial, sans-serif; // Overriding index.css for app-specific font
-  color: #333; // Overriding index.css for app-specific color
-  background-color: #fff; // Overriding index.css for app-specific background
-  border-radius: 8px;
-  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+  padding: 1.5rem; /* Use rem */
+  font-family: inherit; /* Inherit from :root */
+  color: inherit; /* Inherit from :root */
+  background-color: #ffffff; /* White background for main app area */
+  border-radius: 8px; /* Slightly larger radius */
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* Refined shadow */
+  margin: 1rem auto; /* Add margin for spacing from viewport edges */
+  max-width: 1200px; /* Add back a max-width for large screens */
 `;
 
 // New Header Container using Flexbox
 const HeaderContainer = styled.div`
   display: flex;
   justify-content: space-between; /* Pushes title left, share right */
-  align-items: center; /* Vertically align items */
-  margin-bottom: 30px; /* Keep margin below header */
+  align-items: center; 
+  margin-bottom: 1.5rem; /* Use rem */
+  padding-bottom: 1rem; /* Add padding below title/share */
+  border-bottom: 1px solid #e0e0e0; /* Separator line */
 `;
 
 const MainTitle = styled.h1`
-  /* text-align: center; */ /* No longer needed */
-  color: #2c3e50;
-  margin: 0; /* Remove default h1 margin */
+  color: #1976d2; /* Material Blue */
+  margin: 0; 
+  font-size: 2rem; /* Adjusted size */
 `;
 
 const ContentLayout = styled.div`
-  display: flex; /* Use flexbox */
-  flex-direction: column; /* Stack sections vertically */
-  gap: 30px; 
-  /* align-items: start; */ /* Not needed for column flex */
+  display: flex; 
+  flex-direction: column; 
+  gap: 1.5rem; /* Use rem */
 
   /* Remove media query for columns */
   /* @media (min-width: 768px) { ... } */
 `;
 
 const Section = styled.section`
-  padding: 15px;
-  border-radius: 5px;
-  /* background-color: #f0f4f8; */
-  /* overflow: hidden; */ /* Remove overflow hidden */
-  /* min-height: 100vh; */ /* Revert temporary debug */
+  padding: 1rem; /* Use rem */
+  border-radius: 6px; /* Consistent radius */
+  background-color: #f9f9f9; /* Very light grey for sections */
+  border: 1px solid #e0e0e0; /* Light border */
 `;
 
 
@@ -75,10 +77,8 @@ function App() {
         <Section>
           {selectedLoan ? (
             <div>
-              <h2>Loan Details: {selectedLoan.name}</h2>
-              {/* <p>Principal: ₹{selectedLoan.details.principal.toLocaleString()}</p> */} {/* Removed - Handled in LoanDetailsDisplay */}
-              <p>Interest Rate: {selectedLoan.details.originalInterestRate}%</p>
-              {/* LoanDetailsDisplay now renders directly inside the second section */}
+              <h2 style={{color: '#3f51b5'}}>{selectedLoan.name} Details</h2> {/* Material Indigo */}
+              {/* Interest rate removed */}
               <LoanDetailsDisplay loan={selectedLoan} /> 
             </div>
           ) : (
