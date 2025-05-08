@@ -8,9 +8,10 @@ import ShareState from './components/ShareState'; // Import ShareState
 
 // Basic layout styled components
 const AppContainer = styled.div`
-  /* max-width: 900px; */ /* Remove max-width */
-  margin: 0; /* Remove auto margin */
-  padding: 20px; /* Keep padding */
+  position: relative; /* Needed for absolute positioning of children */
+  /* max-width: 900px; */ 
+  margin: 0; 
+  padding: 20px; 
   font-family: Arial, sans-serif; // Overriding index.css for app-specific font
   color: #333; // Overriding index.css for app-specific color
   background-color: #fff; // Overriding index.css for app-specific background
@@ -71,7 +72,10 @@ function App() {
           )}
         </Section>
       </ContentLayout>
-      <ShareState /> {/* Add ShareState component */}
+      {/* Position ShareState at top right */}
+      <div style={{ position: 'absolute', top: '20px', right: '20px' }}>
+        <ShareState /> 
+      </div>
     </AppContainer>
   );
 }
