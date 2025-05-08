@@ -2,9 +2,8 @@
 import React, { useMemo } from 'react';
 import styled from 'styled-components';
 import { useAppState } from '../contexts/AppContext';
-import { generateAmortizationSchedule, generateAnnualSummaries, generateSummaryToDate } from '../utils/amortizationCalculator'; 
-// Removed unused calculateEMI, calculateTotalDisbursed imports from loanCalculations
-import { Loan } from '../types'; 
+import { generateAmortizationSchedule, generateSummaryToDate } from '../utils/amortizationCalculator'; 
+// import { Loan } from '../types'; // Removed unused Loan import
 
 const SummaryContainer = styled.div`
   padding: 20px;
@@ -52,7 +51,7 @@ const OverallSummary: React.FC = () => {
         if (schedule.length === 0) return; // Skip if no schedule generated
 
         // Assume default FY start for this overall summary (April)
-        const annualSummaries = generateAnnualSummaries(schedule, loan.details, 3); 
+        // const annualSummaries = generateAnnualSummaries(schedule, loan.details, 3); // Removed unused variable
         const summaryToDate = generateSummaryToDate(schedule, loan.details, 3); 
         
         if(summaryToDate) {
@@ -66,6 +65,9 @@ const OverallSummary: React.FC = () => {
             if (summaryToDate.currentOutstandingBalance > 0) {
                  const lastEntry = schedule[schedule.length - 1];
                  if (lastEntry) {
+                     // Simple sum of last EMI - might not be accurate if loans end at different times
+                     // A weighted average or just total payment might be better?
+                     // Sticking with simple sum for now.
                      totalCurrentEMI += lastEntry.emi;
                  }
             }
