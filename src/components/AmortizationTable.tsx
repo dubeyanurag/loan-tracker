@@ -1,8 +1,8 @@
 // src/components/AmortizationTable.tsx
-import React from 'react'; // Removed unused useMemo
+import React from 'react'; 
 import styled from 'styled-components';
-import { AmortizationEntry, Loan } from '../types'; // Import Loan type
-import { useAppDispatch } from '../contexts/AppContext'; // Import dispatch
+import { AmortizationEntry, Loan } from '../types'; 
+import { useAppDispatch } from '../contexts/AppContext'; 
 
 const TableContainer = styled.div`
   margin-top: 20px;
@@ -37,6 +37,16 @@ const StyledTable = styled.table`
       font-style: italic;
       color: #555;
       min-width: 150px;
+      & > div { /* Style for multiple events in one cell */
+          margin-bottom: 3px;
+          padding-bottom: 3px;
+          border-bottom: 1px dotted #eee; 
+          &:last-child {
+              margin-bottom: 0;
+              padding-bottom: 0;
+              border-bottom: none;
+          }
+      }
   }
 
   /* Row highlighting styles */
@@ -44,6 +54,13 @@ const StyledTable = styled.table`
   tr.highlight-roi { background-color: #fff3cd; }
   tr.highlight-emi { background-color: #f3e7ff; }
   tr.highlight-disbursement { background-color: #d1ecf1; }
+  tr.highlight-current-month td { 
+      border-top: 2px solid red; 
+      border-bottom: 2px solid red;
+      /* Optional: Thicker left/right border too */
+      /* border-left: 2px solid red; */
+      /* border-right: 2px solid red; */
+   } 
 
 `;
 
@@ -94,8 +111,6 @@ const AmortizationTable: React.FC<AmortizationTableProps> = ({ schedule, loan })
     if (amountStr) {
       const amount = parseFloat(amountStr);
       if (!isNaN(amount) && amount > 0) {
-        // Dispatch ADD_PAYMENT with type 'Prepayment'
-        // Note: Need to refine principal/interest calculation logic later
         dispatch({
           type: 'ADD_PAYMENT',
           payload: {
@@ -124,7 +139,6 @@ const AmortizationTable: React.FC<AmortizationTableProps> = ({ schedule, loan })
     if (rateStr) {
       const newRate = parseFloat(rateStr);
       if (!isNaN(newRate) && newRate >= 0) { // Allow 0% ROI
-        // Ask user for preference
         const preferencePrompt = window.prompt(`New ROI is ${newRate}%. Choose effect:\n1: Reduce Tenure (Keep EMI Same)\n2: Reduce EMI (Keep Tenure Same)`, "1");
         let adjustmentPreference: 'adjustTenure' | 'adjustEMI' = 'adjustTenure'; // Default
         if (preferencePrompt === '2') {
@@ -177,7 +191,7 @@ const AmortizationTable: React.FC<AmortizationTableProps> = ({ schedule, loan })
 
   // --- Delete Handler ---
   const handleDeleteEvent = (eventId: string | undefined, eventType: string) => {
-      if (!eventId) return; // Should not happen if button is rendered correctly
+      if (!eventId) return; 
 
       if (!window.confirm(`Are you sure you want to delete this ${eventType} event? This will recalculate the schedule.`)) {
           return;
@@ -192,7 +206,6 @@ const AmortizationTable: React.FC<AmortizationTableProps> = ({ schedule, loan })
       } else if (eventType === 'EMI Change') {
           updatedLoan.customEMIChanges = loan.customEMIChanges.filter(c => c.id !== eventId);
       } else if (eventType === 'Disbursement') {
-           // Prevent deleting the very first disbursement? Or allow and delete loan?
            if (loan.details.disbursements.length <= 1 && loan.details.disbursements[0].id === eventId) {
                alert("Cannot delete the initial disbursement. Delete the loan instead.");
                return;
@@ -215,6 +228,11 @@ const AmortizationTable: React.FC<AmortizationTableProps> = ({ schedule, loan })
     return <p>Amortization schedule not available or loan fully paid.</p>;
   }
 
+  // Get current month/year for highlighting
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth();
+
   return (
     <TableContainer>
       <h4>Full Amortization Schedule</h4>
@@ -228,21 +246,20 @@ const AmortizationTable: React.FC<AmortizationTableProps> = ({ schedule, loan })
             <th>Principal</th>
             <th>Interest</th>
             <th>Closing Balance</th>
-            <th>Event / Delete</th> {/* Combined Column */}
+            <th>Event / Delete</th> 
             <th>Actions</th> 
           </tr>
         </thead>
         <tbody>
           {schedule.map((entry) => {
-            const entryDate = new Date(entry.paymentDate); // Restore entryDate for display
-            // const isStructureChangeDisabled = false; // Disabling removed
-
+            const entryDate = new Date(entry.paymentDate); 
+            
             // Determine highlight class and collect event details
-            let highlightClass = '';
+            let eventHighlightClass = '';
             const eventsThisMonth: React.ReactNode[] = [];
 
             entry.disbursements?.forEach(e => {
-                highlightClass = 'highlight-disbursement'; // Apply highlight
+                eventHighlightClass = 'highlight-disbursement'; 
                 eventsThisMonth.push(
                     <div key={`disburse-${e.id}`}>
                         Disburse: {e.amount.toLocaleString()}
@@ -253,7 +270,7 @@ const AmortizationTable: React.FC<AmortizationTableProps> = ({ schedule, loan })
                 );
             });
             entry.prepayments?.forEach(e => {
-                highlightClass = 'highlight-prepayment'; // Apply highlight (might override previous)
+                eventHighlightClass = 'highlight-prepayment'; 
                 eventsThisMonth.push(
                     <div key={`prepay-${e.id}`}>
                         Prepay: {e.amount.toLocaleString()}
@@ -264,7 +281,7 @@ const AmortizationTable: React.FC<AmortizationTableProps> = ({ schedule, loan })
                 );
             });
              entry.roiChanges?.forEach(e => {
-                highlightClass = 'highlight-roi'; // Apply highlight
+                eventHighlightClass = 'highlight-roi'; 
                 eventsThisMonth.push(
                     <div key={`roi-${e.id}`}>
                         ROI: {e.newRate}% ({e.preference || 'N/A'})
@@ -275,7 +292,7 @@ const AmortizationTable: React.FC<AmortizationTableProps> = ({ schedule, loan })
                 );
             });
              entry.emiChanges?.forEach(e => {
-                highlightClass = 'highlight-emi'; // Apply highlight
+                eventHighlightClass = 'highlight-emi'; 
                 eventsThisMonth.push(
                     <div key={`emi-${e.id}`}>
                         EMI: {e.newEMI.toLocaleString()}
@@ -286,9 +303,13 @@ const AmortizationTable: React.FC<AmortizationTableProps> = ({ schedule, loan })
                 );
             });
 
+            // Check if this row is the current month
+            const isCurrentMonth = entryDate.getFullYear() === currentYear && entryDate.getMonth() === currentMonth;
+            const rowClass = `${eventHighlightClass} ${isCurrentMonth ? 'highlight-current-month' : ''}`.trim();
+
 
             return (
-              <tr key={entry.monthNumber} className={highlightClass || ''}> {/* Apply highlight class */}
+              <tr key={entry.monthNumber} className={rowClass || undefined}> {/* Apply highlight classes */}
                 <td>{entry.monthNumber}</td>
                 <td>{entryDate.toLocaleDateString()}</td>
                 <td>{entry.openingBalance.toLocaleString()}</td>

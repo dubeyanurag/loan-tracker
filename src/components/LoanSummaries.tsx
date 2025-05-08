@@ -1,5 +1,5 @@
 // src/components/LoanSummaries.tsx
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react'; // Add useState
 import styled from 'styled-components';
 import { AmortizationEntry } from '../types';
 import { generateAnnualSummaries, generateLifespanSummary, AnnualSummary, LifespanSummary } from '../utils/amortizationCalculator';
@@ -39,10 +39,19 @@ interface LoanSummariesProps {
   schedule: AmortizationEntry[];
 }
 
+const monthOptions = [
+    { value: 0, label: 'January' }, { value: 1, label: 'February' }, { value: 2, label: 'March' }, 
+    { value: 3, label: 'April' }, { value: 4, label: 'May' }, { value: 5, label: 'June' },
+    { value: 6, label: 'July' }, { value: 7, label: 'August' }, { value: 8, label: 'September' },
+    { value: 9, label: 'October' }, { value: 10, label: 'November' }, { value: 11, label: 'December' }
+];
+
 const LoanSummaries: React.FC<LoanSummariesProps> = ({ schedule }) => {
+  const [fyStartMonth, setFyStartMonth] = useState<number>(3); // Default to April (index 3)
+
   const annualSummaries: AnnualSummary[] = useMemo(() => {
-    return generateAnnualSummaries(schedule);
-  }, [schedule]);
+    return generateAnnualSummaries(schedule, fyStartMonth); // Pass selected month
+  }, [schedule, fyStartMonth]);
 
   const lifespanSummary: LifespanSummary | null = useMemo(() => {
     return generateLifespanSummary(schedule);
@@ -55,12 +64,25 @@ const LoanSummaries: React.FC<LoanSummariesProps> = ({ schedule }) => {
   return (
     <SummaryContainer>
       <SummarySection>
-        <h4>Annual Summaries</h4>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h4>Annual Summaries</h4>
+            <div>
+                <label htmlFor="fyStartMonth" style={{ marginRight: '5px', fontSize: '0.9em' }}>FY Start Month:</label>
+                <select 
+                    id="fyStartMonth" 
+                    value={fyStartMonth} 
+                    onChange={(e) => setFyStartMonth(parseInt(e.target.value, 10))}
+                    style={{ padding: '3px', fontSize: '0.9em' }}
+                >
+                    {monthOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                </select>
+            </div>
+        </div>
         {annualSummaries.length > 0 ? (
           <SummaryTable>
             <thead>
               <tr>
-                <th>Year</th>
+                <th>Financial Year</th>
                 <th>Principal Paid</th>
                 <th>Interest Paid</th>
                 <th>Total Payment</th>
@@ -68,8 +90,8 @@ const LoanSummaries: React.FC<LoanSummariesProps> = ({ schedule }) => {
             </thead>
             <tbody>
               {annualSummaries.map(summary => (
-                <tr key={summary.year}>
-                  <td>{summary.year}</td>
+                <tr key={summary.startYear}> {/* Use startYear for key */}
+                  <td>{summary.yearLabel}</td> {/* Display yearLabel */}
                   <td>{summary.totalPrincipalPaid.toLocaleString()}</td>
                   <td>{summary.totalInterestPaid.toLocaleString()}</td>
                   <td>{summary.totalPayment.toLocaleString()}</td>

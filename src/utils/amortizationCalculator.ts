@@ -14,48 +14,37 @@ export const generateAmortizationSchedule = (loan: Loan): AmortizationEntry[] =>
   const schedule: AmortizationEntry[] = [];
   if (!loan || !loan.details || !loan.details.disbursements || loan.details.disbursements.length === 0) return schedule;
 
-  // Sort disbursements by date to process them correctly
   const sortedDisbursements = [...loan.details.disbursements].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
   let monthNumber = 0;
-  // Initial opening balance is based on the *first* disbursement amount
   let openingBalance = sortedDisbursements[0].amount; 
   let cumulativeDisbursed = sortedDisbursements[0].amount;
   let currentAnnualRate = loan.details.originalInterestRate;
   let currentTenureMonths = loan.details.originalTenureMonths;
-  // Initial EMI calculation might need adjustment based on disbursement schedule / total expected principal
-  // For now, calculate based on first disbursement and original terms - this will likely be recalculated soon
   let currentEMI = calculateEMI(cumulativeDisbursed, currentAnnualRate, currentTenureMonths); 
   
-  // Combine and sort all events including disbursements
   const allEvents: (LoanEvent | (Omit<Disbursement, 'date'> & { eventType: 'disbursement'; date: Date }))[] = [
     ...(loan.paymentHistory || []).map(p => ({ ...p, eventType: 'payment' as const, date: new Date(p.date) })),
     ...(loan.interestRateChanges || []).map(c => ({ ...c, eventType: 'roiChange' as const, date: new Date(c.date) })),
     ...(loan.customEMIChanges || []).map(c => ({ ...c, eventType: 'emiChange' as const, date: new Date(c.date) })),
-    // Add disbursements as events (skip the first one as it sets initial balance)
     ...sortedDisbursements.slice(1).map(d => ({ ...d, eventType: 'disbursement' as const, date: new Date(d.date) })) 
   ].sort((a, b) => a.date.getTime() - b.date.getTime());
 
   let eventPointer = 0;
-  // Start date should be the date of the first disbursement
   let currentDate = new Date(sortedDisbursements[0].date); 
-  // Determine the actual EMI start date
-  const emiStartDate = loan.details.emiStartDate ? new Date(loan.details.emiStartDate) : currentDate; // Default to loan start if not specified
+  const emiStartDate = loan.details.emiStartDate ? new Date(loan.details.emiStartDate) : currentDate; 
 
-  // Loop until loan is paid off or max iterations (e.g., 600 months = 50 years)
   while (openingBalance > 0.01 && monthNumber < 600) {
     monthNumber++;
     const monthlyInterestRate = currentAnnualRate / 12 / 100;
     let interestForMonth = openingBalance * monthlyInterestRate;
     let principalPaidThisMonth = currentEMI - interestForMonth;
-    let actualPaymentMade = currentEMI; // Assume scheduled EMI is paid
-    // Temporary arrays to collect events for this month's entry
+    let actualPaymentMade = currentEMI; 
     let disbursementsThisMonth: AmortizationEntry['disbursements'] = [];
     let prepaymentsThisMonth: AmortizationEntry['prepayments'] = [];
     let roiChangesThisMonth: AmortizationEntry['roiChanges'] = [];
     let emiChangesThisMonth: AmortizationEntry['emiChanges'] = [];
 
-    // Check for events occurring in the current month/period
     let isPreEmiPeriod = loan.details.startedWithPreEMI && currentDate < emiStartDate;
 
     while(eventPointer < allEvents.length && allEvents[eventPointer].date <= currentDate) {
@@ -136,7 +125,8 @@ export const generateAmortizationSchedule = (loan: Loan): AmortizationEntry[] =>
 };
 
 export interface AnnualSummary {
-  year: number;
+  yearLabel: string; // Changed from year: number to yearLabel: string (e.g., "FY 2023-24")
+  startYear: number; // Keep start year for sorting
   totalPrincipalPaid: number;
   totalInterestPaid: number;
   totalPayment: number;
@@ -149,27 +139,53 @@ export interface LifespanSummary {
   actualTenureMonths: number;
 }
 
-export const generateAnnualSummaries = (schedule: AmortizationEntry[]): AnnualSummary[] => {
+/**
+ * Generates annual summaries based on a financial year start month.
+ * @param schedule The amortization schedule.
+ * @param fyStartMonth The start month of the financial year (0=Jan, 1=Feb, ..., 11=Dec). Default is 3 (April).
+ * @returns An array of AnnualSummary objects.
+ */
+export const generateAnnualSummaries = (
+    schedule: AmortizationEntry[], 
+    fyStartMonth: number = 3 // Default to April (month index 3)
+): AnnualSummary[] => {
   if (!schedule || schedule.length === 0) return [];
 
-  const summariesByYear: { [year: number]: AnnualSummary } = {};
+  const summariesByFY: { [fyLabel: string]: AnnualSummary } = {}; 
 
   schedule.forEach(entry => {
-    const year = new Date(entry.paymentDate).getFullYear();
-    if (!summariesByYear[year]) {
-      summariesByYear[year] = {
-        year,
+    const entryDate = new Date(entry.paymentDate);
+    const year = entryDate.getFullYear();
+    const month = entryDate.getMonth(); // 0-11
+
+    let financialYearStart = year;
+    if (month < fyStartMonth) {
+        financialYearStart = year - 1; 
+    }
+    const fyLabel = `FY ${financialYearStart}-${(financialYearStart + 1).toString().slice(-2)}`;
+
+    if (!summariesByFY[fyLabel]) {
+      summariesByFY[fyLabel] = {
+        yearLabel: fyLabel, // Use the label
+        startYear: financialYearStart, // Store start year for sorting
         totalPrincipalPaid: 0,
         totalInterestPaid: 0,
         totalPayment: 0,
       };
     }
-    summariesByYear[year].totalPrincipalPaid += entry.principalPaid;
-    summariesByYear[year].totalInterestPaid += entry.interestPaid;
-    summariesByYear[year].totalPayment += entry.emi; 
+    summariesByFY[fyLabel].totalPrincipalPaid += entry.principalPaid;
+    summariesByFY[fyLabel].totalInterestPaid += entry.interestPaid;
+    summariesByFY[fyLabel].totalPayment += entry.emi; 
   });
 
-  return Object.values(summariesByYear).sort((a, b) => a.year - b.year);
+  return Object.values(summariesByFY)
+    .map(summary => ({
+        ...summary,
+        totalPrincipalPaid: parseFloat(summary.totalPrincipalPaid.toFixed(2)),
+        totalInterestPaid: parseFloat(summary.totalInterestPaid.toFixed(2)),
+        totalPayment: parseFloat(summary.totalPayment.toFixed(2)),
+    }))
+    .sort((a, b) => a.startYear - b.startYear); // Sort by start year
 };
 
 export const generateLifespanSummary = (schedule: AmortizationEntry[]): LifespanSummary | null => {
