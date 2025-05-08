@@ -50,7 +50,7 @@ const Button = styled.button`
 `;
 
 const AddDisbursementForm: React.FC = () => { 
-  const { selectedLoanId, loans } = useAppState();
+  const { selectedLoanId } = useAppState(); // Removed unused 'loans'
   const dispatch = useAppDispatch();
 
   const [amount, setAmount] = useState('');
