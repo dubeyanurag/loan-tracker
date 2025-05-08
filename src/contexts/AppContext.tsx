@@ -1,18 +1,21 @@
 // src/contexts/AppContext.tsx
 import React, { createContext, useReducer, useContext, ReactNode, useEffect } from 'react';
-import { AppState, AppAction, Loan } from '../types'; // Assuming types.ts is in src/
-import { v4 as uuidv4 } from 'uuid'; // For generating unique IDs
+import { AppState, AppAction, Loan } from '../types'; 
+import { v4 as uuidv4 } from 'uuid'; 
 
 const LOCAL_STORAGE_KEY = 'homeLoanTrackerAppState';
 
-const initialState: AppState = {
+// Export for testing
+export const initialState: AppState = { 
   loans: [],
   selectedLoanId: null,
 };
 
-const appReducer = (state: AppState, action: AppAction): AppState => {
+// Export for testing
+export const appReducer = (state: AppState, action: AppAction): AppState => { 
   switch (action.type) {
     case 'LOAD_STATE':
+      // TODO: Add validation/migration logic if needed when loading from localStorage
       return action.payload;
     case 'ADD_LOAN':
       return {
@@ -46,7 +49,8 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
         ...state,
         loans: state.loans.map(loan => 
           loan.id === loanId 
-            ? { ...loan, paymentHistory: [...loan.paymentHistory, { ...payment, id: uuidv4() }] } 
+            // Ensure paymentHistory exists before spreading
+            ? { ...loan, paymentHistory: [...(loan.paymentHistory || []), { ...payment, id: uuidv4() }] } 
             : loan
         ),
       };
@@ -58,7 +62,8 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
             ...state,
             loans: state.loans.map(loan => 
                 loan.id === loanId
-                ? { ...loan, interestRateChanges: [...loan.interestRateChanges, { ...change, id: uuidv4() }] }
+                // Ensure interestRateChanges exists before spreading
+                ? { ...loan, interestRateChanges: [...(loan.interestRateChanges || []), { ...change, id: uuidv4() }] }
                 : loan
             ),
         };
@@ -69,7 +74,8 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
             ...state,
             loans: state.loans.map(loan =>
                 loan.id === loanId
-                ? { ...loan, customEMIChanges: [...loan.customEMIChanges, { ...change, id: uuidv4() }] }
+                // Ensure customEMIChanges exists before spreading
+                ? { ...loan, customEMIChanges: [...(loan.customEMIChanges || []), { ...change, id: uuidv4() }] }
                 : loan
             ),
         };
@@ -84,7 +90,7 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
                     ...loan, 
                     details: { 
                         ...loan.details, 
-                        // Add new disbursement, ensuring array exists
+                        // Ensure disbursements array exists before spreading
                         disbursements: [...(loan.details.disbursements || []), { ...disbursement, id: uuidv4() }] 
                     } 
                   }
@@ -93,6 +99,8 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
         };
     }
     default:
+      // Ensure exhaustive check for action types if necessary, or just return state
+      // const _exhaustiveCheck: never = action; // Uncomment for exhaustive check
       return state;
   }
 };
@@ -111,6 +119,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     try {
       const storedState = localStorage.getItem(LOCAL_STORAGE_KEY);
       if (storedState) {
+        // TODO: Add validation/migration logic for loaded state
         return JSON.parse(storedState) as AppState;
       }
     } catch (error) {
