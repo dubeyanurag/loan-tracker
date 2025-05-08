@@ -229,7 +229,7 @@ const EditDetailsButton = styled(DeleteButton)`
             {/* Group Original Terms */}
             <DetailItem><strong>Total Disbursed:</strong> ₹{totalDisbursed.toLocaleString()}</DetailItem> 
             <DetailItem><strong>Original Rate:</strong> {details.originalInterestRate}%</DetailItem>
-            <DetailItem><strong>Original Tenure:</strong> {details.originalTenureMonths / 12} years ({details.originalTenureMonths} months)</DetailItem>
+            <DetailItem><strong>Original Tenure:</strong> {(details.originalTenureMonths / 12).toFixed(1)} years ({details.originalTenureMonths} months)</DetailItem> {/* Rounded years */}
             <DetailItem><strong>Loan Start Date:</strong> {new Date(details.startDate).toLocaleDateString()}</DetailItem>
             {details.startedWithPreEMI && details.emiStartDate && 
                 <DetailItem><strong>Full EMI Start Date:</strong> {new Date(details.emiStartDate).toLocaleDateString()}</DetailItem>
