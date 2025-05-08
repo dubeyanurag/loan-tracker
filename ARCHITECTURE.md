@@ -1,4 +1,4 @@
-# Home Loan Tracker - Architecture Overview
+# Loan Tracker - Architecture Overview
 
 This document provides a high-level overview of the application's architecture.
 
@@ -14,35 +14,41 @@ This document provides a high-level overview of the application's architecture.
 
 ```mermaid
 graph TD
-    subgraph User Interface (React Components)
+    subgraph UI [User Interface (React Components)]
         App[App.tsx] --> CtxProvider(AppContext Provider);
         CtxProvider --> LoanForm[LoanForm.tsx];
         CtxProvider --> LoanList[LoanList.tsx];
         CtxProvider --> LoanDetailsDisplay[LoanDetailsDisplay.tsx];
+        CtxProvider --> ShareState[ShareState.tsx]; %% Added ShareState
+        CtxProvider --> OverallSummary[OverallSummary.tsx]; %% Added OverallSummary
         
         LoanDetailsDisplay --> AddDisbursementForm[AddDisbursementForm.tsx];
-        LoanDetailsDisplay --> PrepaymentSimulator[PrepaymentSimulator.tsx];
+        %% LoanDetailsDisplay --> PrepaymentSimulator[PrepaymentSimulator.tsx]; %% Removed
         LoanDetailsDisplay --> LoanSummaries[LoanSummaries.tsx];
         LoanDetailsDisplay --> LoanChart[LoanChart.tsx];
         LoanDetailsDisplay --> AmortizationTable[AmortizationTable.tsx];
+        LoanDetailsDisplay --> EditLoanDetailsForm[EditLoanDetailsForm.tsx]; %% Added Edit Form
 
         LoanForm -- dispatch ADD_LOAN --> Reducer;
         LoanList -- dispatch SELECT_LOAN/DELETE_LOAN --> Reducer;
         AddDisbursementForm -- dispatch ADD_DISBURSEMENT --> Reducer;
         AmortizationTable -- dispatch ADD_PAYMENT/ADD_INTEREST_RATE_CHANGE/ADD_CUSTOM_EMI_CHANGE --> Reducer;
         AmortizationTable -- dispatch UPDATE_LOAN --> Reducer; %% For Event Deletion
-        LoanDetailsDisplay -- Edit Buttons --> Reducer; %% For Event Editing
+        LoanDetailsDisplay -- triggers Edit --> EditLoanDetailsForm; %% Edit Trigger
+        EditLoanDetailsForm -- dispatch UPDATE_LOAN --> Reducer; %% Edit Save
     end
 
-    subgraph State Management
+    subgraph StateMgmt [State Management]
         CtxProvider -- contains --> State(AppState: loans[], selectedLoanId);
         CtxProvider -- contains --> Reducer(appReducer);
         Reducer -- updates --> State;
         State -- persists --> LocalStorage[(localStorage)];
         LocalStorage -- loads --> State;
+        App -- reads URL Param --> State; %% URL Load
+        ShareState -- reads --> State; %% Share Button
     end
     
-    subgraph Utilities
+    subgraph Utils [Utilities]
         UtilsCalc[loanCalculations.ts];
         UtilsAmort[amortizationCalculator.ts];
     end
@@ -52,18 +58,22 @@ graph TD
     LoanDetailsDisplay -- uses --> UtilsCalc;
     LoanSummaries -- uses --> UtilsAmort;
     LoanChart -- uses --> UtilsAmort;
-    AmortizationTable -- uses --> UtilsAmort; %% Potentially for display formatting
-    PrepaymentSimulator -- uses --> UtilsCalc;
+    AmortizationTable -- uses --> UtilsAmort; 
+    %% PrepaymentSimulator -- uses --> UtilsCalc; %% Removed
+    OverallSummary -- uses --> UtilsAmort;
+    OverallSummary -- uses --> UtilsCalc;
     
     %% State Usage
-    LoanForm -- reads --> State; %% To check if loans exist for collapse
+    LoanForm -- reads --> State; 
     LoanList -- reads --> State;
     LoanDetailsDisplay -- reads --> State;
     AddDisbursementForm -- reads --> State;
-    PrepaymentSimulator -- reads --> State;
-    AmortizationTable -- reads --> State; %% To get loan object for event deletion/edit
-    LoanChart -- reads --> State; %% To get loan object for annotations
-    LoanSummaries -- reads --> State; %% Implicitly via schedule prop
+    %% PrepaymentSimulator -- reads --> State; %% Removed
+    AmortizationTable -- reads --> State; 
+    LoanChart -- reads --> State; 
+    LoanSummaries -- reads --> State; 
+    ShareState -- reads --> State;
+    OverallSummary -- reads --> State;
 
     %% Styling (Implicit)
     %% Components --> StyledComponents[styled-components];
