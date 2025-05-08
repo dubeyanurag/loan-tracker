@@ -124,12 +124,15 @@ export const generateAmortizationSchedule = (loan: Loan): AmortizationEntry[] =>
   return schedule;
 };
 
+// --- Summary Interfaces ---
 export interface AnnualSummary {
-  yearLabel: string; // Changed from year: number to yearLabel: string (e.g., "FY 2023-24")
-  startYear: number; // Keep start year for sorting
+  yearLabel: string; 
+  startYear: number; 
   totalPrincipalPaid: number;
   totalInterestPaid: number;
   totalPayment: number;
+  deductiblePrincipal: number; // Max 1.5L (Sec 80C)
+  deductibleInterest: number; // Max 2L (Sec 24b)
 }
 
 export interface LifespanSummary {
@@ -137,21 +140,22 @@ export interface LifespanSummary {
   totalInterestPaid: number;
   totalPayment: number;
   actualTenureMonths: number;
+  totalDeductiblePrincipal: number;
+  totalDeductibleInterest: number;
 }
 
-/**
- * Generates annual summaries based on a financial year start month.
- * @param schedule The amortization schedule.
- * @param fyStartMonth The start month of the financial year (0=Jan, 1=Feb, ..., 11=Dec). Default is 3 (April).
- * @returns An array of AnnualSummary objects.
- */
+// --- Summary Calculation Functions ---
+
+const PRINCIPAL_DEDUCTION_LIMIT = 150000;
+const INTEREST_DEDUCTION_LIMIT = 200000;
+
 export const generateAnnualSummaries = (
     schedule: AmortizationEntry[], 
     fyStartMonth: number = 3 // Default to April (month index 3)
 ): AnnualSummary[] => {
   if (!schedule || schedule.length === 0) return [];
 
-  const summariesByFY: { [fyLabel: string]: AnnualSummary } = {}; 
+  const summariesByFY: { [fyLabel: string]: Omit<AnnualSummary, 'yearLabel' | 'startYear'> & { startYear: number } } = {}; 
 
   schedule.forEach(entry => {
     const entryDate = new Date(entry.paymentDate);
@@ -166,11 +170,12 @@ export const generateAnnualSummaries = (
 
     if (!summariesByFY[fyLabel]) {
       summariesByFY[fyLabel] = {
-        yearLabel: fyLabel, // Use the label
-        startYear: financialYearStart, // Store start year for sorting
+        startYear: financialYearStart, 
         totalPrincipalPaid: 0,
         totalInterestPaid: 0,
         totalPayment: 0,
+        deductiblePrincipal: 0, // Initialize tax fields
+        deductibleInterest: 0,
       };
     }
     summariesByFY[fyLabel].totalPrincipalPaid += entry.principalPaid;
@@ -178,17 +183,31 @@ export const generateAnnualSummaries = (
     summariesByFY[fyLabel].totalPayment += entry.emi; 
   });
 
+  // Calculate deductible amounts after summing up totals for the year
+  Object.keys(summariesByFY).forEach(fyLabel => {
+      const summary = summariesByFY[fyLabel];
+      summary.deductiblePrincipal = Math.min(summary.totalPrincipalPaid, PRINCIPAL_DEDUCTION_LIMIT);
+      summary.deductibleInterest = Math.min(summary.totalInterestPaid, INTEREST_DEDUCTION_LIMIT);
+  });
+
+
   return Object.values(summariesByFY)
     .map(summary => ({
         ...summary,
+        yearLabel: `FY ${summary.startYear}-${(summary.startYear + 1).toString().slice(-2)}`, // Add label back
         totalPrincipalPaid: parseFloat(summary.totalPrincipalPaid.toFixed(2)),
         totalInterestPaid: parseFloat(summary.totalInterestPaid.toFixed(2)),
         totalPayment: parseFloat(summary.totalPayment.toFixed(2)),
+        deductiblePrincipal: parseFloat(summary.deductiblePrincipal.toFixed(2)),
+        deductibleInterest: parseFloat(summary.deductibleInterest.toFixed(2)),
     }))
-    .sort((a, b) => a.startYear - b.startYear); // Sort by start year
+    .sort((a, b) => a.startYear - b.startYear); 
 };
 
-export const generateLifespanSummary = (schedule: AmortizationEntry[]): LifespanSummary | null => {
+export const generateLifespanSummary = (
+    schedule: AmortizationEntry[], 
+    annualSummaries: AnnualSummary[] // Pass calculated annual summaries
+): LifespanSummary | null => {
   if (!schedule || schedule.length === 0) return null;
 
   const summary: LifespanSummary = {
@@ -196,6 +215,8 @@ export const generateLifespanSummary = (schedule: AmortizationEntry[]): Lifespan
     totalInterestPaid: 0,
     totalPayment: 0,
     actualTenureMonths: schedule.length,
+    totalDeductiblePrincipal: 0, // Initialize
+    totalDeductibleInterest: 0, // Initialize
   };
 
   schedule.forEach(entry => {
@@ -203,10 +224,18 @@ export const generateLifespanSummary = (schedule: AmortizationEntry[]): Lifespan
     summary.totalInterestPaid += entry.interestPaid;
     summary.totalPayment += entry.emi; 
   });
+
+  // Sum up deductible amounts from annual summaries
+  annualSummaries.forEach(annual => {
+      summary.totalDeductiblePrincipal += annual.deductiblePrincipal;
+      summary.totalDeductibleInterest += annual.deductibleInterest;
+  });
   
   summary.totalPrincipalPaid = parseFloat(summary.totalPrincipalPaid.toFixed(2));
   summary.totalInterestPaid = parseFloat(summary.totalInterestPaid.toFixed(2));
   summary.totalPayment = parseFloat(summary.totalPayment.toFixed(2));
+  summary.totalDeductiblePrincipal = parseFloat(summary.totalDeductiblePrincipal.toFixed(2));
+  summary.totalDeductibleInterest = parseFloat(summary.totalDeductibleInterest.toFixed(2));
 
   return summary;
 };

@@ -1,5 +1,5 @@
 // src/components/LoanSummaries.tsx
-import React, { useMemo, useState } from 'react'; // Add useState
+import React, { useMemo, useState } from 'react'; 
 import styled from 'styled-components';
 import { AmortizationEntry } from '../types';
 import { generateAnnualSummaries, generateLifespanSummary, AnnualSummary, LifespanSummary } from '../utils/amortizationCalculator';
@@ -54,8 +54,9 @@ const LoanSummaries: React.FC<LoanSummariesProps> = ({ schedule }) => {
   }, [schedule, fyStartMonth]);
 
   const lifespanSummary: LifespanSummary | null = useMemo(() => {
-    return generateLifespanSummary(schedule);
-  }, [schedule]);
+    // Pass annualSummaries to calculate total deductible amounts
+    return generateLifespanSummary(schedule, annualSummaries); 
+  }, [schedule, annualSummaries]); // Depend on annualSummaries now
 
   if (!schedule || schedule.length === 0) {
     return null; // Don't display if no schedule
@@ -64,7 +65,7 @@ const LoanSummaries: React.FC<LoanSummariesProps> = ({ schedule }) => {
   return (
     <SummaryContainer>
       <SummarySection>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
             <h4>Annual Summaries</h4>
             <div>
                 <label htmlFor="fyStartMonth" style={{ marginRight: '5px', fontSize: '0.9em' }}>FY Start Month:</label>
@@ -86,15 +87,19 @@ const LoanSummaries: React.FC<LoanSummariesProps> = ({ schedule }) => {
                 <th>Principal Paid</th>
                 <th>Interest Paid</th>
                 <th>Total Payment</th>
+                <th>Deductible Principal (Max ₹1.5L)</th> 
+                <th>Deductible Interest (Max ₹2L)</th>
               </tr>
             </thead>
             <tbody>
               {annualSummaries.map(summary => (
-                <tr key={summary.startYear}> {/* Use startYear for key */}
-                  <td>{summary.yearLabel}</td> {/* Display yearLabel */}
+                <tr key={summary.startYear}> 
+                  <td>{summary.yearLabel}</td> 
                   <td>{summary.totalPrincipalPaid.toLocaleString()}</td>
                   <td>{summary.totalInterestPaid.toLocaleString()}</td>
                   <td>{summary.totalPayment.toLocaleString()}</td>
+                  <td>{summary.deductiblePrincipal.toLocaleString()}</td> 
+                  <td>{summary.deductibleInterest.toLocaleString()}</td>
                 </tr>
               ))}
             </tbody>
@@ -112,6 +117,8 @@ const LoanSummaries: React.FC<LoanSummariesProps> = ({ schedule }) => {
             <p><strong>Total Principal Paid:</strong> ₹{lifespanSummary.totalPrincipalPaid.toLocaleString()}</p>
             <p><strong>Total Interest Paid:</strong> ₹{lifespanSummary.totalInterestPaid.toLocaleString()}</p>
             <p><strong>Total Amount Paid:</strong> ₹{lifespanSummary.totalPayment.toLocaleString()}</p>
+            <p><strong>Total Deductible Principal (Max):</strong> ₹{lifespanSummary.totalDeductiblePrincipal.toLocaleString()}</p>
+            <p><strong>Total Deductible Interest (Max):</strong> ₹{lifespanSummary.totalDeductibleInterest.toLocaleString()}</p>
           </div>
         ) : (
           <p>No lifespan summary data available.</p>
