@@ -282,10 +282,12 @@ export const generateSummaryToDate = (
     });
 
     if (isEligible) {
+        // Calculate annual summaries just for the slice up to the current date
         const annualSummariesToDate = generateAnnualSummaries(currentScheduleSlice, loanDetails, fyStartMonth); 
         annualSummariesToDate.forEach(annual => {
-            totalDeductiblePrincipal += annual.deductiblePrincipal;
-            totalDeductibleInterest += annual.deductibleInterest;
+            // Use the correct limits for summing up deductibles
+            totalDeductiblePrincipal += Math.min(annual.totalPrincipalPaid, principalLimit); 
+            totalDeductibleInterest += Math.min(annual.totalInterestPaid, interestLimit);
         });
     }
 
