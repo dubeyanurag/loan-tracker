@@ -2,7 +2,7 @@
 import React, { useMemo, useCallback, useState } from 'react'; 
 import styled from 'styled-components';
 import { Loan, AmortizationEntry } from '../types'; 
-import { calculateTotalInterestAndPayment, calculateTotalDisbursed } from '../utils/loanCalculations'; // Keep calculateTotalInterestAndPayment for potential future use? No, remove.
+import { calculateTotalDisbursed } from '../utils/loanCalculations'; // Removed calculateTotalInterestAndPayment
 import { generateAmortizationSchedule } from '../utils/amortizationCalculator'; 
 import AddDisbursementForm from './AddDisbursementForm'; 
 import AmortizationTable from './AmortizationTable';
