@@ -38,7 +38,7 @@ graph TD
     end
 
     subgraph "State Management"
-        CtxProvider -- contains --> State(AppState: loans[], selectedLoanId);
+        CtxProvider -- contains --> State(AppState: loans, selectedLoanId); %% Removed []
         CtxProvider -- contains --> Reducer(appReducer);
         Reducer -- updates --> State;
         State -- persists --> LocalStorage[(localStorage)];
