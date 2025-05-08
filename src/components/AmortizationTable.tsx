@@ -29,26 +29,10 @@ const StyledTable = styled.table`
     z-index: 1;
   }
 
-  td:nth-child(1), td:nth-child(2), td:nth-child(8) { /* Month, Date, Event */
+  td:nth-child(1), td:nth-child(2) { /* Month, Date */
     text-align: left;
   }
-  td:nth-child(8) { /* Event column */
-      font-size: 0.85em;
-      font-style: italic;
-      color: #555;
-      min-width: 150px;
-      & > div { /* Style for multiple events in one cell */
-          margin-bottom: 3px;
-          padding-bottom: 3px;
-          border-bottom: 1px dotted #eee; 
-          &:last-child {
-              margin-bottom: 0;
-              padding-bottom: 0;
-              border-bottom: none;
-          }
-      }
-  }
-
+  
   /* Row highlighting styles */
   tr.highlight-prepayment { background-color: #e6ffed; }
   tr.highlight-roi { background-color: #fff3cd; }
@@ -57,11 +41,7 @@ const StyledTable = styled.table`
   tr.highlight-current-month td { 
       border-top: 2px solid red; 
       border-bottom: 2px solid red;
-      /* Optional: Thicker left/right border too */
-      /* border-left: 2px solid red; */
-      /* border-right: 2px solid red; */
    } 
-
 `;
 
 // Style for action buttons
@@ -83,29 +63,17 @@ const ActionButton = styled.button`
   }
 `;
 
-// Style for delete button
-const DeleteEventButton = styled(ActionButton)`
-  background-color: #f8d7da;
-  color: #721c24;
-  border-color: #f5c6cb;
-  margin-left: 5px; /* Add some space */
-
-  &:hover:not(:disabled) {
-    background-color: #f1b0b7;
-  }
-`;
-
+// Delete button style removed as it's no longer used here
 
 interface AmortizationTableProps {
   schedule: AmortizationEntry[];
-  loan: Loan; // Pass the full loan object to check for adjustments
+  loan: Loan; // Still needed for context if actions remain complex, but not for delete logic now
 }
 
 const AmortizationTable: React.FC<AmortizationTableProps> = ({ schedule, loan }) => {
   const dispatch = useAppDispatch();
 
-  // Removed latestAdjustmentDate calculation as disabling logic is removed
-
+  // --- Action Handlers (kept for adding events) ---
   const handleAddPrepayment = (entry: AmortizationEntry) => {
     const amountStr = window.prompt(`Enter prepayment amount for ${new Date(entry.paymentDate).toLocaleDateString()}:`);
     if (amountStr) {
@@ -138,9 +106,9 @@ const AmortizationTable: React.FC<AmortizationTableProps> = ({ schedule, loan })
     const rateStr = window.prompt(`Enter new Annual ROI (%) effective ${new Date(entry.paymentDate).toLocaleDateString()}:`);
     if (rateStr) {
       const newRate = parseFloat(rateStr);
-      if (!isNaN(newRate) && newRate >= 0) { // Allow 0% ROI
+      if (!isNaN(newRate) && newRate >= 0) { 
         const preferencePrompt = window.prompt(`New ROI is ${newRate}%. Choose effect:\n1: Reduce Tenure (Keep EMI Same)\n2: Reduce EMI (Keep Tenure Same)`, "1");
-        let adjustmentPreference: 'adjustTenure' | 'adjustEMI' = 'adjustTenure'; // Default
+        let adjustmentPreference: 'adjustTenure' | 'adjustEMI' = 'adjustTenure'; 
         if (preferencePrompt === '2') {
             adjustmentPreference = 'adjustEMI';
         } else if (preferencePrompt !== '1') {
@@ -152,10 +120,10 @@ const AmortizationTable: React.FC<AmortizationTableProps> = ({ schedule, loan })
           payload: {
             loanId: loan.id,
             change: {
-              id: '', // Will be set by reducer
+              id: '', 
               date: entry.paymentDate,
               newRate: newRate,
-              adjustmentPreference: adjustmentPreference, // Use user's choice
+              adjustmentPreference: adjustmentPreference, 
             }
           }
          });
@@ -176,7 +144,7 @@ const AmortizationTable: React.FC<AmortizationTableProps> = ({ schedule, loan })
            payload: {
              loanId: loan.id,
              change: {
-               id: '', // Will be set by reducer
+               id: '', 
                date: entry.paymentDate,
                newEMI: newEMI,
              }
@@ -188,41 +156,9 @@ const AmortizationTable: React.FC<AmortizationTableProps> = ({ schedule, loan })
        }
      }
   };
+  // --- End Action Handlers ---
 
-  // --- Delete Handler ---
-  const handleDeleteEvent = (eventId: string | undefined, eventType: string) => {
-      if (!eventId) return; 
-
-      if (!window.confirm(`Are you sure you want to delete this ${eventType} event? This will recalculate the schedule.`)) {
-          return;
-      }
-
-      let updatedLoan = { ...loan };
-
-      if (eventType === 'Prepayment') {
-          updatedLoan.paymentHistory = loan.paymentHistory.filter(p => !(p.type === 'Prepayment' && p.id === eventId));
-      } else if (eventType === 'ROI Change') {
-          updatedLoan.interestRateChanges = loan.interestRateChanges.filter(c => c.id !== eventId);
-      } else if (eventType === 'EMI Change') {
-          updatedLoan.customEMIChanges = loan.customEMIChanges.filter(c => c.id !== eventId);
-      } else if (eventType === 'Disbursement') {
-           if (loan.details.disbursements.length <= 1 && loan.details.disbursements[0].id === eventId) {
-               alert("Cannot delete the initial disbursement. Delete the loan instead.");
-               return;
-           }
-          updatedLoan.details = {
-              ...loan.details,
-              disbursements: loan.details.disbursements.filter(d => d.id !== eventId)
-          };
-      } else {
-          console.error("Unknown event type to delete:", eventType);
-          return;
-      }
-
-      dispatch({ type: 'UPDATE_LOAN', payload: updatedLoan });
-  };
-  // --- End Delete Handler ---
-
+  // Delete Handler removed
 
   if (!schedule || schedule.length === 0) {
     return <p>Amortization schedule not available or loan fully paid.</p>;
@@ -246,7 +182,7 @@ const AmortizationTable: React.FC<AmortizationTableProps> = ({ schedule, loan })
             <th>Principal</th>
             <th>Interest</th>
             <th>Closing Balance</th>
-            <th>Event / Delete</th> 
+            {/* <th>Event / Delete</th> */} {/* Removed Column */}
             <th>Actions</th> 
           </tr>
         </thead>
@@ -254,59 +190,16 @@ const AmortizationTable: React.FC<AmortizationTableProps> = ({ schedule, loan })
           {schedule.map((entry) => {
             const entryDate = new Date(entry.paymentDate); 
             
-            // Determine highlight class and collect event details
-            let eventHighlightClass = '';
-            const eventsThisMonth: React.ReactNode[] = [];
-
-            entry.disbursements?.forEach(e => {
-                eventHighlightClass = 'highlight-disbursement'; 
-                eventsThisMonth.push(
-                    <div key={`disburse-${e.id}`}>
-                        Disburse: {e.amount.toLocaleString()}
-                        <DeleteEventButton onClick={() => handleDeleteEvent(e.id, 'Disbursement')} title="Delete this Disbursement event">
-                           &#x274C;
-                        </DeleteEventButton>
-                    </div>
-                );
-            });
-            entry.prepayments?.forEach(e => {
-                eventHighlightClass = 'highlight-prepayment'; 
-                eventsThisMonth.push(
-                    <div key={`prepay-${e.id}`}>
-                        Prepay: {e.amount.toLocaleString()}
-                        <DeleteEventButton onClick={() => handleDeleteEvent(e.id, 'Prepayment')} title="Delete this Prepayment event">
-                           &#x274C;
-                        </DeleteEventButton>
-                    </div>
-                );
-            });
-             entry.roiChanges?.forEach(e => {
-                eventHighlightClass = 'highlight-roi'; 
-                eventsThisMonth.push(
-                    <div key={`roi-${e.id}`}>
-                        ROI: {e.newRate}% ({e.preference || 'N/A'})
-                        <DeleteEventButton onClick={() => handleDeleteEvent(e.id, 'ROI Change')} title="Delete this ROI Change event">
-                           &#x274C;
-                        </DeleteEventButton>
-                    </div>
-                );
-            });
-             entry.emiChanges?.forEach(e => {
-                eventHighlightClass = 'highlight-emi'; 
-                eventsThisMonth.push(
-                    <div key={`emi-${e.id}`}>
-                        EMI: {e.newEMI.toLocaleString()}
-                        <DeleteEventButton onClick={() => handleDeleteEvent(e.id, 'EMI Change')} title="Delete this EMI Change event">
-                           &#x274C;
-                        </DeleteEventButton>
-                    </div>
-                );
-            });
+            // Determine highlight class based on indicators
+            let highlightClass = '';
+            if (entry.disbursements) highlightClass = 'highlight-disbursement';
+            if (entry.prepayments) highlightClass = 'highlight-prepayment'; // Overrides disbursement if both happen
+            if (entry.roiChanges) highlightClass = 'highlight-roi'; // Overrides others
+            if (entry.emiChanges) highlightClass = 'highlight-emi'; // Overrides others
 
             // Check if this row is the current month
             const isCurrentMonth = entryDate.getFullYear() === currentYear && entryDate.getMonth() === currentMonth;
-            const rowClass = `${eventHighlightClass} ${isCurrentMonth ? 'highlight-current-month' : ''}`.trim();
-
+            const rowClass = `${highlightClass} ${isCurrentMonth ? 'highlight-current-month' : ''}`.trim();
 
             return (
               <tr key={entry.monthNumber} className={rowClass || undefined}> {/* Apply highlight classes */}
@@ -317,11 +210,8 @@ const AmortizationTable: React.FC<AmortizationTableProps> = ({ schedule, loan })
                 <td>{entry.principalPaid.toLocaleString()}</td>
                 <td>{entry.interestPaid.toLocaleString()}</td>
                 <td>{entry.closingBalance.toLocaleString()}</td>
-                <td> {/* Event/Delete Cell */}
-                    {eventsThisMonth.length > 0 ? eventsThisMonth : null}
-                </td> 
+                {/* Event/Delete Cell Removed */}
                 <td> {/* Actions Cell */}
-                  {/* Buttons are now always enabled */}
                   <ActionButton onClick={() => handleAddPrepayment(entry)} title="Add Prepayment">Prepay</ActionButton>
                   <ActionButton onClick={() => handleSetROI(entry)} title="Set New ROI">Set ROI</ActionButton>
                   <ActionButton onClick={() => handleSetEMI(entry)} title="Set Custom EMI">Set EMI</ActionButton>

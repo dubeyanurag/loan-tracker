@@ -1,7 +1,7 @@
 // src/components/LoanDetailsDisplay.tsx
 import React, { useMemo, useCallback } from 'react'; 
 import styled from 'styled-components';
-import { Loan, AmortizationEntry, InterestRateChange, CustomEMIChange } from '../types'; 
+import { Loan, AmortizationEntry, InterestRateChange, CustomEMIChange, Payment, Disbursement } from '../types'; 
 import { calculateEMI, calculateTotalInterestAndPayment, calculateTotalDisbursed } from '../utils/loanCalculations'; 
 import { generateAmortizationSchedule } from '../utils/amortizationCalculator'; 
 import AddDisbursementForm from './AddDisbursementForm'; 
@@ -10,49 +10,32 @@ import LoanSummaries from './LoanSummaries';
 import LoanChart from './LoanChart'; 
 import { useAppDispatch } from '../contexts/AppContext'; 
 
-// Main container remains column
-const DetailsContainer = styled.div`
-  display: flex; 
-  flex-direction: column; 
-  gap: 20px; 
+// Main container for the layout
+const DetailsLayoutContainer = styled.div`
   padding: 20px;
   border: 1px solid #e0e0e0;
   border-radius: 8px;
   background-color: #ffffff;
   margin-top: 10px;
-
-  h3 {
-    margin-top: 0;
-    color: #333;
-    border-bottom: 1px solid #eee;
-    padding-bottom: 10px;
-  }
-  h4 { 
-    margin-bottom: 5px;
-    margin-top: 15px;
-    color: #444;
-  }
 `;
 
-// New container for the row holding main content and sidebar
-const ContentRow = styled.div`
+// Container for the row holding Disbursement list and form
+const DisbursementRow = styled.div`
     display: flex;
     flex-direction: row;
-    flex-wrap: wrap; /* Wrap sidebar below on small screens */
+    flex-wrap: wrap; /* Wrap form below list on small screens */
     gap: 20px; 
+    margin-bottom: 20px; /* Add space below this row */
 `;
 
-// Container for the main content (summaries, chart, table)
-const MainContentContainer = styled.div`
-  flex: 3; /* Takes up more space */
-  min-width: 300px; 
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+// Container for the disbursement list
+const DisbursementListContainer = styled.div`
+  flex: 2; /* Takes up more space */
+  min-width: 250px; 
 `;
 
-// Container for the sidebar forms (Add Disbursement)
-const SidebarContainer = styled.div`
+// Container for the Add Disbursement form
+const AddDisbursementFormContainer = styled.div`
   flex: 1; /* Takes up less space */
   min-width: 250px; 
 `;
@@ -67,23 +50,24 @@ const DetailItem = styled.p`
    }
  `;
 
- const EditButton = styled.button` 
+ const DeleteButton = styled.button` 
   padding: 2px 5px;
   font-size: 0.8em;
   margin-left: 10px;
   cursor: pointer;
-  background-color: #e9ecef;
-  border: 1px solid #ced4da;
+  background-color: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
   border-radius: 3px;
    &:hover {
-     background-color: #dee2e6;
+     background-color: #f1b0b7;
    }
 `;
 
 // Styles for history lists
 const HistoryList = styled.ul`
     margin-top: 5px;
-    padding-left: 20px;
+    padding-left: 0; // Remove default padding
     font-size: 0.9em;
     color: #666;
     list-style: none; 
@@ -93,7 +77,7 @@ const HistoryList = styled.ul`
         display: flex; 
         justify-content: space-between;
         align-items: center;
-        padding-bottom: 4px;
+        padding: 4px 0; // Add some padding
         border-bottom: 1px dotted #eee;
         &:last-child {
             border-bottom: none;
@@ -166,7 +150,7 @@ const HistoryHeading = styled.h4`
              } else {
                  effectiveEMI = lastEntry.emi;
              }
-        } else if (amortizationSchedule.length > 0) { // Use last schedule EMI if no events override it
+        } else if (amortizationSchedule.length > 0) { 
              effectiveEMI = lastEntry.emi; 
         }
 
@@ -178,133 +162,146 @@ const HistoryHeading = styled.h4`
    // --- End Calculate Current/Effective Values ---
 
 
-    // --- Edit Handlers ---
-    const handleEditROIChange = useCallback((changeToEdit: InterestRateChange) => {
-        const newRateStr = window.prompt(`Edit Annual ROI (%) for ${new Date(changeToEdit.date).toLocaleDateString()}:`, String(changeToEdit.newRate));
-        if (newRateStr === null) return; 
-        const newRate = parseFloat(newRateStr);
-        if (isNaN(newRate) || newRate < 0) { alert('Invalid rate.'); return; }
+    // --- Delete Handlers ---
+    const createDeleteHandler = useCallback((eventType: 'Disbursement' | 'Payment' | 'ROI Change' | 'EMI Change') => (eventId: string) => {
+        if (!window.confirm(`Are you sure you want to delete this ${eventType} event? This will recalculate the schedule.`)) {
+            return;
+        }
+        let updatedLoan = { ...loan };
 
-        const preferencePrompt = window.prompt(`New ROI is ${newRate}%. Choose effect:\n1: Reduce Tenure (Keep EMI Same)\n2: Reduce EMI (Keep Tenure Same)`, changeToEdit.adjustmentPreference === 'adjustEMI' ? "2" : "1");
-        let newAdjustmentPreference: 'adjustTenure' | 'adjustEMI' = 'adjustTenure'; 
-        if (preferencePrompt === '2') { newAdjustmentPreference = 'adjustEMI'; } 
-        else if (preferencePrompt !== '1') { alert('Invalid choice. Defaulting to "Reduce Tenure".'); }
-        
-        const updatedLoan = { ...loan, interestRateChanges: loan.interestRateChanges.map(c => c.id === changeToEdit.id ? { ...c, newRate: newRate, adjustmentPreference: newAdjustmentPreference, newEMIIfApplicable: undefined } : c ) };
-        dispatch({ type: 'UPDATE_LOAN', payload: updatedLoan });
+        try {
+            if (eventType === 'Disbursement') {
+                if (loan.details.disbursements.length <= 1 && loan.details.disbursements[0].id === eventId) {
+                    alert("Cannot delete the initial disbursement. Delete the loan instead."); return;
+                }
+                updatedLoan.details = { ...loan.details, disbursements: loan.details.disbursements.filter(d => d.id !== eventId) };
+            } else if (eventType === 'Payment') {
+                updatedLoan.paymentHistory = loan.paymentHistory.filter(p => p.id !== eventId);
+            } else if (eventType === 'ROI Change') {
+                updatedLoan.interestRateChanges = loan.interestRateChanges.filter(c => c.id !== eventId);
+            } else if (eventType === 'EMI Change') {
+                updatedLoan.customEMIChanges = loan.customEMIChanges.filter(c => c.id !== eventId);
+            } else {
+                 console.error("Unknown event type to delete:", eventType); return;
+            }
+            dispatch({ type: 'UPDATE_LOAN', payload: updatedLoan });
+        } catch (error) {
+            console.error(`Error deleting ${eventType}:`, error);
+            alert(`Failed to delete ${eventType}.`);
+        }
     }, [dispatch, loan]);
 
-    const handleEditCustomEMIChange = useCallback((changeToEdit: CustomEMIChange) => {
-        const newEmiStr = window.prompt(`Edit Custom EMI (₹) for ${new Date(changeToEdit.date).toLocaleDateString()}:`, String(changeToEdit.newEMI));
-        if (newEmiStr === null) return; 
-        const newEMI = parseFloat(newEmiStr);
-        if (isNaN(newEMI) || newEMI <= 0) { alert('Invalid EMI amount.'); return; }
-        
-        const updatedLoan = { ...loan, customEMIChanges: loan.customEMIChanges.map(c => c.id === changeToEdit.id ? { ...c, newEMI: newEMI } : c ) };
-        dispatch({ type: 'UPDATE_LOAN', payload: updatedLoan });
-    }, [dispatch, loan]);
-    // --- End Edit Handlers ---
+    const handleDeleteDisbursement = createDeleteHandler('Disbursement');
+    const handleDeletePayment = createDeleteHandler('Payment');
+    const handleDeleteROIChange = createDeleteHandler('ROI Change');
+    const handleDeleteCustomEMIChange = createDeleteHandler('EMI Change');
+    // --- End Delete Handlers ---
 
 
    return (
-    <DetailsContainer> 
+    <DetailsLayoutContainer> {/* Ensure this is the correct container */}
        {/* Initial Summary Section (Full Width) */}
        <div> 
             <h3>{loan.name} - Summary</h3>
             <DetailItem><strong>Total Disbursed:</strong> ₹{totalDisbursed.toLocaleString()}</DetailItem> 
             <DetailItem><strong>Original Rate:</strong> {details.originalInterestRate}%</DetailItem>
-            <DetailItem><strong>Current Rate:</strong> {currentValues.currentRate}%</DetailItem>
+            <DetailItem><strong>Current Rate (Est):</strong> {currentValues.currentRate}%</DetailItem>
             <DetailItem><strong>Original Tenure:</strong> {details.originalTenureMonths / 12} years ({details.originalTenureMonths} months)</DetailItem>
             <DetailItem><strong>Loan Start Date:</strong> {new Date(details.startDate).toLocaleDateString()}</DetailItem>
             {details.startedWithPreEMI && details.emiStartDate && 
                 <DetailItem><strong>Full EMI Start Date:</strong> {new Date(details.emiStartDate).toLocaleDateString()}</DetailItem>
             }
             {details.startedWithPreEMI && !details.emiStartDate && 
-                <DetailItem><em>(Loan started with Pre-EMI period - EMI Start Date not set)</em></DetailItem>
+                <DetailItem><em>(Loan started with Pre-EMI period)</em></DetailItem>
             }
             <hr style={{ margin: '15px 0', borderColor: '#eee' }} />
-            <DetailItem><strong>Calculated Initial EMI (Estimate):</strong> ₹{initialEMI.toLocaleString()}</DetailItem>
-            <DetailItem><strong>Current EMI (Estimate):</strong> ₹{currentValues.currentEMI.toLocaleString()}</DetailItem>
-            <DetailItem><strong>Total Interest Payable (Initial Estimate):</strong> ₹{summary.totalInterest.toLocaleString()}</DetailItem>
-            <DetailItem><strong>Total Amount Payable (Initial Estimate):</strong> ₹{summary.totalPayment.toLocaleString()}</DetailItem>
+            <DetailItem><strong>Calculated Initial EMI (Est):</strong> ₹{initialEMI.toLocaleString()}</DetailItem>
+            <DetailItem><strong>Current EMI (Est):</strong> ₹{currentValues.currentEMI.toLocaleString()}</DetailItem>
+            <DetailItem><strong>Total Interest Payable (Initial Est):</strong> ₹{summary.totalInterest.toLocaleString()}</DetailItem>
+            <DetailItem><strong>Total Amount Payable (Initial Est):</strong> ₹{summary.totalPayment.toLocaleString()}</DetailItem>
        </div>
 
-        {/* Row for Main Content and Sidebar */}
-       <ContentRow>
-            <MainContentContainer>
-                {/* History Lists */}
+        {/* Row for Disbursements List and Add Form */}
+       <DisbursementRow>
+            <DisbursementListContainer>
                 {details.disbursements.length > 0 && ( 
                         <>
                         <HistoryHeading>Disbursements</HistoryHeading>
                         <HistoryList>
-                            {details.disbursements.map(d => <li key={d.id}>{new Date(d.date).toLocaleDateString()}: ₹{d.amount.toLocaleString()} {d.remarks && `(${d.remarks})`}</li>)}
+                            {details.disbursements.map((d, index) => (
+                                <li key={d.id}>
+                                    <span>{new Date(d.date).toLocaleDateString()}: ₹{d.amount.toLocaleString()} {d.remarks && `(${d.remarks})`}</span>
+                                    {index > 0 && <DeleteButton onClick={() => handleDeleteDisbursement(d.id)}>&#x274C;</DeleteButton>}
+                                </li>
+                            ))}
                         </HistoryList>
                         </>
                 )}
-                {loan.paymentHistory.length > 0 && (
-                    <>
-                    <HistoryHeading>Payment History (EMIs & Prepayments)</HistoryHeading>
-                    <HistoryList>
-                        {loan.paymentHistory.map(p => (
-                        <li key={p.id}>
-                            <span>
-                                {new Date(p.date).toLocaleDateString()}: ₹{p.amount.toLocaleString()} ({p.type})
-                                {p.principalPaid !== undefined && p.interestPaid !== undefined && ` - P: ₹${p.principalPaid.toLocaleString()}, I: ₹${p.interestPaid.toLocaleString()}`}
-                                {p.remarks && ` (${p.remarks})`}
-                            </span>
-                        </li>
-                        ))}
-                    </HistoryList>
-                    </>
-                )}
-                {loan.interestRateChanges.length > 0 && (
-                    <>
-                    <HistoryHeading>Interest Rate Changes</HistoryHeading>
-                    <HistoryList>
-                        {loan.interestRateChanges.map(c => (
-                        <li key={c.id}>
-                            <span>
-                                {new Date(c.date).toLocaleDateString()}: New Rate {c.newRate}%
-                                {c.adjustmentPreference && ` (Pref: ${c.adjustmentPreference})`}
-                                {c.newEMIIfApplicable && ` (New EMI: ₹${c.newEMIIfApplicable.toLocaleString()})`}
-                            </span>
-                            <EditButton onClick={() => handleEditROIChange(c)}>Edit</EditButton>
-                        </li>
-                        ))}
-                    </HistoryList>
-                    </>
-                )}
-                {loan.customEMIChanges.length > 0 && (
-                    <>
-                    <HistoryHeading>Custom EMI Changes</HistoryHeading>
-                    <HistoryList>
-                        {loan.customEMIChanges.map(c => (
-                        <li key={c.id}>
-                            <span>
-                                {new Date(c.date).toLocaleDateString()}: New EMI ₹{c.newEMI.toLocaleString()}
-                                {c.remarks && ` (${c.remarks})`}
-                            </span>
-                            <EditButton onClick={() => handleEditCustomEMIChange(c)}>Edit</EditButton>
-                        </li>
-                        ))}
-                    </HistoryList>
-                    </>
-                )}
-                
-                {/* Summaries, Chart, Table */}
-                <LoanSummaries schedule={amortizationSchedule} />
-                <LoanChart schedule={amortizationSchedule} loan={loan} /> 
-                <AmortizationTable schedule={amortizationSchedule} loan={loan} /> 
-            </MainContentContainer>
+            </DisbursementListContainer>
+            <AddDisbursementFormContainer>
+                 <AddDisbursementForm /> 
+            </AddDisbursementFormContainer>
+       </DisbursementRow>
 
-            <SidebarContainer>
-                {/* Forms */}
-                <AddDisbursementForm /> 
-                {/* <PreEmiPaymentForm /> */} {/* Removed */}
-                {/* <PrepaymentSimulator /> */} {/* Removed */}
-            </SidebarContainer>
-       </ContentRow>
-    </DetailsContainer>
+        {/* Other History Lists (Full Width) */}
+       {loan.paymentHistory.length > 0 && (
+         <div> 
+           <HistoryHeading>Payment History (EMIs & Prepayments)</HistoryHeading>
+           <HistoryList>
+             {loan.paymentHistory.map(p => (
+               <li key={p.id}>
+                 <span>
+                    {new Date(p.date).toLocaleDateString()}: ₹{p.amount.toLocaleString()} ({p.type})
+                    {p.principalPaid !== undefined && p.interestPaid !== undefined && ` - P: ₹${p.principalPaid.toLocaleString()}, I: ₹${p.interestPaid.toLocaleString()}`}
+                    {p.remarks && ` (${p.remarks})`}
+                 </span>
+                 <DeleteButton onClick={() => handleDeletePayment(p.id)}>&#x274C;</DeleteButton>
+               </li>
+             ))}
+           </HistoryList>
+         </div>
+       )}
+
+       {loan.interestRateChanges.length > 0 && (
+         <div> 
+           <HistoryHeading>Interest Rate Changes</HistoryHeading>
+           <HistoryList>
+             {loan.interestRateChanges.map(c => (
+               <li key={c.id}>
+                 <span>
+                    {new Date(c.date).toLocaleDateString()}: New Rate {c.newRate}%
+                    {c.adjustmentPreference && ` (Pref: ${c.adjustmentPreference})`}
+                    {c.newEMIIfApplicable && ` (New EMI: ₹${c.newEMIIfApplicable.toLocaleString()})`}
+                 </span>
+                 <DeleteButton onClick={() => handleDeleteROIChange(c.id)}>&#x274C;</DeleteButton>
+               </li>
+             ))}
+           </HistoryList>
+         </div>
+       )}
+
+       {loan.customEMIChanges.length > 0 && (
+         <div> 
+           <HistoryHeading>Custom EMI Changes</HistoryHeading>
+           <HistoryList>
+             {loan.customEMIChanges.map(c => (
+               <li key={c.id}>
+                 <span>
+                    {new Date(c.date).toLocaleDateString()}: New EMI ₹{c.newEMI.toLocaleString()}
+                    {c.remarks && ` (${c.remarks})`}
+                 </span>
+                  <DeleteButton onClick={() => handleDeleteCustomEMIChange(c.id)}>&#x274C;</DeleteButton>
+               </li>
+             ))}
+           </HistoryList>
+         </div>
+       )}
+       
+       {/* Render remaining tools/summaries (Full Width) */}
+       <LoanSummaries schedule={amortizationSchedule} />
+       <LoanChart schedule={amortizationSchedule} loan={loan} /> 
+       <AmortizationTable schedule={amortizationSchedule} loan={loan} /> 
+    </DetailsLayoutContainer> 
   );
 };
 
