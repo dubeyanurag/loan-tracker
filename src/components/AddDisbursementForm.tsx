@@ -94,7 +94,7 @@ const AddDisbursementForm: React.FC = () => {
 
   return (
     <FormContainer onSubmit={handleSubmit}>
-      <h4>Add New Disbursement for "{selectedLoan?.name}"</h4>
+      <h4>Add New Disbursement</h4> {/* Made heading generic */}
       <FormGroup>
         <Label htmlFor="disbursementAmount">Amount (₹):</Label>
         <Input type="number" id="disbursementAmount" value={amount} onChange={(e) => setAmount(e.target.value)} required />
