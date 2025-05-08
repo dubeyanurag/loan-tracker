@@ -1,7 +1,7 @@
 // src/components/LoanDetailsDisplay.tsx
-import React, { useMemo, useCallback } from 'react'; 
+import React, { useMemo, useCallback, useState } from 'react'; // Add useState
 import styled from 'styled-components';
-import { Loan, AmortizationEntry, InterestRateChange, CustomEMIChange, Payment, Disbursement } from '../types'; 
+import { Loan, AmortizationEntry } from '../types'; 
 import { calculateEMI, calculateTotalInterestAndPayment, calculateTotalDisbursed } from '../utils/loanCalculations'; 
 import { generateAmortizationSchedule } from '../utils/amortizationCalculator'; 
 import AddDisbursementForm from './AddDisbursementForm'; 
@@ -9,6 +9,7 @@ import AmortizationTable from './AmortizationTable';
 import LoanSummaries from './LoanSummaries';
 import LoanChart from './LoanChart'; 
 import { useAppDispatch } from '../contexts/AppContext'; 
+import EditLoanDetailsForm from './EditLoanDetailsForm'; // Import Edit Form
 
 // Main container for the layout
 const DetailsLayoutContainer = styled.div`
@@ -17,26 +18,27 @@ const DetailsLayoutContainer = styled.div`
   border-radius: 8px;
   background-color: #ffffff;
   margin-top: 10px;
+  position: relative; // Needed for modal overlay
 `;
 
 // Container for the row holding Disbursement list and form
 const DisbursementRow = styled.div`
     display: flex;
     flex-direction: row;
-    flex-wrap: wrap; /* Wrap form below list on small screens */
+    flex-wrap: wrap; 
     gap: 20px; 
-    margin-bottom: 20px; /* Add space below this row */
+    margin-bottom: 20px; 
 `;
 
 // Container for the disbursement list
 const DisbursementListContainer = styled.div`
-  flex: 2; /* Takes up more space */
+  flex: 2; 
   min-width: 250px; 
 `;
 
 // Container for the Add Disbursement form
 const AddDisbursementFormContainer = styled.div`
-  flex: 1; /* Takes up less space */
+  flex: 1; 
   min-width: 250px; 
 `;
 
@@ -67,7 +69,7 @@ const DetailItem = styled.p`
 // Styles for history lists
 const HistoryList = styled.ul`
     margin-top: 5px;
-    padding-left: 0; // Remove default padding
+    padding-left: 0; 
     font-size: 0.9em;
     color: #666;
     list-style: none; 
@@ -77,7 +79,7 @@ const HistoryList = styled.ul`
         display: flex; 
         justify-content: space-between;
         align-items: center;
-        padding: 4px 0; // Add some padding
+        padding: 4px 0; 
         border-bottom: 1px dotted #eee;
         &:last-child {
             border-bottom: none;
@@ -90,6 +92,40 @@ const HistoryHeading = styled.h4`
     color: #444;
 `;
 
+// Simple Modal Overlay Style
+const ModalOverlay = styled.div`
+    position: fixed; /* Use fixed to cover viewport */
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+`;
+
+const ModalContent = styled.div`
+    background: white;
+    padding: 30px;
+    border-radius: 8px;
+    max-width: 600px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+`;
+
+// Button to trigger edit modal
+const EditDetailsButton = styled(DeleteButton)` // Reuse button style
+    background-color: #ffc107;
+    color: #333;
+    border-color: #ffc107;
+     &:hover {
+        background-color: #e0a800;
+     }
+`;
+
 
  interface LoanDetailsDisplayProps {
   loan: Loan;
@@ -98,6 +134,7 @@ const HistoryHeading = styled.h4`
  const LoanDetailsDisplay: React.FC<LoanDetailsDisplayProps> = ({ loan }) => {
    const { details } = loan; 
    const dispatch = useAppDispatch(); 
+   const [isEditing, setIsEditing] = useState(false); // State for modal visibility
 
    const totalDisbursed = useMemo(() => calculateTotalDisbursed(details.disbursements), [details.disbursements]);
 
@@ -123,7 +160,6 @@ const HistoryHeading = styled.h4`
      return generateAmortizationSchedule(loan);
    }, [loan]); 
 
-   // --- Calculate Current/Effective Values (Approximations) ---
    const currentValues = useMemo(() => {
        if (amortizationSchedule.length === 0) {
            return { currentRate: details.originalInterestRate, currentEMI: initialEMI };
@@ -159,10 +195,7 @@ const HistoryHeading = styled.h4`
            currentEMI: effectiveEMI,
        };
    }, [amortizationSchedule, details, initialEMI, loan.interestRateChanges, loan.customEMIChanges]);
-   // --- End Calculate Current/Effective Values ---
-
-
-    // --- Delete Handlers ---
+   
     const createDeleteHandler = useCallback((eventType: 'Disbursement' | 'Payment' | 'ROI Change' | 'EMI Change') => (eventId: string) => {
         if (!window.confirm(`Are you sure you want to delete this ${eventType} event? This will recalculate the schedule.`)) {
             return;
@@ -195,14 +228,15 @@ const HistoryHeading = styled.h4`
     const handleDeletePayment = createDeleteHandler('Payment');
     const handleDeleteROIChange = createDeleteHandler('ROI Change');
     const handleDeleteCustomEMIChange = createDeleteHandler('EMI Change');
-    // --- End Delete Handlers ---
-
-
+    
    return (
     <DetailsLayoutContainer> 
        {/* Initial Summary Section (Full Width) */}
        <div> 
-            <h3>{loan.name} - Summary</h3>
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
+                <h3>{loan.name} - Summary</h3>
+                <EditDetailsButton onClick={() => setIsEditing(true)}>Edit Details</EditDetailsButton>
+            </div>
             <DetailItem><strong>Total Disbursed:</strong> ₹{totalDisbursed.toLocaleString()}</DetailItem> 
             <DetailItem><strong>Original Rate:</strong> {details.originalInterestRate}%</DetailItem>
             <DetailItem><strong>Current Rate (Est):</strong> {currentValues.currentRate}%</DetailItem>
@@ -214,9 +248,14 @@ const HistoryHeading = styled.h4`
             {details.startedWithPreEMI && !details.emiStartDate && 
                 <DetailItem><em>(Loan started with Pre-EMI period)</em></DetailItem>
             }
+             {details.isTaxDeductible !== undefined && (
+                 <DetailItem><strong>Tax Deductible:</strong> {details.isTaxDeductible ? 'Yes' : 'No'} 
+                    {details.isTaxDeductible && ` (P Limit: ₹${(details.principalDeductionLimit ?? 150000).toLocaleString()}, I Limit: ₹${(details.interestDeductionLimit ?? 200000).toLocaleString()})`}
+                 </DetailItem>
+             )}
             <hr style={{ margin: '15px 0', borderColor: '#eee' }} />
-            <DetailItem><strong>Calculated Initial EMI (Est):</strong> ₹{initialEMI.toLocaleString()}</DetailItem>
-            <DetailItem><strong>Current EMI (Est):</strong> ₹{currentValues.currentEMI.toLocaleString()}</DetailItem>
+            <DetailItem><strong>Calculated Initial EMI (Estimate):</strong> ₹{initialEMI.toLocaleString()}</DetailItem>
+            <DetailItem><strong>Current EMI (Estimate):</strong> ₹{currentValues.currentEMI.toLocaleString()}</DetailItem>
             <DetailItem><strong>Total Interest Payable (Initial Est):</strong> ₹{summary.totalInterest.toLocaleString()}</DetailItem>
             <DetailItem><strong>Total Amount Payable (Initial Est):</strong> ₹{summary.totalPayment.toLocaleString()}</DetailItem>
        </div>
@@ -298,9 +337,18 @@ const HistoryHeading = styled.h4`
        )}
        
        {/* Render remaining tools/summaries (Full Width) */}
-       <LoanSummaries schedule={amortizationSchedule} loanDetails={details} /> {/* Pass loanDetails */}
+       <LoanSummaries schedule={amortizationSchedule} loanDetails={details} /> 
        <LoanChart schedule={amortizationSchedule} loan={loan} /> 
        <AmortizationTable schedule={amortizationSchedule} loan={loan} /> 
+
+        {/* Edit Modal */}
+        {isEditing && (
+            <ModalOverlay onClick={() => setIsEditing(false)}> {/* Close on overlay click */}
+                 <ModalContent onClick={e => e.stopPropagation()}> {/* Prevent closing when clicking inside modal */}
+                     <EditLoanDetailsForm loan={loan} onClose={() => setIsEditing(false)} />
+                 </ModalContent>
+            </ModalOverlay>
+        )}
     </DetailsLayoutContainer> 
   );
 };

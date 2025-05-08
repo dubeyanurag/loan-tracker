@@ -1,5 +1,5 @@
 // src/utils/amortizationCalculator.ts
-import { Loan, AmortizationEntry, Payment, InterestRateChange, CustomEMIChange, Disbursement, CurrentSummary, AnnualSummary, LifespanSummary, LoanDetails } from '../types'; // Add LoanDetails
+import { Loan, AmortizationEntry, Payment, InterestRateChange, CustomEMIChange, Disbursement, CurrentSummary, AnnualSummary, LifespanSummary, LoanDetails } from '../types'; 
 import { calculateEMI } from './loanCalculations'; 
 
 // Define a union type for all possible events with a consistent structure
@@ -136,7 +136,7 @@ export const generateAnnualSummaries = (
 
   const principalLimit = loanDetails.principalDeductionLimit ?? DEFAULT_PRINCIPAL_DEDUCTION_LIMIT;
   const interestLimit = loanDetails.interestDeductionLimit ?? DEFAULT_INTEREST_DEDUCTION_LIMIT;
-  const isEligible = loanDetails.isTaxDeductible ?? false; // Default to false if not set
+  const isEligible = loanDetails.isTaxDeductible ?? false; 
 
   const summariesByFY: { [fyLabel: string]: Omit<AnnualSummary, 'yearLabel' | 'startYear'> & { startYear: number } } = {}; 
 
@@ -233,6 +233,7 @@ export const generateSummaryToDate = (
 ): CurrentSummary | null => {
     if (!schedule || schedule.length === 0) return null;
 
+    // Use loan-specific limits with defaults
     const principalLimit = loanDetails.principalDeductionLimit ?? DEFAULT_PRINCIPAL_DEDUCTION_LIMIT;
     const interestLimit = loanDetails.interestDeductionLimit ?? DEFAULT_INTEREST_DEDUCTION_LIMIT;
     const isEligible = loanDetails.isTaxDeductible ?? false;
@@ -274,7 +275,6 @@ export const generateSummaryToDate = (
 
     monthsElapsed = currentMonthIndex + 1;
 
-    // Calculate totals up to current month
     const currentScheduleSlice = schedule.slice(0, monthsElapsed);
     currentScheduleSlice.forEach(entry => {
         totalPrincipalPaid += entry.principalPaid;
@@ -282,10 +282,11 @@ export const generateSummaryToDate = (
         totalPayment += entry.emi;
     });
 
-    // Calculate deductible amounts up to current date
     if (isEligible) {
-        const annualSummariesToDate = generateAnnualSummaries(currentScheduleSlice, loanDetails, fyStartMonth);
+        // Calculate annual summaries just for the slice up to the current date
+        const annualSummariesToDate = generateAnnualSummaries(currentScheduleSlice, loanDetails, fyStartMonth); 
         annualSummariesToDate.forEach(annual => {
+            // We only need to sum up the deductible amounts calculated by generateAnnualSummaries
             totalDeductiblePrincipal += annual.deductiblePrincipal;
             totalDeductibleInterest += annual.deductibleInterest;
         });
