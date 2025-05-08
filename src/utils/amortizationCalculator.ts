@@ -242,8 +242,8 @@ export const generateSummaryToDate = (
     const currentMonth = now.getMonth(); 
 
     let monthsElapsed = 0;
-    let totalPrincipalPaid = 0;
-    let totalInterestPaid = 0;
+    let uncappedTotalPrincipalPaid = 0; // Renamed for clarity
+    let uncappedTotalInterestPaid = 0;  // Renamed for clarity
     let totalPayment = 0;
     let totalDeductiblePrincipal = 0;
     let totalDeductibleInterest = 0;
@@ -262,12 +262,20 @@ export const generateSummaryToDate = (
     if (currentMonthIndex === -1) {
          const firstEntryDate = new Date(schedule[0].paymentDate);
          if (firstEntryDate > now) {
+             // Return initial state including uncapped totals
              return {
-                 monthsElapsed: 0, totalPrincipalPaid: 0, totalInterestPaid: 0, totalPayment: 0,
-                 totalDeductiblePrincipal: 0, totalDeductibleInterest: 0, 
-                 currentOutstandingBalance: schedule[0].openingBalance 
+                 monthsElapsed: 0, 
+                 totalPrincipalPaid: 0, // This represents the capped value for this specific function's context
+                 totalInterestPaid: 0,  // This represents the capped value for this specific function's context
+                 totalPayment: 0,
+                 totalDeductiblePrincipal: 0, 
+                 totalDeductibleInterest: 0, 
+                 currentOutstandingBalance: schedule[0].openingBalance,
+                 uncappedTotalPrincipalPaid: 0, // Add uncapped
+                 uncappedTotalInterestPaid: 0   // Add uncapped
              };
          }
+         // If current date is past the schedule end, use the last month's values
          currentMonthIndex = schedule.length - 1;
          currentOutstandingBalance = schedule[currentMonthIndex].closingBalance;
     }
@@ -276,8 +284,8 @@ export const generateSummaryToDate = (
 
     const currentScheduleSlice = schedule.slice(0, monthsElapsed);
     currentScheduleSlice.forEach(entry => {
-        totalPrincipalPaid += entry.principalPaid;
-        totalInterestPaid += entry.interestPaid;
+        uncappedTotalPrincipalPaid += entry.principalPaid; // Sum uncapped values
+        uncappedTotalInterestPaid += entry.interestPaid;   // Sum uncapped values
         totalPayment += entry.emi;
     });
 
@@ -285,19 +293,24 @@ export const generateSummaryToDate = (
         // Calculate annual summaries just for the slice up to the current date
         const annualSummariesToDate = generateAnnualSummaries(currentScheduleSlice, loanDetails, fyStartMonth); 
         annualSummariesToDate.forEach(annual => {
-            // Use the correct limits for summing up deductibles
-            totalDeductiblePrincipal += Math.min(annual.totalPrincipalPaid, principalLimit); 
-            totalDeductibleInterest += Math.min(annual.totalInterestPaid, interestLimit);
+            // Sum the already capped values from annual summaries for the *cumulative* deductible total
+            totalDeductiblePrincipal += annual.deductiblePrincipal; 
+            totalDeductibleInterest += annual.deductibleInterest;
         });
     }
 
+    // Return the full CurrentSummary object
     return {
         monthsElapsed,
-        totalPrincipalPaid: parseFloat(totalPrincipalPaid.toFixed(2)),
-        totalInterestPaid: parseFloat(totalInterestPaid.toFixed(2)),
+        // Note: totalPrincipalPaid/totalInterestPaid in the return type *semantically* mean the uncapped totals here
+        totalPrincipalPaid: parseFloat(uncappedTotalPrincipalPaid.toFixed(2)), 
+        totalInterestPaid: parseFloat(uncappedTotalInterestPaid.toFixed(2)),  
         totalPayment: parseFloat(totalPayment.toFixed(2)),
-        totalDeductiblePrincipal: parseFloat(totalDeductiblePrincipal.toFixed(2)),
-        totalDeductibleInterest: parseFloat(totalDeductibleInterest.toFixed(2)),
+        totalDeductiblePrincipal: parseFloat(totalDeductiblePrincipal.toFixed(2)), // This is the cumulative capped value
+        totalDeductibleInterest: parseFloat(totalDeductibleInterest.toFixed(2)), // This is the cumulative capped value
         currentOutstandingBalance: parseFloat(currentOutstandingBalance.toFixed(2)),
+        // Explicitly add the uncapped values as required by the type
+        uncappedTotalPrincipalPaid: parseFloat(uncappedTotalPrincipalPaid.toFixed(2)), 
+        uncappedTotalInterestPaid: parseFloat(uncappedTotalInterestPaid.toFixed(2)),
     };
 };

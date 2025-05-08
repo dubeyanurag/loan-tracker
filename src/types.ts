@@ -133,4 +133,7 @@ export interface CurrentSummary {
   totalDeductiblePrincipal: number;
   totalDeductibleInterest: number;
   currentOutstandingBalance: number;
+  // Add uncapped totals for overall summary
+  uncappedTotalPrincipalPaid: number; 
+  uncappedTotalInterestPaid: number;
 }
