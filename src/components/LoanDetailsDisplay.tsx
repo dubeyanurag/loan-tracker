@@ -4,31 +4,48 @@ import styled from 'styled-components';
 import { Loan, AmortizationEntry, InterestRateChange, CustomEMIChange } from '../types'; 
 import { calculateEMI, calculateTotalInterestAndPayment, calculateTotalDisbursed } from '../utils/loanCalculations'; 
 import { generateAmortizationSchedule } from '../utils/amortizationCalculator'; 
-// import PreEmiPaymentForm from './PaymentForm'; // Removed import
 import AddDisbursementForm from './AddDisbursementForm'; 
-// import PrepaymentSimulator from './PrepaymentSimulator'; // Removed import
 import AmortizationTable from './AmortizationTable';
 import LoanSummaries from './LoanSummaries';
 import LoanChart from './LoanChart'; 
 import { useAppDispatch } from '../contexts/AppContext'; 
 
-// Main container for the two-column layout
-const DetailsLayoutContainer = styled.div`
-  display: flex;
-  flex-direction: row; /* Side-by-side columns */
-  flex-wrap: wrap; /* Allow wrapping on small screens */
+// Main container remains column
+const DetailsContainer = styled.div`
+  display: flex; 
+  flex-direction: column; 
   gap: 20px; 
   padding: 20px;
   border: 1px solid #e0e0e0;
   border-radius: 8px;
   background-color: #ffffff;
   margin-top: 10px;
+
+  h3 {
+    margin-top: 0;
+    color: #333;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+  }
+  h4 { 
+    margin-bottom: 5px;
+    margin-top: 15px;
+    color: #444;
+  }
+`;
+
+// New container for the row holding main content and sidebar
+const ContentRow = styled.div`
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap; /* Wrap sidebar below on small screens */
+    gap: 20px; 
 `;
 
 // Container for the main content (summaries, chart, table)
 const MainContentContainer = styled.div`
   flex: 3; /* Takes up more space */
-  min-width: 300px; /* Ensure minimum width */
+  min-width: 300px; 
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -37,7 +54,7 @@ const MainContentContainer = styled.div`
 // Container for the sidebar forms (Add Disbursement)
 const SidebarContainer = styled.div`
   flex: 1; /* Takes up less space */
-  min-width: 250px; /* Ensure minimum width */
+  min-width: 250px; 
 `;
 
 
@@ -63,13 +80,13 @@ const DetailItem = styled.p`
    }
 `;
 
-// Styles for history lists (if we keep them)
+// Styles for history lists
 const HistoryList = styled.ul`
     margin-top: 5px;
     padding-left: 20px;
     font-size: 0.9em;
     color: #666;
-    list-style: none; /* Remove default bullets */
+    list-style: none; 
 
     li {
         margin-bottom: 4px;
@@ -124,7 +141,6 @@ const HistoryHeading = styled.h4`
 
    // --- Calculate Current/Effective Values (Approximations) ---
    const currentValues = useMemo(() => {
-       // Simplified - uses last schedule entry's details
        if (amortizationSchedule.length === 0) {
            return { currentRate: details.originalInterestRate, currentEMI: initialEMI };
        }
@@ -132,30 +148,26 @@ const HistoryHeading = styled.h4`
        let effectiveRate = details.originalInterestRate;
        let effectiveEMI = initialEMI;
 
-       // Find last rate change impacting the schedule
        const lastRoiChange = [...(loan.interestRateChanges || [])]
            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
            .find(change => new Date(change.date) <= new Date(lastEntry.paymentDate));
        if(lastRoiChange) effectiveRate = lastRoiChange.newRate;
 
-        // Find last EMI change impacting the schedule
        const lastEmiEvent = [...(loan.interestRateChanges || []), ...(loan.customEMIChanges || [])]
            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
            .find(change => new Date(change.date) <= new Date(lastEntry.paymentDate));
         if(lastEmiEvent) {
              if ('newRate' in lastEmiEvent && lastEmiEvent.adjustmentPreference === 'adjustEMI') {
-                 // Use last calculated EMI from schedule as best estimate
                  effectiveEMI = lastEntry.emi; 
              } else if ('newEMI' in lastEmiEvent) {
                  effectiveEMI = lastEmiEvent.newEMI;
              } else if ('newRate' in lastEmiEvent && lastEmiEvent.adjustmentPreference === 'customEMI' && lastEmiEvent.newEMIIfApplicable) {
                   effectiveEMI = lastEmiEvent.newEMIIfApplicable;
              } else {
-                 // If last event was ROI change with adjustTenure, use last schedule EMI
                  effectiveEMI = lastEntry.emi;
              }
-        } else {
-             effectiveEMI = lastEntry.emi; // Default to last actual EMI paid
+        } else if (amortizationSchedule.length > 0) { // Use last schedule EMI if no events override it
+             effectiveEMI = lastEntry.emi; 
         }
 
        return {
@@ -195,9 +207,9 @@ const HistoryHeading = styled.h4`
 
 
    return (
-    // Use the new layout container
-    <DetailsLayoutContainer> 
-        <MainContentContainer>
+    <DetailsContainer> 
+       {/* Initial Summary Section (Full Width) */}
+       <div> 
             <h3>{loan.name} - Summary</h3>
             <DetailItem><strong>Total Disbursed:</strong> ₹{totalDisbursed.toLocaleString()}</DetailItem> 
             <DetailItem><strong>Original Rate:</strong> {details.originalInterestRate}%</DetailItem>
@@ -210,90 +222,89 @@ const HistoryHeading = styled.h4`
             {details.startedWithPreEMI && !details.emiStartDate && 
                 <DetailItem><em>(Loan started with Pre-EMI period - EMI Start Date not set)</em></DetailItem>
             }
-            
             <hr style={{ margin: '15px 0', borderColor: '#eee' }} />
-
             <DetailItem><strong>Calculated Initial EMI (Estimate):</strong> ₹{initialEMI.toLocaleString()}</DetailItem>
             <DetailItem><strong>Current EMI (Estimate):</strong> ₹{currentValues.currentEMI.toLocaleString()}</DetailItem>
             <DetailItem><strong>Total Interest Payable (Initial Estimate):</strong> ₹{summary.totalInterest.toLocaleString()}</DetailItem>
             <DetailItem><strong>Total Amount Payable (Initial Estimate):</strong> ₹{summary.totalPayment.toLocaleString()}</DetailItem>
+       </div>
 
-            {/* History sections with Edit buttons */}
-            {details.disbursements.length > 0 && ( 
+        {/* Row for Main Content and Sidebar */}
+       <ContentRow>
+            <MainContentContainer>
+                {/* History Lists */}
+                {details.disbursements.length > 0 && ( 
+                        <>
+                        <HistoryHeading>Disbursements</HistoryHeading>
+                        <HistoryList>
+                            {details.disbursements.map(d => <li key={d.id}>{new Date(d.date).toLocaleDateString()}: ₹{d.amount.toLocaleString()} {d.remarks && `(${d.remarks})`}</li>)}
+                        </HistoryList>
+                        </>
+                )}
+                {loan.paymentHistory.length > 0 && (
                     <>
-                    <HistoryHeading>Disbursements</HistoryHeading>
+                    <HistoryHeading>Payment History (EMIs & Prepayments)</HistoryHeading>
                     <HistoryList>
-                        {details.disbursements.map(d => <li key={d.id}>{new Date(d.date).toLocaleDateString()}: ₹{d.amount.toLocaleString()} {d.remarks && `(${d.remarks})`}</li>)}
+                        {loan.paymentHistory.map(p => (
+                        <li key={p.id}>
+                            <span>
+                                {new Date(p.date).toLocaleDateString()}: ₹{p.amount.toLocaleString()} ({p.type})
+                                {p.principalPaid !== undefined && p.interestPaid !== undefined && ` - P: ₹${p.principalPaid.toLocaleString()}, I: ₹${p.interestPaid.toLocaleString()}`}
+                                {p.remarks && ` (${p.remarks})`}
+                            </span>
+                        </li>
+                        ))}
                     </HistoryList>
                     </>
-            )}
+                )}
+                {loan.interestRateChanges.length > 0 && (
+                    <>
+                    <HistoryHeading>Interest Rate Changes</HistoryHeading>
+                    <HistoryList>
+                        {loan.interestRateChanges.map(c => (
+                        <li key={c.id}>
+                            <span>
+                                {new Date(c.date).toLocaleDateString()}: New Rate {c.newRate}%
+                                {c.adjustmentPreference && ` (Pref: ${c.adjustmentPreference})`}
+                                {c.newEMIIfApplicable && ` (New EMI: ₹${c.newEMIIfApplicable.toLocaleString()})`}
+                            </span>
+                            <EditButton onClick={() => handleEditROIChange(c)}>Edit</EditButton>
+                        </li>
+                        ))}
+                    </HistoryList>
+                    </>
+                )}
+                {loan.customEMIChanges.length > 0 && (
+                    <>
+                    <HistoryHeading>Custom EMI Changes</HistoryHeading>
+                    <HistoryList>
+                        {loan.customEMIChanges.map(c => (
+                        <li key={c.id}>
+                            <span>
+                                {new Date(c.date).toLocaleDateString()}: New EMI ₹{c.newEMI.toLocaleString()}
+                                {c.remarks && ` (${c.remarks})`}
+                            </span>
+                            <EditButton onClick={() => handleEditCustomEMIChange(c)}>Edit</EditButton>
+                        </li>
+                        ))}
+                    </HistoryList>
+                    </>
+                )}
+                
+                {/* Summaries, Chart, Table */}
+                <LoanSummaries schedule={amortizationSchedule} />
+                <LoanChart schedule={amortizationSchedule} loan={loan} /> 
+                <AmortizationTable schedule={amortizationSchedule} loan={loan} /> 
+            </MainContentContainer>
 
-            {loan.paymentHistory.length > 0 && (
-                <>
-                <HistoryHeading>Payment History (EMIs & Prepayments)</HistoryHeading>
-                <HistoryList>
-                    {loan.paymentHistory.map(p => (
-                    <li key={p.id}>
-                        <span>
-                            {new Date(p.date).toLocaleDateString()}: ₹{p.amount.toLocaleString()} ({p.type})
-                            {p.principalPaid !== undefined && p.interestPaid !== undefined && ` - P: ₹${p.principalPaid.toLocaleString()}, I: ₹${p.interestPaid.toLocaleString()}`}
-                            {p.remarks && ` (${p.remarks})`}
-                        </span>
-                    </li>
-                    ))}
-                </HistoryList>
-                </>
-            )}
-
-            {loan.interestRateChanges.length > 0 && (
-                <>
-                <HistoryHeading>Interest Rate Changes</HistoryHeading>
-                <HistoryList>
-                    {loan.interestRateChanges.map(c => (
-                    <li key={c.id}>
-                        <span>
-                            {new Date(c.date).toLocaleDateString()}: New Rate {c.newRate}%
-                            {c.adjustmentPreference && ` (Pref: ${c.adjustmentPreference})`}
-                            {c.newEMIIfApplicable && ` (New EMI: ₹${c.newEMIIfApplicable.toLocaleString()})`}
-                        </span>
-                        <EditButton onClick={() => handleEditROIChange(c)}>Edit</EditButton>
-                    </li>
-                    ))}
-                </HistoryList>
-                </>
-            )}
-
-            {loan.customEMIChanges.length > 0 && (
-                <>
-                <HistoryHeading>Custom EMI Changes</HistoryHeading>
-                <HistoryList>
-                    {loan.customEMIChanges.map(c => (
-                    <li key={c.id}>
-                        <span>
-                            {new Date(c.date).toLocaleDateString()}: New EMI ₹{c.newEMI.toLocaleString()}
-                            {c.remarks && ` (${c.remarks})`}
-                        </span>
-                        <EditButton onClick={() => handleEditCustomEMIChange(c)}>Edit</EditButton>
-                    </li>
-                    ))}
-                </HistoryList>
-                </>
-            )}
-            
-            {/* Tools moved to main content */}
-            <LoanSummaries schedule={amortizationSchedule} />
-            <LoanChart schedule={amortizationSchedule} loan={loan} /> 
-            <AmortizationTable schedule={amortizationSchedule} loan={loan} /> 
-
-        </MainContentContainer>
-
-        <SidebarContainer>
-             {/* Render forms in sidebar */}
-             <AddDisbursementForm /> 
-             {/* <PreEmiPaymentForm /> */} {/* Removed */}
-             {/* <PrepaymentSimulator /> */} {/* Removed */}
-        </SidebarContainer>
-    </DetailsLayoutContainer>
+            <SidebarContainer>
+                {/* Forms */}
+                <AddDisbursementForm /> 
+                {/* <PreEmiPaymentForm /> */} {/* Removed */}
+                {/* <PrepaymentSimulator /> */} {/* Removed */}
+            </SidebarContainer>
+       </ContentRow>
+    </DetailsContainer>
   );
 };
 
