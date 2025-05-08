@@ -10,70 +10,85 @@ This document provides a high-level overview of the application's architecture.
 *   **Utility Functions:** Core financial calculations (EMI, totals, amortization logic) are separated into utility functions (`loanCalculations.ts`, `amortizationCalculator.ts`).
 *   **Event-Driven Updates:** User actions (adding loans, logging payments/adjustments) dispatch actions to the reducer, which updates the state, triggering re-renders of affected components.
 
-## Block Diagram (Mermaid)
+## Architecture Diagram (Text-Based)
 
-```mermaid
-graph TD
-    subgraph "User Interface (React Components)"
-        App[App.tsx] --> CtxProvider(AppContext Provider);
-        CtxProvider --> LoanForm[LoanForm.tsx];
-        CtxProvider --> LoanList[LoanList.tsx];
-        CtxProvider --> LoanDetailsDisplay[LoanDetailsDisplay.tsx];
-        CtxProvider --> ShareState[ShareState.tsx]; 
-        CtxProvider --> OverallSummary[OverallSummary.tsx]; 
-        
-        LoanDetailsDisplay --> AddDisbursementForm[AddDisbursementForm.tsx];
-        LoanDetailsDisplay --> LoanSummaries[LoanSummaries.tsx];
-        LoanDetailsDisplay --> LoanChart[LoanChart.tsx];
-        LoanDetailsDisplay --> AmortizationTable[AmortizationTable.tsx];
-        LoanDetailsDisplay --> EditLoanDetailsForm[EditLoanDetailsForm.tsx]; 
+```
++-------------------------------------------------+
+| App.tsx (Main Layout)                           |
+| +---------------------------------------------+ |
+| | HeaderContainer                             | |
+| | +-------------+   +-----------------------+ | |
+| | | MainTitle   |   | ShareState.tsx        | | |
+| | +-------------+   +-----------------------+ | |
+| +---------------------------------------------+ |
+| +---------------------------------------------+ |
+| | OverallSummary.tsx                          | |
+| +---------------------------------------------+ |
+| +---------------------------------------------+ |
+| | ContentLayout (Single Column)               | |
+| | +-----------------------------------------+ | |
+| | | Section 1                               | | |
+| | | +-------------+   +-------------------+ | | |
+| | | | LoanForm.tsx|   | LoanList.tsx      | | | |
+| | | +-------------+   +-------------------+ | | |
+| | +-----------------------------------------+ | |
+| | +-----------------------------------------+ | |
+| | | Section 2 (Selected Loan Details)       | | |
+| | | +-------------------------------------+ | | |
+| | | | LoanDetailsDisplay.tsx              | | | |
+| | | | +-------------------------------+ | | | |
+| | | | | Summary Info                  | | | | |
+| | | | +-------------------------------+ | | | |
+| | | | | Disbursement Row              | | | | |
+| | | | | +---------------------------+ | | | | |
+| | | | | | Disbursement List         | | | | | |
+| | | | | +---------------------------+ | | | | |
+| | | | | +---------------------------+ | | | | |
+| | | | | | AddDisbursementForm.tsx   | | | | | |
+| | | | | +---------------------------+ | | | | |
+| | | | +-------------------------------+ | | | |
+| | | | | History Lists (Payments, etc) | | | | |
+| | | | +-------------------------------+ | | | |
+| | | | | LoanSummaries.tsx             | | | | |
+| | | | +-------------------------------+ | | | |
+| | | | | LoanChart.tsx                 | | | | |
+| | | | +-------------------------------+ | | | |
+| | | | | AmortizationTable.tsx         | | | | |
+| | | | +-------------------------------+ | | | |
+| | | | | EditLoanDetailsForm.tsx(Modal)| | | | |
+| | | | +-------------------------------+ | | | |
+| | | +-------------------------------------+ | | |
+| | +-----------------------------------------+ | |
+| | +-----------------------------------------+ | |
+| +---------------------------------------------+ |
++-------------------------------------------------+
+       |                                         |
+       | Wraps everything                        |
+       V                                         V
++-------------------------------------------------+
+| AppContext.tsx (Provider)                       |
+|   - Holds State (loans[], selectedLoanId)       |
+|   - Holds Dispatch Function                     |
+|   - Contains appReducer (handles actions)       |
+|   - Reads/Writes localStorage                 |
+|   - Reads URL Param (?loadState=)               |
++-------------------------------------------------+
+       ^                                         ^
+       | Uses State/Dispatch                     | Uses Utils
+       |                                         |
++------------------+      +---------------------------------------+
+| Utility Functions|      | Components Using Utils                |
+|------------------|      |---------------------------------------|
+| loanCalculations.ts|----->| LoanDetailsDisplay, OverallSummary    |
+| amortizationCalc.ts|----->| LoanDetailsDisplay, LoanSummaries,    |
+|                  |      | LoanChart, AmortizationTable,         |
+|                  |      | OverallSummary                        |
++------------------+      +---------------------------------------+
 
-        LoanForm -- dispatch ADD_LOAN --> Reducer;
-        LoanList -- dispatch SELECT_LOAN/DELETE_LOAN --> Reducer;
-        AddDisbursementForm -- dispatch ADD_DISBURSEMENT --> Reducer;
-        AmortizationTable -- dispatch ADD_PAYMENT/ADD_INTEREST_RATE_CHANGE/ADD_CUSTOM_EMI_CHANGE --> Reducer;
-        LoanDetailsDisplay -- triggers Edit --> EditLoanDetailsForm; 
-        EditLoanDetailsForm -- dispatch UPDATE_LOAN --> Reducer; 
-        LoanDetailsDisplay -- triggers Delete --> Reducer; 
-    end
-
-    subgraph "State Management"
-        CtxProvider -- contains --> State(AppState: loans, selectedLoanId); %% Removed []
-        CtxProvider -- contains --> Reducer(appReducer);
-        Reducer -- updates --> State;
-        State -- persists --> LocalStorage[(localStorage)];
-        LocalStorage -- loads --> State;
-        App -- reads URL Param --> State; 
-        ShareState -- reads --> State; 
-    end
-    
-    subgraph "Utilities"
-        UtilsCalc[loanCalculations.ts];
-        UtilsAmort[amortizationCalculator.ts];
-    end
-
-    %% Component Dependencies on Utilities/State
-    LoanDetailsDisplay -- uses --> UtilsAmort;
-    LoanDetailsDisplay -- uses --> UtilsCalc;
-    LoanSummaries -- uses --> UtilsAmort;
-    LoanChart -- uses --> UtilsAmort;
-    AmortizationTable -- uses --> UtilsAmort; 
-    OverallSummary -- uses --> UtilsAmort;
-    OverallSummary -- uses --> UtilsCalc;
-    
-    %% State Usage
-    LoanForm -- reads --> State; 
-    LoanList -- reads --> State;
-    LoanDetailsDisplay -- reads --> State;
-    AddDisbursementForm -- reads --> State;
-    AmortizationTable -- reads --> State; 
-    LoanChart -- reads --> State; 
-    LoanSummaries -- reads --> State; 
-    ShareState -- reads --> State;
-    OverallSummary -- reads --> State;
-
-    %% Styling (Implicit)
-    %% Components --> StyledComponents[styled-components];
+Key Data Flows:
+- User Interaction -> Component Handler -> dispatch(Action) -> appReducer -> New State -> Component Re-render
+- App Load -> AppContext checks URL -> AppContext checks localStorage -> AppContext initializes State -> Components Render
+- State Change -> AppContext saves to localStorage
 ```
 
 ## Data Flow Example (Adding a Prepayment via Table)

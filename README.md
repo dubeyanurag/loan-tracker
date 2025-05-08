@@ -15,10 +15,9 @@ A web application built with React and TypeScript to track loans (like home loan
     *   Edit past ROI/EMI change events.
 *   **Amortization Schedule:** View a detailed month-by-month breakdown of payments, principal, interest, and balance, reflecting all logged events.
 *   **Event Highlighting:** Rows in the Amortization Table with significant events (prepayments, ROI changes, etc.) are highlighted.
-*   **Event Deletion:** Remove specific logged events (disbursements, prepayments, ROI/EMI changes) directly from the Amortization Table.
-*   **Prepayment Simulator:** Estimate the impact of hypothetical prepayments on loan tenure and interest saved (Note: Uses simplified calculations currently).
-*   **Summaries:** View Annual and overall Loan Lifespan summaries based on the calculated schedule.
-*   **Visualization:** Interactive line chart displaying Outstanding Balance, Principal Paid, Interest Paid, and EMI Paid over time, with annotations for key events and zoom/pan functionality.
+*   **Event Deletion:** Remove specific logged events (disbursements, prepayments, ROI/EMI changes) from their respective history lists.
+*   **Summaries:** View Annual (with Financial Year selection) and overall Loan Lifespan summaries, including estimated tax deductible amounts (based on configurable limits). Also shows a "Summary To Date".
+*   **Visualization:** Interactive line chart displaying Outstanding Balance, Principal Paid, Interest Paid, and EMI Paid over time, with annotations for key events (including current month) and zoom/pan functionality.
 
 ## Technology Stack
 
@@ -35,7 +34,7 @@ A web application built with React and TypeScript to track loans (like home loan
 
 1.  **Clone the repository:**
     ```bash
-    git clone https://github.com/dubeyanurag/home-loan-tracker.git
+    git clone https://github.com/dubeyanurag/loan-tracker.git
     cd loan-tracker 
     ```
 2.  **Install dependencies:**
