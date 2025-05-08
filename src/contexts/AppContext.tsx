@@ -133,12 +133,43 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         if (base64State) {
             console.log("Found state in URL parameter.");
             const jsonState = atob(base64State); // Decode Base64
-            const parsedState = JSON.parse(jsonState);
-            if (isValidAppState(parsedState)) {
-                console.log("Successfully loaded state from URL.");
-                // Clear the URL parameter after loading? Optional.
-                // window.history.replaceState({}, document.title, window.location.pathname); 
-                return parsedState;
+            const parsedStateFromUrl = JSON.parse(jsonState);
+            if (isValidAppState(parsedStateFromUrl)) {
+                console.log("Successfully parsed state from URL.");
+                // Now, load existing state (localStorage or initial)
+                let existingState = initial; // Start with default initial state
+                try {
+                    const storedState = localStorage.getItem(LOCAL_STORAGE_KEY);
+                    if (storedState) {
+                        const parsedLocalStorageState = JSON.parse(storedState);
+                        if (isValidAppState(parsedLocalStorageState)) {
+                            existingState = parsedLocalStorageState;
+                            console.log("Loaded existing state from localStorage to merge.");
+                        }
+                    }
+                } catch (localError) {
+                     console.error("Error loading state from localStorage during merge:", localError);
+                }
+
+                // Merge loans (simple concatenation for now, might create duplicates)
+                const mergedLoans = [
+                    ...(existingState.loans || []), 
+                    ...(parsedStateFromUrl.loans || [])
+                ];
+                
+                // Decide on selectedLoanId (e.g., select first from URL load, fallback to existing)
+                const newSelectedLoanId = parsedStateFromUrl.loans?.[0]?.id || existingState.selectedLoanId;
+
+                const mergedState: AppState = {
+                    loans: mergedLoans,
+                    selectedLoanId: newSelectedLoanId
+                };
+
+                console.log("Merged state from URL and existing state.");
+                 // Clear the URL parameter after loading? Optional.
+                 // window.history.replaceState({}, document.title, window.location.pathname); 
+                return mergedState;
+
             } else {
                  console.warn("Invalid state structure found in URL parameter.");
             }
@@ -153,10 +184,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       if (storedState) {
         const parsedState = JSON.parse(storedState);
          if (isValidAppState(parsedState)) {
-            console.log("Successfully loaded state from localStorage.");
+            console.log("Successfully loaded state from localStorage (URL load failed or absent).");
             return parsedState;
          } else {
-             console.warn("Invalid state structure found in localStorage.");
+             console.warn("Invalid state structure found in localStorage (URL load failed or absent).");
          }
       }
     } catch (error) {
