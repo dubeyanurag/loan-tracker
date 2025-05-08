@@ -226,10 +226,9 @@ const EditDetailsButton = styled(DeleteButton)`
                 <h3>Loan Summary</h3> 
                 <EditDetailsButton onClick={() => setIsEditing(true)}>Edit Details</EditDetailsButton>
             </div>
-            {/* Removed side-by-side layout for these */}
+            {/* Group Original Terms */}
             <DetailItem><strong>Total Disbursed:</strong> ₹{totalDisbursed.toLocaleString()}</DetailItem> 
             <DetailItem><strong>Original Rate:</strong> {details.originalInterestRate}%</DetailItem>
-            <DetailItem><strong>Current Rate (Est):</strong> {currentValues.currentRate}%</DetailItem>
             <DetailItem><strong>Original Tenure:</strong> {details.originalTenureMonths / 12} years ({details.originalTenureMonths} months)</DetailItem>
             <DetailItem><strong>Loan Start Date:</strong> {new Date(details.startDate).toLocaleDateString()}</DetailItem>
             {details.startedWithPreEMI && details.emiStartDate && 
@@ -243,8 +242,10 @@ const EditDetailsButton = styled(DeleteButton)`
                     {details.isTaxDeductible && ` (P Limit: ₹${(details.principalDeductionLimit ?? 150000).toLocaleString()}, I Limit: ₹${(details.interestDeductionLimit ?? 200000).toLocaleString()})`}
                  </DetailItem>
              )}
-            <hr style={{ margin: '15px 0', borderColor: '#eee' }} />
-            {/* Removed Initial EMI, Total Interest, Total Payment */}
+            {/* Separator */}
+            <hr style={{ margin: '15px 0', borderColor: '#eee' }} /> 
+            {/* Group Current Status */}
+            <DetailItem><strong>Current Rate (Est):</strong> {currentValues.currentRate}%</DetailItem>
             <DetailItem><strong>Current EMI (Est):</strong> {typeof currentValues.currentEMI === 'number' ? `₹${currentValues.currentEMI.toLocaleString()}` : currentValues.currentEMI}</DetailItem>
        </div>
 
