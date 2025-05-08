@@ -59,8 +59,8 @@ function App() {
   return (
     <AppContainer>
       <HeaderContainer>
-        <MainTitle>Home Loan Tracker</MainTitle>
-        <ShareState /> {/* Move ShareState into Header */}
+        <MainTitle>Loan Tracker</MainTitle> {/* Renamed */}
+        <ShareState /> 
       </HeaderContainer>
       
       <ContentLayout>

@@ -1,6 +1,6 @@
-# Home Loan Tracker
+# Loan Tracker
 
-A web application built with React and TypeScript to track home loans, simulate prepayments, visualize amortization schedules, and manage dynamic changes like interest rate adjustments and multiple principal disbursements.
+A web application built with React and TypeScript to track loans (like home loans), visualize amortization schedules, and manage dynamic changes like interest rate adjustments and multiple principal disbursements.
 
 ## Features
 
@@ -36,7 +36,7 @@ A web application built with React and TypeScript to track home loans, simulate 
 1.  **Clone the repository:**
     ```bash
     git clone https://github.com/dubeyanurag/home-loan-tracker.git
-    cd home-loan-tracker
+    cd loan-tracker 
     ```
 2.  **Install dependencies:**
     ```bash

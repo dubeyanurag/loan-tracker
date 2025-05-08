@@ -1,5 +1,5 @@
 // src/components/EditLoanDetailsForm.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react'; // Removed unused useEffect
 import styled from 'styled-components';
 import { useAppDispatch } from '../contexts/AppContext';
 import { Loan, LoanDetails } from '../types';

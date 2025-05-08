@@ -129,7 +129,7 @@ const DEFAULT_INTEREST_DEDUCTION_LIMIT = 200000;
 
 export const generateAnnualSummaries = (
     schedule: AmortizationEntry[], 
-    loanDetails: LoanDetails, // Pass loan details for tax eligibility/limits
+    loanDetails: LoanDetails, 
     fyStartMonth: number = 3 
 ): AnnualSummary[] => {
   if (!schedule || schedule.length === 0) return [];
@@ -228,12 +228,11 @@ export const generateLifespanSummary = (
 // --- Generate Summary To Date ---
 export const generateSummaryToDate = (
     schedule: AmortizationEntry[],
-    loanDetails: LoanDetails, // Pass loan details for tax eligibility/limits
+    loanDetails: LoanDetails, 
     fyStartMonth: number = 3 
 ): CurrentSummary | null => {
     if (!schedule || schedule.length === 0) return null;
 
-    // Use loan-specific limits with defaults
     const principalLimit = loanDetails.principalDeductionLimit ?? DEFAULT_PRINCIPAL_DEDUCTION_LIMIT;
     const interestLimit = loanDetails.interestDeductionLimit ?? DEFAULT_INTEREST_DEDUCTION_LIMIT;
     const isEligible = loanDetails.isTaxDeductible ?? false;
@@ -283,10 +282,8 @@ export const generateSummaryToDate = (
     });
 
     if (isEligible) {
-        // Calculate annual summaries just for the slice up to the current date
         const annualSummariesToDate = generateAnnualSummaries(currentScheduleSlice, loanDetails, fyStartMonth); 
         annualSummariesToDate.forEach(annual => {
-            // We only need to sum up the deductible amounts calculated by generateAnnualSummaries
             totalDeductiblePrincipal += annual.deductiblePrincipal;
             totalDeductibleInterest += annual.deductibleInterest;
         });
