@@ -43,8 +43,8 @@ const OverallSummary: React.FC = () => {
     let totalCurrentEMI = 0;
     let totalPrincipalPaid = 0;
     let totalInterestPaid = 0;
-    // let totalDeductiblePrincipal = 0; // Removed unused
-    // let totalDeductibleInterest = 0; // Removed unused
+    let totalDeductiblePrincipal = 0; // Restore calculation
+    let totalDeductibleInterest = 0; // Restore calculation
 
     const now = new Date();
     const currentYear = now.getFullYear();
@@ -62,9 +62,9 @@ const OverallSummary: React.FC = () => {
             // Use the new uncapped fields
             totalPrincipalPaid += summaryToDate.uncappedTotalPrincipalPaid; 
             totalInterestPaid += summaryToDate.uncappedTotalInterestPaid; 
-            // Keep summing the capped values from summaryToDate for the cumulative deductible display (if we were keeping it)
-            // totalDeductiblePrincipal += summaryToDate.totalDeductiblePrincipal; // No longer needed for display
-            // totalDeductibleInterest += summaryToDate.totalDeductibleInterest; // No longer needed for display
+            // Restore summing of capped values for display
+            totalDeductiblePrincipal += summaryToDate.totalDeductiblePrincipal; 
+            totalDeductibleInterest += summaryToDate.totalDeductibleInterest; 
 
             // --- Corrected Current EMI Calculation ---
             if (summaryToDate.currentOutstandingBalance > 0) {
@@ -96,11 +96,11 @@ const OverallSummary: React.FC = () => {
     return {
         totalOutstanding: parseFloat(totalOutstanding.toFixed(2)),
         totalCurrentEMI: parseFloat(totalCurrentEMI.toFixed(2)),
-        totalPrincipalPaid: parseFloat(totalPrincipalPaid.toFixed(2)), // This is now the uncapped total
-        totalInterestPaid: parseFloat(totalInterestPaid.toFixed(2)),   // This is now the uncapped total
-        // Remove deductible totals from return object as they are not displayed
-        // totalDeductiblePrincipal: parseFloat(totalDeductiblePrincipal.toFixed(2)),
-        // totalDeductibleInterest: parseFloat(totalDeductibleInterest.toFixed(2)),
+        totalPrincipalPaid: parseFloat(totalPrincipalPaid.toFixed(2)), 
+        totalInterestPaid: parseFloat(totalInterestPaid.toFixed(2)),   
+        // Restore deductible totals to return object
+        totalDeductiblePrincipal: parseFloat(totalDeductiblePrincipal.toFixed(2)),
+        totalDeductibleInterest: parseFloat(totalDeductibleInterest.toFixed(2)),
         numberOfLoans: loans.length
     };
   }, [loans]);
@@ -117,7 +117,13 @@ const OverallSummary: React.FC = () => {
         <SummaryItem><strong>Total Current Monthly EMI:</strong> ₹{overallData.totalCurrentEMI.toLocaleString()}</SummaryItem>
         <SummaryItem><strong>Total Principal Paid (To Date):</strong> ₹{overallData.totalPrincipalPaid.toLocaleString()}</SummaryItem>
         <SummaryItem><strong>Total Interest Paid (To Date):</strong> ₹{overallData.totalInterestPaid.toLocaleString()}</SummaryItem>
-        {/* Removed display of incorrect Total Deductible lines */}
+        {/* Restore display of Total Deductible lines */}
+        <SummaryItem title="Sum of max deductible principal claimed across all loans up to current date (based on annual limits)">
+            <strong>Total Deductible Principal (To Date):</strong> ₹{overallData.totalDeductiblePrincipal.toLocaleString()}
+        </SummaryItem>
+        <SummaryItem title="Sum of max deductible interest claimed across all loans up to current date (based on annual limits)">
+            <strong>Total Deductible Interest (To Date):</strong> ₹{overallData.totalDeductibleInterest.toLocaleString()}
+        </SummaryItem>
       </SummaryGrid>
     </SummaryContainer>
   );

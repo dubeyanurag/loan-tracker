@@ -198,9 +198,10 @@ const LoanSummaries: React.FC<LoanSummariesProps> = ({ schedule, loanDetails }) 
                 <p><strong>Total Principal Paid:</strong> ₹{lifespanSummary.totalPrincipalPaid.toLocaleString()}</p>
                 <p><strong>Total Interest Paid:</strong> ₹{lifespanSummary.totalInterestPaid.toLocaleString()}</p>
                 <p><strong>Total Amount Paid:</strong> ₹{lifespanSummary.totalPayment.toLocaleString()}</p>
+                {/* Restore conditional display for lifespan deductibles */}
                 {loanDetails.isTaxDeductible && <>
-                    <p><strong>Total Deductible Principal (Max):</strong> ₹{lifespanSummary.totalDeductiblePrincipal.toLocaleString()}</p>
-                    <p><strong>Total Deductible Interest (Max):</strong> ₹{lifespanSummary.totalDeductibleInterest.toLocaleString()}</p>
+                    <p><strong>Total Deductible Principal (Lifespan):</strong> ₹{lifespanSummary.totalDeductiblePrincipal.toLocaleString()}</p>
+                    <p><strong>Total Deductible Interest (Lifespan):</strong> ₹{lifespanSummary.totalDeductibleInterest.toLocaleString()}</p>
                 </>}
               </div>
             ) : (
@@ -214,12 +215,13 @@ const LoanSummaries: React.FC<LoanSummariesProps> = ({ schedule, loanDetails }) 
               <div>
                  <p><strong>Months Elapsed:</strong> {summaryToDate.monthsElapsed}</p>
                  <p><strong>Outstanding Balance:</strong> ₹{summaryToDate.currentOutstandingBalance.toLocaleString()}</p>
-                 <p><strong>Total Principal Paid:</strong> ₹{summaryToDate.totalPrincipalPaid.toLocaleString()}</p>
-                 <p><strong>Total Interest Paid:</strong> ₹{summaryToDate.totalInterestPaid.toLocaleString()}</p>
-                 <p><strong>Total Amount Paid:</strong> ₹{summaryToDate.totalPayment.toLocaleString()}</p>
+                 <p><strong>Total Principal Paid (To Date):</strong> ₹{summaryToDate.uncappedTotalPrincipalPaid.toLocaleString()}</p> {/* Use uncapped */}
+                 <p><strong>Total Interest Paid (To Date):</strong> ₹{summaryToDate.uncappedTotalInterestPaid.toLocaleString()}</p> {/* Use uncapped */}
+                 <p><strong>Total Amount Paid (To Date):</strong> ₹{summaryToDate.totalPayment.toLocaleString()}</p>
+                 {/* Restore conditional display for to-date deductibles */}
                  {loanDetails.isTaxDeductible && <>
-                    <p><strong>Total Deductible Principal (Max):</strong> ₹{summaryToDate.totalDeductiblePrincipal.toLocaleString()}</p>
-                    <p><strong>Total Deductible Interest (Max):</strong> ₹{summaryToDate.totalDeductibleInterest.toLocaleString()}</p>
+                    <p><strong>Total Deductible Principal (To Date):</strong> ₹{summaryToDate.totalDeductiblePrincipal.toLocaleString()}</p>
+                    <p><strong>Total Deductible Interest (To Date):</strong> ₹{summaryToDate.totalDeductibleInterest.toLocaleString()}</p>
                  </>}
               </div>
             ) : (
