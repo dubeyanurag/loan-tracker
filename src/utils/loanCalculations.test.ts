@@ -7,12 +7,12 @@ describe('loanCalculations', () => {
   describe('calculateTotalDisbursed', () => {
     it('should return 0 for an empty array', () => {
       expect(calculateTotalDisbursed([])).toBe(0);
-    });
+     });
 
-    it('should return 0 for undefined input', () => {
-       // @ts-expect-error testing invalid input
-      expect(calculateTotalDisbursed(undefined)).toBe(0);
-    });
+     it('should return 0 for undefined input', () => {
+       // Removed @ts-expect-error - test might fail if type checking is strict, but let's see
+       expect(calculateTotalDisbursed(undefined as any)).toBe(0); // Use 'as any' to bypass type check for test
+     });
 
     it('should calculate the sum of amounts for multiple disbursements', () => {
       const disbursements: Disbursement[] = [

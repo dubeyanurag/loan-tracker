@@ -1,8 +1,8 @@
 import React from 'react'
-import ReactDOM from 'react-dom/client'
-import App from './App.tsx' // Assuming App.tsx will be our main app component
-import './index.css' // Standard Vite CSS import
-import { AppProvider } from './contexts/AppContext.tsx'
+import * as ReactDOM from 'react-dom/client' // Changed import style
+import App from './App' // Removed .tsx extension
+import './index.css' 
+import { AppProvider } from './contexts/AppContext' // Removed .tsx extension
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
