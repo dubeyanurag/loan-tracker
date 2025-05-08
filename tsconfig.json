@@ -22,8 +22,8 @@
     "esModuleInterop": true, // Add this flag
 
     /* Vitest */
-    "types": ["vitest/globals", "@types/testing-library__jest-dom"] 
-  },
-  "include": ["src", "vite.config.ts", "src/setupTests.ts"],
-  "references": [{ "path": "./tsconfig.node.json" }]
-}
+     "types": ["vitest/globals", "@types/testing-library__jest-dom"] 
+   },
+   "include": ["src", "src/setupTests.ts"], // Removed vite.config.ts
+   "references": [{ "path": "./tsconfig.node.json" }]
+ }

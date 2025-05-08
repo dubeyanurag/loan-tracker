@@ -1,6 +1,6 @@
 // src/contexts/AppContext.tsx
 import React, { createContext, useReducer, useContext, ReactNode, useEffect } from 'react';
-import { AppState, AppAction, Loan } from '../types'; 
+import { AppState, AppAction } from '../types'; // Removed unused Loan import
 import { v4 as uuidv4 } from 'uuid'; 
 
 const LOCAL_STORAGE_KEY = 'homeLoanTrackerAppState';

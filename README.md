@@ -57,5 +57,5 @@ This will create a `dist` folder with the production-ready static assets.
 
 ## Deployment
 
-This application is deployed using GitHub Pages.
-(Link will be added after deployment)
+This application is deployed using GitHub Pages at:
+**https://dubeyanurag.github.io/home-loan-tracker/**
