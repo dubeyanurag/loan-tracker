@@ -57,7 +57,7 @@ const AddDisbursementForm: React.FC = () => {
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]); 
   const [remarks, setRemarks] = useState('');
 
-  const selectedLoan = loans.find(loan => loan.id === selectedLoanId);
+  // const selectedLoan = loans.find(loan => loan.id === selectedLoanId); // Removed unused variable
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
