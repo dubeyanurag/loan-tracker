@@ -59,7 +59,7 @@ function App() {
   return (
     <AppContainer>
       <HeaderContainer>
-        <MainTitle>Loan Tracker</MainTitle> {/* Renamed */}
+        <MainTitle>Loan Tracker</MainTitle> 
         <ShareState /> 
       </HeaderContainer>
       
