@@ -4,6 +4,7 @@ import LoanForm from './components/LoanForm';
 import LoanList from './components/LoanList';
 import { useAppState } from './contexts/AppContext';
 import LoanDetailsDisplay from './components/LoanDetailsDisplay';
+import ShareState from './components/ShareState'; // Import ShareState
 
 // Basic layout styled components
 const AppContainer = styled.div`
@@ -70,6 +71,7 @@ function App() {
           )}
         </Section>
       </ContentLayout>
+      <ShareState /> {/* Add ShareState component */}
     </AppContainer>
   );
 }

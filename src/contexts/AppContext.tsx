@@ -114,13 +114,50 @@ interface AppProviderProps {
   children: ReactNode;
 }
 
+// Basic validation for loaded state (can be enhanced)
+const isValidAppState = (data: any): data is AppState => {
+    return data && typeof data === 'object' && Array.isArray(data.loans) && 
+           (data.selectedLoanId === null || typeof data.selectedLoanId === 'string');
+    // TODO: Add deeper validation of loan structures if needed
+};
+
+
 export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const [state, dispatch] = useReducer(appReducer, initialState, (initial) => {
+    
+    // 1. Check URL parameter first
+    try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const base64State = urlParams.get('loadState');
+
+        if (base64State) {
+            console.log("Found state in URL parameter.");
+            const jsonState = atob(base64State); // Decode Base64
+            const parsedState = JSON.parse(jsonState);
+            if (isValidAppState(parsedState)) {
+                console.log("Successfully loaded state from URL.");
+                // Clear the URL parameter after loading? Optional.
+                // window.history.replaceState({}, document.title, window.location.pathname); 
+                return parsedState;
+            } else {
+                 console.warn("Invalid state structure found in URL parameter.");
+            }
+        }
+    } catch (error) {
+        console.error("Error processing state from URL parameter:", error);
+    }
+
+    // 2. Fallback to localStorage
     try {
       const storedState = localStorage.getItem(LOCAL_STORAGE_KEY);
       if (storedState) {
-        // TODO: Add validation/migration logic for loaded state
-        return JSON.parse(storedState) as AppState;
+        const parsedState = JSON.parse(storedState);
+         if (isValidAppState(parsedState)) {
+            console.log("Successfully loaded state from localStorage.");
+            return parsedState;
+         } else {
+             console.warn("Invalid state structure found in localStorage.");
+         }
       }
     } catch (error) {
       console.error("Error loading state from localStorage:", error);
