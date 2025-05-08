@@ -1,11 +1,11 @@
 // src/components/AmortizationTable.tsx
-import React, { useEffect, useRef } from 'react'; // Import useEffect, useRef
+import React, { useEffect, useRef } from 'react'; 
 import styled from 'styled-components';
 import { AmortizationEntry, Loan } from '../types'; 
 import { useAppDispatch } from '../contexts/AppContext'; 
 
 const TableContainer = styled.div`
-  margin-top: 20px;
+  margin-top: 10px; /* Reduced margin */
   max-height: 500px; 
   overflow-y: auto;
   border: 1px solid #ddd;
@@ -18,8 +18,9 @@ const StyledTable = styled.table`
 
   th, td {
     border: 1px solid #ddd;
-    padding: 8px;
+    padding: 6px 8px; /* Slightly reduced padding */
     text-align: right;
+    vertical-align: top; /* Align content top */
   }
 
   th {
@@ -27,10 +28,12 @@ const StyledTable = styled.table`
     position: sticky;
     top: 0;
     z-index: 1;
+    white-space: nowrap; /* Prevent header wrapping */
   }
 
-  td:nth-child(1), td:nth-child(2) { /* Month, Date */
+  td:nth-child(1), td:nth-child(2) { 
     text-align: left;
+    white-space: nowrap;
   }
   
   /* Row highlighting styles */
@@ -49,6 +52,7 @@ const ActionButton = styled.button`
   padding: 3px 6px;
   font-size: 0.8em;
   margin-right: 4px;
+  margin-bottom: 4px; /* Add bottom margin */
   cursor: pointer;
   border-radius: 3px;
   border: 1px solid #ccc;
@@ -63,34 +67,65 @@ const ActionButton = styled.button`
   }
 `;
 
+// Small delete button for events
+const SmallDeleteButton = styled.button`
+    background: none;
+    border: none;
+    color: #dc3545; /* Red */
+    cursor: pointer;
+    font-size: 1em; /* Adjust size relative to surrounding text */
+    padding: 0 0 0 5px; /* Add padding to left */
+    vertical-align: middle; /* Align with text */
+    line-height: 1; /* Prevent extra spacing */
+     &:hover {
+        color: #a71d2a; /* Darker red */
+     }
+`;
+
+const EventItem = styled.div`
+    font-size: 0.85em;
+    margin-bottom: 3px;
+    white-space: nowrap; /* Prevent wrapping */
+`;
+
+
 interface AmortizationTableProps {
   schedule: AmortizationEntry[];
   loan: Loan; 
+  // Add delete handler props
+  onDeleteDisbursement: (eventId: string) => void;
+  onDeletePayment: (eventId: string) => void;
+  onDeleteROIChange: (eventId: string) => void;
+  onDeleteCustomEMIChange: (eventId: string) => void;
 }
 
-const AmortizationTable: React.FC<AmortizationTableProps> = ({ schedule, loan }) => {
+const AmortizationTable: React.FC<AmortizationTableProps> = ({ 
+    schedule, 
+    loan, 
+    onDeleteDisbursement,
+    onDeletePayment,
+    onDeleteROIChange,
+    onDeleteCustomEMIChange 
+}) => {
   const dispatch = useAppDispatch();
   const currentRowRef = useRef<HTMLTableRowElement | null>(null); 
   const tableContainerRef = useRef<HTMLDivElement | null>(null); 
-  const tableBodyRef = useRef<HTMLTableSectionElement | null>(null); // Declare tableBodyRef
+  const tableBodyRef = useRef<HTMLTableSectionElement | null>(null); 
 
-  // Get current month/year for highlighting and scrolling
   const now = new Date();
   const currentYear = now.getFullYear();
   const currentMonth = now.getMonth();
 
-  // Effect to scroll to current month row
   useEffect(() => {
     if (currentRowRef.current && tableContainerRef.current) {
-        // Calculate offset to center the row if possible
         const containerHeight = tableContainerRef.current.clientHeight;
         const rowTop = currentRowRef.current.offsetTop;
         const rowHeight = currentRowRef.current.clientHeight;
         const scrollTo = rowTop - (containerHeight / 2) + (rowHeight / 2);
         
-        tableContainerRef.current.scrollTo({ top: scrollTo, behavior: 'smooth' });
+        tableContainerRef.current.scrollTo({ top: Math.max(0, scrollTo), behavior: 'smooth' }); // Ensure scroll is not negative
     }
-  }, [schedule]); // Run when schedule changes (might need refinement if schedule updates frequently without month change)
+  }, [schedule]); 
 
 
   // --- Action Handlers ---
@@ -108,9 +143,9 @@ const AmortizationTable: React.FC<AmortizationTableProps> = ({ schedule, loan })
               date: entry.paymentDate,
               amount: amount,
               type: 'Prepayment',
-              principalPaid: amount, // Simplified
-              interestPaid: 0, // Simplified
-              balanceAfterPayment: 0, // Needs calculation
+              principalPaid: amount, 
+              interestPaid: 0, 
+              balanceAfterPayment: 0, 
               remarks: 'In-table Prepayment',
             }
           }
@@ -183,9 +218,9 @@ const AmortizationTable: React.FC<AmortizationTableProps> = ({ schedule, loan })
   }
 
   return (
-    <div style={{marginTop: '20px'}}> {/* Wrap heading and table */}
+    <div style={{marginTop: '20px'}}> 
       <h4>Full Amortization Schedule</h4>
-      <TableContainer ref={tableContainerRef}> {/* Add ref to scrollable container */}
+      <TableContainer ref={tableContainerRef}> 
         <StyledTable>
           <thead>
           <tr>
@@ -196,11 +231,10 @@ const AmortizationTable: React.FC<AmortizationTableProps> = ({ schedule, loan })
             <th>Principal</th>
             <th>Interest</th>
             <th>Closing Balance</th>
-            {/* <th>Event / Delete</th> */} {/* Removed Column */}
-            <th>Actions</th> 
+            <th>Events / Actions</th> {/* Added Column */}
           </tr>
         </thead>
-        <tbody ref={tableBodyRef}> {/* Optional: ref on tbody */}
+        <tbody ref={tableBodyRef}> 
           {schedule.map((entry) => {
             const entryDate = new Date(entry.paymentDate); 
             
@@ -214,7 +248,6 @@ const AmortizationTable: React.FC<AmortizationTableProps> = ({ schedule, loan })
             const rowClass = `${highlightClass} ${isCurrentMonth ? 'highlight-current-month' : ''}`.trim();
 
             return (
-              // Add ref conditionally to the current month row
               <tr 
                 key={entry.monthNumber} 
                 className={rowClass || undefined} 
@@ -227,11 +260,38 @@ const AmortizationTable: React.FC<AmortizationTableProps> = ({ schedule, loan })
                 <td>{entry.principalPaid.toLocaleString()}</td>
                 <td>{entry.interestPaid.toLocaleString()}</td>
                 <td>{entry.closingBalance.toLocaleString()}</td>
-                {/* Event/Delete Cell Removed */}
-                <td> {/* Actions Cell */}
-                  <ActionButton onClick={() => handleAddPrepayment(entry)} title={`Log a prepayment for ${entryDate.toLocaleDateString()}`}>Prepay</ActionButton>
-                  <ActionButton onClick={() => handleSetROI(entry)} title={`Log an ROI change effective ${entryDate.toLocaleDateString()}`}>Set ROI</ActionButton>
-                  <ActionButton onClick={() => handleSetEMI(entry)} title={`Log a custom EMI effective ${entryDate.toLocaleDateString()}`}>Set EMI</ActionButton>
+                <td> {/* Events / Actions Cell */}
+                    {/* Display Events with Delete Buttons */}
+                    {entry.disbursements?.map(d => (
+                        <EventItem key={d.id}>
+                            Disburse: ₹{d.amount.toLocaleString()}
+                            <SmallDeleteButton onClick={() => onDeleteDisbursement(d.id)} title="Delete Disbursement">&#x274C;</SmallDeleteButton>
+                        </EventItem>
+                    ))}
+                    {entry.prepayments?.map(p => (
+                        <EventItem key={p.id}>
+                            Prepay: ₹{p.amount.toLocaleString()}
+                            <SmallDeleteButton onClick={() => onDeletePayment(p.id)} title="Delete Prepayment">&#x274C;</SmallDeleteButton>
+                        </EventItem>
+                    ))}
+                    {entry.roiChanges?.map(c => (
+                        <EventItem key={c.id}>
+                            ROI: {c.newRate}% {c.preference && `(${c.preference})`}
+                            <SmallDeleteButton onClick={() => onDeleteROIChange(c.id)} title="Delete ROI Change">&#x274C;</SmallDeleteButton>
+                        </EventItem>
+                    ))}
+                    {entry.emiChanges?.map(c => (
+                        <EventItem key={c.id}>
+                            EMI: ₹{c.newEMI.toLocaleString()}
+                            <SmallDeleteButton onClick={() => onDeleteCustomEMIChange(c.id)} title="Delete Custom EMI Change">&#x274C;</SmallDeleteButton>
+                        </EventItem>
+                    ))}
+                    {/* Add Event Buttons */}
+                    <div style={{marginTop: '5px'}}> {/* Add some space */}
+                        <ActionButton onClick={() => handleAddPrepayment(entry)} title={`Log a prepayment for ${entryDate.toLocaleDateString()}`}>Prepay</ActionButton>
+                        <ActionButton onClick={() => handleSetROI(entry)} title={`Log an ROI change effective ${entryDate.toLocaleDateString()}`}>Set ROI</ActionButton>
+                        <ActionButton onClick={() => handleSetEMI(entry)} title={`Log a custom EMI effective ${entryDate.toLocaleDateString()}`}>Set EMI</ActionButton>
+                    </div>
                 </td>
               </tr>
             );

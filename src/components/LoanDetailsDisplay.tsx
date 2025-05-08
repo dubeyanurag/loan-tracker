@@ -328,7 +328,15 @@ const EditDetailsButton = styled(DeleteButton)`
        {/* Render remaining tools/summaries (Full Width) */}
        <LoanSummaries schedule={amortizationSchedule} loanDetails={details} /> 
        <LoanChart schedule={amortizationSchedule} loan={loan} /> 
-       <AmortizationTable schedule={amortizationSchedule} loan={loan} /> 
+       <AmortizationTable 
+            schedule={amortizationSchedule} 
+            loan={loan} 
+            // Pass down delete handlers
+            onDeleteDisbursement={handleDeleteDisbursement}
+            onDeletePayment={handleDeletePayment}
+            onDeleteROIChange={handleDeleteROIChange}
+            onDeleteCustomEMIChange={handleDeleteCustomEMIChange}
+       /> 
 
         {/* Edit Modal */}
         {isEditing && (
