@@ -1,5 +1,5 @@
 // src/utils/loanCalculations.ts
-import { LoanDetails, Disbursement } from '../types'; // Import necessary types
+import { Disbursement } from '../types'; // Removed unused LoanDetails import
 
 /**
  * Calculates the total disbursed principal amount from an array of disbursements.

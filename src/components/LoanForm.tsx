@@ -123,7 +123,7 @@ const LoanForm: React.FC = () => {
       id: uuidv4(),
       name,
       details: loanDetails,
-      preEMIInterestPayments: [],
+      // preEMIInterestPayments: [], // Removed
       paymentHistory: [],
       interestRateChanges: [],
       customEMIChanges: [],
