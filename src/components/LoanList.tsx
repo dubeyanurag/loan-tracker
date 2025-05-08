@@ -1,10 +1,10 @@
 // src/components/LoanList.tsx
-import React from 'react';
+import React, { useMemo } from 'react'; // Import useMemo
 import { useAppState, useAppDispatch } from '../contexts/AppContext';
-import { Loan } from '../types'; // Removed unused AmortizationEntry
-import styled, { css } from 'styled-components'; // Import css
+import { Loan } from '../types'; 
+import styled, { css } from 'styled-components'; 
 import { calculateTotalDisbursed } from '../utils/loanCalculations'; 
-import { generateAmortizationSchedule } from '../utils/amortizationCalculator'; // Import schedule generator
+import { generateAmortizationSchedule, generateSummaryToDate } from '../utils/amortizationCalculator'; // Import summary generator
 
 const ListContainer = styled.div`
   margin-bottom: 20px;
@@ -85,17 +85,18 @@ const LoanList: React.FC = () => {
     <ListContainer>
       <h3>Your Loans</h3>
       {loans.map((loan: Loan) => {
-        // Calculate status (this runs amortization on every render - potential performance issue)
-        const schedule = generateAmortizationSchedule(loan);
-        const lastEntry = schedule[schedule.length - 1];
-        const isClosed = lastEntry ? lastEntry.closingBalance <= 0.01 : false;
+        // Calculate status based on summary to date
+        // Note: This still recalculates schedule/summary for every loan on list render
+        const schedule = useMemo(() => generateAmortizationSchedule(loan), [loan]);
+        const summaryToDate = useMemo(() => generateSummaryToDate(schedule, loan.details, 3), [schedule, loan.details]); // Assume April FY start
+        const isClosed = summaryToDate ? summaryToDate.currentOutstandingBalance <= 0.01 : false;
 
         return (
           <LoanItem
             key={loan.id}
-            onClick={() => !isClosed && handleSelectLoan(loan.id)} // Prevent selecting closed loans? Or allow viewing? Allow viewing for now.
+            onClick={() => handleSelectLoan(loan.id)} // Allow selecting closed loans
             $isSelected={loan.id === selectedLoanId} 
-            $isClosed={isClosed} // Pass closed status
+            $isClosed={isClosed} 
           >
             <span>
                 {loan.name} 
