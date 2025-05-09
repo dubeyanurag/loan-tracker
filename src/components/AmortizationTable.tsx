@@ -135,11 +135,15 @@ const AmortizationTable: React.FC<AmortizationTableProps> = ({
 
 
   const handleAddPrepayment = (entry: AmortizationEntry) => {
-    const amountStr = window.prompt(`Enter prepayment amount for ${new Date(entry.paymentDate).toLocaleDateString()}:`);
+    const entryDateISO = entry.paymentDate; // Default to row's payment date
+    const amountStr = window.prompt(`Enter prepayment amount (for ${new Date(entryDateISO).toLocaleDateString()} or specify date below):`);
     if (amountStr) {
       const amount = parseFloat(amountStr);
       if (!isNaN(amount) && amount > 0) {
-        const preferencePrompt = window.prompt(`Prepayment of ₹${amount.toLocaleString()}. Choose effect:\n1: Reduce Tenure (Keep EMI Same - default)\n2: Reduce EMI (Keep Original Tenure)`, "1");
+        const effectiveDateStr = window.prompt(`Enter effective date for this prepayment (YYYY-MM-DD), or leave for ${new Date(entryDateISO).toLocaleDateString()}:`, entryDateISO);
+        const paymentDate = effectiveDateStr || entryDateISO;
+
+        const preferencePrompt = window.prompt(`Prepayment of ₹${amount.toLocaleString()} on ${new Date(paymentDate).toLocaleDateString()}. Choose effect:\n1: Reduce Tenure (Keep EMI Same - default)\n2: Reduce EMI (Keep Original Tenure)`, "1");
         let adjustmentPreference: 'adjustTenure' | 'adjustEMI' = 'adjustTenure';
         if (preferencePrompt === '2') {
             adjustmentPreference = 'adjustEMI';
@@ -153,7 +157,7 @@ const AmortizationTable: React.FC<AmortizationTableProps> = ({
             loanId: loan.id,
             payment: {
               id: '', 
-              date: entry.paymentDate,
+              date: paymentDate, // Use potentially overridden date
               amount: amount,
               type: 'Prepayment',
               principalPaid: amount, 
@@ -172,11 +176,15 @@ const AmortizationTable: React.FC<AmortizationTableProps> = ({
   };
 
   const handleSetROI = (entry: AmortizationEntry) => {
-    const rateStr = window.prompt(`Enter new Annual ROI (%) effective ${new Date(entry.paymentDate).toLocaleDateString()}:`);
+    const entryDateISO = entry.paymentDate;
+    const rateStr = window.prompt(`Current date context: ${new Date(entryDateISO).toLocaleDateString()}. Enter new Annual ROI (%):`);
     if (rateStr) {
       const newRate = parseFloat(rateStr);
       if (!isNaN(newRate) && newRate >= 0) { 
-        const preferencePrompt = window.prompt(`New ROI is ${newRate}%. Choose effect:\n1: Reduce Tenure (Keep EMI Same)\n2: Reduce EMI (Keep Tenure Same)`, "1");
+        const effectiveDateStr = window.prompt(`Enter effective date for ROI ${newRate}% (YYYY-MM-DD):`, entryDateISO);
+        const changeDate = effectiveDateStr || entryDateISO;
+
+        const preferencePrompt = window.prompt(`New ROI is ${newRate}% from ${new Date(changeDate).toLocaleDateString()}. Choose effect:\n1: Reduce Tenure (Keep EMI Same)\n2: Reduce EMI (Keep Tenure Same)`, "1");
         let adjustmentPreference: 'adjustTenure' | 'adjustEMI' = 'adjustTenure'; 
         if (preferencePrompt === '2') {
             adjustmentPreference = 'adjustEMI';
@@ -190,7 +198,7 @@ const AmortizationTable: React.FC<AmortizationTableProps> = ({
             loanId: loan.id,
             change: {
               id: '', 
-              date: entry.paymentDate,
+              date: changeDate, // Use potentially overridden date
               newRate: newRate,
               adjustmentPreference: adjustmentPreference, 
             }
@@ -204,17 +212,21 @@ const AmortizationTable: React.FC<AmortizationTableProps> = ({
   };
 
   const handleSetEMI = (entry: AmortizationEntry) => {
-     const emiStr = window.prompt(`Enter new Custom EMI effective ${new Date(entry.paymentDate).toLocaleDateString()}:`);
+     const entryDateISO = entry.paymentDate;
+     const emiStr = window.prompt(`Current date context: ${new Date(entryDateISO).toLocaleDateString()}. Enter new Custom EMI:`);
      if (emiStr) {
        const newEMI = parseFloat(emiStr);
        if (!isNaN(newEMI) && newEMI > 0) {
+         const effectiveDateStr = window.prompt(`Enter effective date for new EMI ₹${newEMI.toLocaleString()} (YYYY-MM-DD):`, entryDateISO);
+         const changeDate = effectiveDateStr || entryDateISO;
+
          dispatch({
            type: 'ADD_CUSTOM_EMI_CHANGE',
            payload: {
              loanId: loan.id,
              change: {
                id: '', 
-               date: entry.paymentDate,
+               date: changeDate, // Use potentially overridden date
                newEMI: newEMI,
              }
            }
