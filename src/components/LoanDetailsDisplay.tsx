@@ -2,7 +2,7 @@
 import React, { useMemo, useCallback, useState } from 'react'; 
 import styled from 'styled-components';
 import { Loan, AmortizationEntry } from '../types'; 
-import { calculateTotalDisbursed } from '../utils/loanCalculations'; // Removed calculateTotalInterestAndPayment
+import { calculateTotalDisbursed } from '../utils/loanCalculations';
 import { generateAmortizationSchedule } from '../utils/amortizationCalculator'; 
 import AddDisbursementForm from './AddDisbursementForm'; 
 import AmortizationTable from './AmortizationTable';
@@ -132,38 +132,35 @@ const EditDetailsButton = styled(DeleteButton)`
 }
 
  const LoanDetailsDisplay: React.FC<LoanDetailsDisplayProps> = ({ loan }) => {
+   // Defensive check for loan and loan.details
+   if (!loan || !loan.details) {
+     return <p style={{ textAlign: 'center', color: '#777', marginTop: '30px' }}>Loan data is not available or incomplete.</p>;
+   }
    const { details } = loan; 
    const dispatch = useAppDispatch(); 
    const [isEditing, setIsEditing] = useState(false); 
 
    const totalDisbursed = useMemo(() => calculateTotalDisbursed(details.disbursements), [details.disbursements]);
 
-   // Removed initialEMI calculation
-   // Removed summary calculation (Initial Total Interest/Payment)
-
   const amortizationSchedule: AmortizationEntry[] = useMemo(() => {
      return generateAmortizationSchedule(loan);
    }, [loan]); 
 
-   // --- Calculate Current Rate and EMI ---
    const currentValues = useMemo(() => {
        let effectiveRate = details.originalInterestRate;
-       let effectiveEMI: number | string = 'N/A'; // Default to N/A
+       let effectiveEMI: number | string = 'N/A'; 
 
        if (amortizationSchedule.length > 0) {
            const lastEntry = amortizationSchedule[amortizationSchedule.length - 1];
            
-           // Find last applicable rate change
            const lastRoiChange = [...(loan.interestRateChanges || [])]
                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
                .find(change => new Date(change.date) <= new Date(lastEntry.paymentDate));
            if(lastRoiChange) effectiveRate = lastRoiChange.newRate;
 
-           // Find current month's entry to get current EMI
            const now = new Date();
            const currentYear = now.getFullYear();
            const currentMonth = now.getMonth();
-           // Use amortizationSchedule and add type for entry
            const currentMonthEntry = amortizationSchedule.find((entry: AmortizationEntry) => { 
                const entryDate = new Date(entry.paymentDate);
                return entryDate.getFullYear() === currentYear && entryDate.getMonth() === currentMonth;
@@ -172,18 +169,15 @@ const EditDetailsButton = styled(DeleteButton)`
            if (currentMonthEntry && currentMonthEntry.openingBalance > 0) {
                effectiveEMI = currentMonthEntry.emi;
            } else if (lastEntry.closingBalance <= 0.01) {
-               effectiveEMI = 0; // Loan closed
+               effectiveEMI = 0; 
            }
-           // If current month entry not found but loan not closed, EMI remains 'N/A' or could use last known EMI
-           // Let's stick with 'N/A' if current month isn't in schedule yet
        }
        
        return {
            currentRate: effectiveRate,
            currentEMI: effectiveEMI,
        };
-   }, [amortizationSchedule, details, loan.interestRateChanges, loan.customEMIChanges]); // Removed initialEMI dependency
-   // --- End Calculate Current Values ---
+   }, [amortizationSchedule, details, loan.interestRateChanges, loan.customEMIChanges]); 
    
     const createDeleteHandler = useCallback((eventType: 'Disbursement' | 'Payment' | 'ROI Change' | 'EMI Change') => (eventId: string) => {
         if (!window.confirm(`Are you sure you want to delete this ${eventType} event? This will recalculate the schedule.`)) {
@@ -220,16 +214,14 @@ const EditDetailsButton = styled(DeleteButton)`
     
    return (
     <DetailsLayoutContainer> 
-       {/* Initial Summary Section (Full Width) */}
        <div> 
             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
                 <h3>Loan Summary</h3> 
                 <EditDetailsButton onClick={() => setIsEditing(true)}>Edit Details</EditDetailsButton>
             </div>
-            {/* Group Original Terms */}
             <DetailItem><strong>Total Disbursed:</strong> ₹{totalDisbursed.toLocaleString()}</DetailItem> 
             <DetailItem><strong>Original Rate:</strong> {details.originalInterestRate}%</DetailItem>
-            <DetailItem><strong>Original Tenure:</strong> {(details.originalTenureMonths / 12).toFixed(1)} years ({details.originalTenureMonths} months)</DetailItem> {/* Rounded years */}
+            <DetailItem><strong>Original Tenure:</strong> {(details.originalTenureMonths / 12).toFixed(1)} years ({details.originalTenureMonths} months)</DetailItem> 
             <DetailItem><strong>Loan Start Date:</strong> {new Date(details.startDate).toLocaleDateString()}</DetailItem>
             {details.startedWithPreEMI && details.emiStartDate && 
                 <DetailItem><strong>Full EMI Start Date:</strong> {new Date(details.emiStartDate).toLocaleDateString()}</DetailItem>
@@ -242,14 +234,11 @@ const EditDetailsButton = styled(DeleteButton)`
                     {details.isTaxDeductible && ` (P Limit: ₹${(details.principalDeductionLimit ?? 150000).toLocaleString()}, I Limit: ₹${(details.interestDeductionLimit ?? 200000).toLocaleString()})`}
                  </DetailItem>
              )}
-            {/* Separator */}
             <hr style={{ margin: '15px 0', borderColor: '#eee' }} /> 
-            {/* Group Current Status */}
             <DetailItem><strong>Current Rate (Est):</strong> {currentValues.currentRate}%</DetailItem>
             <DetailItem><strong>Current EMI (Est):</strong> {typeof currentValues.currentEMI === 'number' ? `₹${currentValues.currentEMI.toLocaleString()}` : currentValues.currentEMI}</DetailItem>
        </div>
 
-        {/* Row for Disbursements List and Add Form */}
        <DisbursementRow>
             <DisbursementListContainer>
                 {details.disbursements.length > 0 && ( 
@@ -271,7 +260,6 @@ const EditDetailsButton = styled(DeleteButton)`
             </AddDisbursementFormContainer>
        </DisbursementRow>
 
-        {/* Other History Lists (Full Width) */}
        {loan.paymentHistory.length > 0 && (
          <div> 
            <HistoryHeading>Payment History (EMIs & Prepayments)</HistoryHeading>
@@ -325,20 +313,17 @@ const EditDetailsButton = styled(DeleteButton)`
          </div>
        )}
        
-       {/* Render remaining tools/summaries (Full Width) */}
        <LoanSummaries schedule={amortizationSchedule} loanDetails={details} /> 
        <LoanChart schedule={amortizationSchedule} loan={loan} /> 
        <AmortizationTable 
             schedule={amortizationSchedule} 
             loan={loan} 
-            // Pass down delete handlers
             onDeleteDisbursement={handleDeleteDisbursement}
             onDeletePayment={handleDeletePayment}
             onDeleteROIChange={handleDeleteROIChange}
             onDeleteCustomEMIChange={handleDeleteCustomEMIChange}
        /> 
 
-        {/* Edit Modal */}
         {isEditing && (
             <ModalOverlay onClick={() => setIsEditing(false)}> 
                  <ModalContent onClick={e => e.stopPropagation()}> 
