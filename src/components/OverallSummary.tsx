@@ -35,6 +35,8 @@ const SummaryItem = styled.div`
 const OverallSummary: React.FC = () => {
   const { loans } = useAppState();
 
+  const hasAnyPreEMILoan = useMemo(() => loans.some(loan => loan.details.startedWithPreEMI), [loans]);
+
   const overallData = useMemo(() => {
     let totalOutstanding = 0;
     let totalCurrentEMI = 0;
@@ -102,7 +104,7 @@ const OverallSummary: React.FC = () => {
         <SummaryItem><strong>Total Outstanding:</strong> ₹{overallData.totalOutstanding.toLocaleString()}</SummaryItem>
         <SummaryItem><strong>Total Current Monthly EMI:</strong> ₹{overallData.totalCurrentEMI.toLocaleString()}</SummaryItem>
         <SummaryItem><strong>Total Principal Paid (To Date):</strong> ₹{overallData.totalPrincipalPaid.toLocaleString()}</SummaryItem>
-        <SummaryItem><strong>Total Pre-EMI Interest Paid (To Date):</strong> ₹{overallData.totalPreEMIInterestPaid.toLocaleString()}</SummaryItem>
+        {hasAnyPreEMILoan && <SummaryItem><strong>Total Pre-EMI Interest Paid (To Date):</strong> ₹{overallData.totalPreEMIInterestPaid.toLocaleString()}</SummaryItem>}
         <SummaryItem><strong>Total Regular Interest Paid (To Date):</strong> ₹{overallData.totalRegularInterestPaid.toLocaleString()}</SummaryItem>
         <SummaryItem title="Sum of max deductible principal claimed across all loans up to current date (based on annual limits)">
             <strong>Total Deductible Principal (To Date):</strong> ₹{overallData.totalDeductiblePrincipal.toLocaleString()}

@@ -223,7 +223,10 @@ const AmortizationTable: React.FC<AmortizationTableProps> = ({
 
   return (
     <div style={{marginTop: '20px'}}> 
-      <h4>Full Amortization Schedule <em style={{fontSize: '0.8em', fontWeight: 'normal'}}> (* Pre-EMI Interest)</em></h4>
+      <h4>
+        Full Amortization Schedule 
+        {loan.details.startedWithPreEMI && <em style={{fontSize: '0.8em', fontWeight: 'normal', marginLeft: '5px'}}> (* Pre-EMI Interest)</em>}
+      </h4>
       <TableContainer ref={tableContainerRef}> 
         <StyledTable>
           <thead>

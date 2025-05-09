@@ -147,7 +147,7 @@ const LoanSummaries: React.FC<LoanSummariesProps> = ({ schedule, loanDetails }) 
                 <tr>
                   <th>Financial Year</th>
                   <th>Principal Paid</th>
-                  <th>Pre-EMI Interest</th>
+                  {loanDetails.startedWithPreEMI && <th>Pre-EMI Interest</th>}
                   <th>Regular Interest</th>
                   <th>Total Payment</th>
                   {loanDetails.isTaxDeductible && ( 
@@ -169,7 +169,7 @@ const LoanSummaries: React.FC<LoanSummariesProps> = ({ schedule, loanDetails }) 
                     > 
                       <td>{summary.yearLabel}</td> 
                       <td>{summary.totalPrincipalPaid.toLocaleString()}</td>
-                      <td>{summary.totalPreEMIInterestPaid.toLocaleString()}</td>
+                      {loanDetails.startedWithPreEMI && <td>{summary.totalPreEMIInterestPaid.toLocaleString()}</td>}
                       <td>{summary.totalInterestPaid.toLocaleString()}</td>
                       <td>{summary.totalPayment.toLocaleString()}</td>
                       {loanDetails.isTaxDeductible && ( 
@@ -196,7 +196,7 @@ const LoanSummaries: React.FC<LoanSummariesProps> = ({ schedule, loanDetails }) 
               <div>
                 <p><strong>Actual Tenure:</strong> {lifespanSummary.actualTenureMonths} months ({ (lifespanSummary.actualTenureMonths / 12).toFixed(1) } years)</p>
                 <p><strong>Total Principal Paid:</strong> ₹{lifespanSummary.totalPrincipalPaid.toLocaleString()}</p>
-                <p><strong>Total Pre-EMI Interest Paid:</strong> ₹{lifespanSummary.totalPreEMIInterestPaid.toLocaleString()}</p>
+                {loanDetails.startedWithPreEMI && <p><strong>Total Pre-EMI Interest Paid:</strong> ₹{lifespanSummary.totalPreEMIInterestPaid.toLocaleString()}</p>}
                 <p><strong>Total Regular Interest Paid:</strong> ₹{lifespanSummary.totalInterestPaid.toLocaleString()}</p>
                 <p><strong>Total Amount Paid:</strong> ₹{lifespanSummary.totalPayment.toLocaleString()}</p>
                 {loanDetails.isTaxDeductible && (
@@ -218,7 +218,7 @@ const LoanSummaries: React.FC<LoanSummariesProps> = ({ schedule, loanDetails }) 
                  <p><strong>Months Elapsed:</strong> {summaryToDate.monthsElapsed}</p>
                  <p><strong>Outstanding Balance:</strong> ₹{summaryToDate.currentOutstandingBalance.toLocaleString()}</p>
                  <p><strong>Total Principal Paid (To Date):</strong> ₹{summaryToDate.uncappedTotalPrincipalPaid.toLocaleString()}</p> 
-                 <p><strong>Total Pre-EMI Interest Paid (To Date):</strong> ₹{summaryToDate.totalPreEMIInterestPaid.toLocaleString()}</p>
+                 {loanDetails.startedWithPreEMI && <p><strong>Total Pre-EMI Interest Paid (To Date):</strong> ₹{summaryToDate.totalPreEMIInterestPaid.toLocaleString()}</p>}
                  <p><strong>Total Regular Interest Paid (To Date):</strong> ₹{summaryToDate.uncappedTotalInterestPaid.toLocaleString()}</p> 
                  <p><strong>Total Amount Paid (To Date):</strong> ₹{summaryToDate.totalPayment.toLocaleString()}</p>
                  {loanDetails.isTaxDeductible && (
