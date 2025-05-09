@@ -2,7 +2,6 @@
 import { Loan, AmortizationEntry, Payment, InterestRateChange, CustomEMIChange, Disbursement, CurrentSummary, AnnualSummary, LifespanSummary, LoanDetails } from '../types'; 
 import { calculateEMI } from './loanCalculations'; 
 
-// Define a union type for all possible events with a consistent structure
 type LoanEvent = 
   | (Omit<Payment, 'date'> & { eventType: 'payment'; date: Date })
   | (Omit<InterestRateChange, 'date'> & { eventType: 'roiChange'; date: Date })
@@ -32,80 +31,124 @@ export const generateAmortizationSchedule = (loan: Loan): AmortizationEntry[] =>
   let currentDate = new Date(sortedDisbursements[0].date); 
   const emiStartDate = loan.details.emiStartDate ? new Date(loan.details.emiStartDate) : currentDate; 
 
-  while (openingBalance > 0.01 && monthNumber < 600) {
+  while (openingBalance > 0.01 && monthNumber < 600) { // Max 50 years
     monthNumber++;
     const monthlyInterestRate = currentAnnualRate / 12 / 100;
-    let interestForMonth = openingBalance * monthlyInterestRate;
-    let principalPaidThisMonth = currentEMI - interestForMonth;
-    let actualPaymentMade = currentEMI; 
+    
+    // Calculate interest for the month based on the opening balance *before* any events of this month
+    let interestForMonthAccrued = openingBalance * monthlyInterestRate;
+    
+    let principalPaidThisMonth = 0;
+    let interestPaidThisMonth = 0; // Will be set based on EMI type
+    let totalCashOutflowThisMonth = 0;
+    
+    let scheduledEMIForMonth = currentEMI; // EMI that was scheduled at the start of the month
+    let isPreEmiPeriod = loan.details.startedWithPreEMI && currentDate < emiStartDate;
+
+    if (isPreEmiPeriod) {
+        scheduledEMIForMonth = interestForMonthAccrued; // In Pre-EMI, "scheduled" payment is just the interest
+        interestPaidThisMonth = interestForMonthAccrued;
+        principalPaidThisMonth = 0;
+    } else {
+        interestPaidThisMonth = Math.min(interestForMonthAccrued, scheduledEMIForMonth);
+        principalPaidThisMonth = scheduledEMIForMonth - interestPaidThisMonth;
+        if (principalPaidThisMonth < 0) principalPaidThisMonth = 0;
+    }
+    totalCashOutflowThisMonth = scheduledEMIForMonth;
+
+    // Store event details for the entry
     let disbursementsThisMonth: AmortizationEntry['disbursements'] = [];
     let prepaymentsThisMonth: AmortizationEntry['prepayments'] = [];
     let roiChangesThisMonth: AmortizationEntry['roiChanges'] = [];
     let emiChangesThisMonth: AmortizationEntry['emiChanges'] = [];
 
-    let isPreEmiPeriod = loan.details.startedWithPreEMI && currentDate < emiStartDate;
-
+    // Process events that fall within this month
     while(eventPointer < allEvents.length && allEvents[eventPointer].date <= currentDate) {
         const event = allEvents[eventPointer];
+        isPreEmiPeriod = loan.details.startedWithPreEMI && currentDate < emiStartDate; // Re-check in case EMI start date is this month
 
         if (event.eventType === 'disbursement') {
             openingBalance += event.amount; 
             cumulativeDisbursed += event.amount;
-            const remainingMonths = currentTenureMonths - monthNumber; 
-            currentEMI = calculateEMI(openingBalance, currentAnnualRate, remainingMonths > 0 ? remainingMonths : 1);
+            // Recalculate EMI if tenure/rate implies it (or keep as is if user wants fixed EMI)
+            // For simplicity, let's assume EMI recalculates based on remaining tenure for new balance
+            const remainingMonthsForEmiCalc = currentTenureMonths - monthNumber; // Or a more sophisticated remaining tenure calc
+            currentEMI = calculateEMI(openingBalance, currentAnnualRate, remainingMonthsForEmiCalc > 0 ? remainingMonthsForEmiCalc : 1);
+            scheduledEMIForMonth = currentEMI; // Update scheduled EMI for *future* months
             disbursementsThisMonth.push({ id: event.id, amount: event.amount }); 
         } else if (event.eventType === 'payment') {
-            actualPaymentMade = event.amount; 
+            // This 'payment' event is a manual log, could be EMI or Prepayment
             if (event.type === 'Prepayment') {
                 openingBalance -= event.amount; 
-                interestForMonth = openingBalance * monthlyInterestRate;
+                principalPaidThisMonth += event.amount; // Prepayment directly reduces principal
+                totalCashOutflowThisMonth += event.amount; // Add to total cash out
                 prepaymentsThisMonth.push({ id: event.id, amount: event.amount }); 
+            } else { // 'EMI' type payment logged manually - treat as the month's EMI
+                totalCashOutflowThisMonth = event.amount; // This becomes the actual payment
+                if (!isPreEmiPeriod) {
+                    interestPaidThisMonth = Math.min(interestForMonthAccrued, event.amount);
+                    principalPaidThisMonth = event.amount - interestPaidThisMonth;
+                } else {
+                    interestPaidThisMonth = event.amount; // Assume full payment is interest
+                    principalPaidThisMonth = 0;
+                }
             }
-            principalPaidThisMonth = actualPaymentMade - interestForMonth;
         } else if (event.eventType === 'roiChange') {
             currentAnnualRate = event.newRate;
-            const remainingMonths = currentTenureMonths - (monthNumber -1); 
+            const remainingMonthsForEmiCalc = currentTenureMonths - (monthNumber -1); 
             if (event.adjustmentPreference === 'adjustEMI') {
-                currentEMI = calculateEMI(openingBalance, currentAnnualRate, remainingMonths > 0 ? remainingMonths : 1); 
+                currentEMI = calculateEMI(openingBalance, currentAnnualRate, remainingMonthsForEmiCalc > 0 ? remainingMonthsForEmiCalc : 1); 
             } else if (event.adjustmentPreference === 'customEMI' && event.newEMIIfApplicable) { 
                 currentEMI = event.newEMIIfApplicable;
             }
+            // If 'adjustTenure', currentEMI remains, tenure will change implicitly by how long balance lasts
+            scheduledEMIForMonth = currentEMI; // Update for future months
             roiChangesThisMonth.push({ id: event.id, newRate: event.newRate, preference: event.adjustmentPreference }); 
         } else if (event.eventType === 'emiChange') {
             currentEMI = event.newEMI;
+            scheduledEMIForMonth = currentEMI; // Update for future months
             emiChangesThisMonth.push({ id: event.id, newEMI: event.newEMI }); 
         }
         eventPointer++;
-        isPreEmiPeriod = loan.details.startedWithPreEMI && currentDate < emiStartDate; 
+    }
+    
+    // Final adjustments for the month based on calculated values
+    if (isPreEmiPeriod && prepaymentsThisMonth.length === 0) { // If it's Pre-EMI and no prepayment, ensure principal is 0
+        principalPaidThisMonth = 0;
+        interestPaidThisMonth = interestForMonthAccrued; // Interest is the accrued amount
+        totalCashOutflowThisMonth = interestForMonthAccrued; // Payment is just the interest
     }
 
-    if (isPreEmiPeriod) {
-        principalPaidThisMonth = 0; 
-        actualPaymentMade = interestForMonth; 
-    } else {
-         principalPaidThisMonth = actualPaymentMade - interestForMonth;
-         if (principalPaidThisMonth < 0) principalPaidThisMonth = 0; 
-    }
 
+    // Ensure principal paid doesn't exceed opening balance
     if (principalPaidThisMonth > openingBalance) {
       principalPaidThisMonth = openingBalance;
-      actualPaymentMade = principalPaidThisMonth + interestForMonth; 
     }
-    if (openingBalance - principalPaidThisMonth < 0.01 && openingBalance > 0) { 
-        principalPaidThisMonth = openingBalance;
-        actualPaymentMade = principalPaidThisMonth + interestForMonth;
-        interestForMonth = actualPaymentMade - principalPaidThisMonth; 
+    
+    // If principal paid makes balance negative, adjust interest and total payment
+    // This typically happens on the last EMI
+    let closingBalance = openingBalance - principalPaidThisMonth;
+    if (closingBalance < 0 && openingBalance > 0) { 
+        principalPaidThisMonth = openingBalance; // Pay off remaining balance
+        closingBalance = 0;
+        if (!isPreEmiPeriod) { // For regular EMI, adjust interest if principal was capped
+             totalCashOutflowThisMonth = principalPaidThisMonth + interestPaidThisMonth; // Interest already calculated
+        } else { // For Pre-EMI, if a prepayment caused this, interest is still what accrued
+            totalCashOutflowThisMonth = principalPaidThisMonth + interestForMonthAccrued;
+            interestPaidThisMonth = interestForMonthAccrued;
+        }
     }
+    // Ensure interest is not negative if principal was capped
+    if (interestPaidThisMonth < 0) interestPaidThisMonth = 0;
 
-    const closingBalance = openingBalance - principalPaidThisMonth;
 
     schedule.push({
       monthNumber,
       paymentDate: currentDate.toISOString().split('T')[0], 
       openingBalance: parseFloat(openingBalance.toFixed(2)),
-      emi: parseFloat(actualPaymentMade.toFixed(2)),
+      emi: parseFloat(totalCashOutflowThisMonth.toFixed(2)), // Total cash outflow for the month
       principalPaid: parseFloat(principalPaidThisMonth.toFixed(2)),
-      interestPaid: parseFloat(interestForMonth.toFixed(2)),
+      interestPaid: parseFloat(interestPaidThisMonth.toFixed(2)),
       closingBalance: parseFloat(closingBalance.toFixed(2)),
       ...(disbursementsThisMonth.length > 0 && { disbursements: disbursementsThisMonth }),
       ...(prepaymentsThisMonth.length > 0 && { prepayments: prepaymentsThisMonth }),
@@ -113,7 +156,7 @@ export const generateAmortizationSchedule = (loan: Loan): AmortizationEntry[] =>
       ...(emiChangesThisMonth.length > 0 && { emiChanges: emiChangesThisMonth }),
     });
 
-    openingBalance = closingBalance;
+    openingBalance = closingBalance; // Update opening balance for next month
     
     currentDate.setMonth(currentDate.getMonth() + 1);
     if (openingBalance <= 0.01) break; 
@@ -242,8 +285,8 @@ export const generateSummaryToDate = (
     const currentMonth = now.getMonth(); 
 
     let monthsElapsed = 0;
-    let uncappedTotalPrincipalPaid = 0; // Renamed for clarity
-    let uncappedTotalInterestPaid = 0;  // Renamed for clarity
+    let uncappedTotalPrincipalPaid = 0; 
+    let uncappedTotalInterestPaid = 0;  
     let totalPayment = 0;
     let totalDeductiblePrincipal = 0;
     let totalDeductibleInterest = 0;
@@ -262,20 +305,18 @@ export const generateSummaryToDate = (
     if (currentMonthIndex === -1) {
          const firstEntryDate = new Date(schedule[0].paymentDate);
          if (firstEntryDate > now) {
-             // Return initial state including uncapped totals
              return {
                  monthsElapsed: 0, 
-                 totalPrincipalPaid: 0, // This represents the capped value for this specific function's context
-                 totalInterestPaid: 0,  // This represents the capped value for this specific function's context
+                 totalPrincipalPaid: 0, 
+                 totalInterestPaid: 0,  
                  totalPayment: 0,
                  totalDeductiblePrincipal: 0, 
                  totalDeductibleInterest: 0, 
                  currentOutstandingBalance: schedule[0].openingBalance,
-                 uncappedTotalPrincipalPaid: 0, // Add uncapped
-                 uncappedTotalInterestPaid: 0   // Add uncapped
+                 uncappedTotalPrincipalPaid: 0, 
+                 uncappedTotalInterestPaid: 0   
              };
          }
-         // If current date is past the schedule end, use the last month's values
          currentMonthIndex = schedule.length - 1;
          currentOutstandingBalance = schedule[currentMonthIndex].closingBalance;
     }
@@ -284,32 +325,27 @@ export const generateSummaryToDate = (
 
     const currentScheduleSlice = schedule.slice(0, monthsElapsed);
     currentScheduleSlice.forEach(entry => {
-        uncappedTotalPrincipalPaid += entry.principalPaid; // Sum uncapped values
-        uncappedTotalInterestPaid += entry.interestPaid;   // Sum uncapped values
+        uncappedTotalPrincipalPaid += entry.principalPaid; 
+        uncappedTotalInterestPaid += entry.interestPaid;   
         totalPayment += entry.emi;
     });
 
     if (isEligible) {
-        // Calculate annual summaries just for the slice up to the current date
         const annualSummariesToDate = generateAnnualSummaries(currentScheduleSlice, loanDetails, fyStartMonth); 
         annualSummariesToDate.forEach(annual => {
-            // Sum the already capped values from annual summaries for the *cumulative* deductible total
             totalDeductiblePrincipal += annual.deductiblePrincipal; 
             totalDeductibleInterest += annual.deductibleInterest;
         });
     }
 
-    // Return the full CurrentSummary object
     return {
         monthsElapsed,
-        // Note: totalPrincipalPaid/totalInterestPaid in the return type *semantically* mean the uncapped totals here
         totalPrincipalPaid: parseFloat(uncappedTotalPrincipalPaid.toFixed(2)), 
         totalInterestPaid: parseFloat(uncappedTotalInterestPaid.toFixed(2)),  
         totalPayment: parseFloat(totalPayment.toFixed(2)),
-        totalDeductiblePrincipal: parseFloat(totalDeductiblePrincipal.toFixed(2)), // This is the cumulative capped value
-        totalDeductibleInterest: parseFloat(totalDeductibleInterest.toFixed(2)), // This is the cumulative capped value
+        totalDeductiblePrincipal: parseFloat(totalDeductiblePrincipal.toFixed(2)), 
+        totalDeductibleInterest: parseFloat(totalDeductibleInterest.toFixed(2)), 
         currentOutstandingBalance: parseFloat(currentOutstandingBalance.toFixed(2)),
-        // Explicitly add the uncapped values as required by the type
         uncappedTotalPrincipalPaid: parseFloat(uncappedTotalPrincipalPaid.toFixed(2)), 
         uncappedTotalInterestPaid: parseFloat(uncappedTotalInterestPaid.toFixed(2)),
     };
