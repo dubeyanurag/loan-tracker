@@ -1,102 +1,84 @@
 // src/types.ts
 
-// Removed PreEMIInterestPayment interface
-
 export interface Payment {
-  id: string; // Unique ID for the payment
-  date: string; // ISO date string
+  id: string; 
+  date: string; 
   amount: number;
   type: 'EMI' | 'Prepayment';
   principalPaid: number;
   interestPaid: number;
-  balanceAfterPayment: number; // Outstanding balance after this payment
+  balanceAfterPayment: number; 
   remarks?: string;
 }
 
 export interface InterestRateChange {
-  id: string; // Unique ID
-  date: string; // ISO date string
-  newRate: number; // Annual percentage
+  id: string; 
+  date: string; 
+  newRate: number; 
   adjustmentPreference?: 'adjustTenure' | 'adjustEMI' | 'customEMI';
-  newEMIIfApplicable?: number; // If user chose adjustEMI or customEMI
-  // We might also store the recalculated tenure/EMI here for record
+  newEMIIfApplicable?: number; 
 }
 
 export interface CustomEMIChange {
   id: string;
-  date: string; // ISO date string
+  date: string; 
   newEMI: number;
   remarks?: string;
 }
 
-// New interface for disbursements
 export interface Disbursement {
-  id: string; // Unique ID
-  date: string; // ISO date string
+  id: string; 
+  date: string; 
   amount: number;
   remarks?: string;
 }
 
 export interface LoanDetails {
-  // principal: number; // Removed single principal
-  disbursements: Disbursement[]; // Added array for disbursements
-  originalInterestRate: number; // Annual percentage
-  originalTenureMonths: number; // Original planned tenure for the *total* sanctioned amount
-  startDate: string; // ISO date string (Loan disbursement/agreement start)
-  startedWithPreEMI?: boolean; // Optional flag
-  emiStartDate?: string; // Optional: ISO date string when full EMIs actually started
-  isTaxDeductible?: boolean; // Is loan eligible for tax deductions?
-  principalDeductionLimit?: number; // Custom limit for Sec 80C (defaults if not set)
-  interestDeductionLimit?: number; // Custom limit for Sec 24b (defaults if not set)
+  disbursements: Disbursement[]; 
+  originalInterestRate: number; 
+  originalTenureMonths: number; 
+  startDate: string; 
+  startedWithPreEMI?: boolean; 
+  emiStartDate?: string; 
+  isTaxDeductible?: boolean; 
+  principalDeductionLimit?: number; 
+  interestDeductionLimit?: number; 
 }
 
 export interface Loan {
-  id: string; // Unique ID for the loan itself, e.g., UUID
-  name: string; // User-defined name, e.g., "My HDFC Home Loan"
+  id: string; 
+  name: string; 
   details: LoanDetails;
-  // preEMIInterestPayments: PreEMIInterestPayment[]; // Removed
   paymentHistory: Payment[];
   interestRateChanges: InterestRateChange[];
   customEMIChanges: CustomEMIChange[];
-  // Calculated/dynamic fields (not stored directly but derived for display/logic)
-  // currentOutstandingBalance?: number;
-  // currentEMI?: number;
-  // currentTenureMonths?: number;
-  // amortizationSchedule?: Payment[]; // Could be generated on demand
 }
 
-// Root state managed by Context API
 export interface AppState {
   loans: Loan[];
   selectedLoanId: string | null;
-  // Potentially global settings like currency symbol, date format preferences
-  // settings: {
-  //  currencySymbol: string;
-  // };
 }
 
-// Actions for useReducer
 export type AppAction =
   | { type: 'ADD_LOAN'; payload: Loan }
   | { type: 'SELECT_LOAN'; payload: string | null }
-  | { type: 'UPDATE_LOAN'; payload: Loan } // For any modification to a loan
-  | { type: 'DELETE_LOAN'; payload: string } // Loan ID
-  | { type: 'LOAD_STATE'; payload: AppState } // For loading from localStorage
-  // More specific actions for loan modifications can be added:
+  | { type: 'UPDATE_LOAN'; payload: Loan } 
+  | { type: 'DELETE_LOAN'; payload: string } 
+  | { type: 'LOAD_STATE'; payload: AppState } 
   | { type: 'ADD_PAYMENT'; payload: { loanId: string; payment: Payment } }
-  // | { type: 'ADD_PRE_EMI_PAYMENT'; payload: { loanId: string; payment: PreEMIInterestPayment } } // Removed
   | { type: 'ADD_INTEREST_RATE_CHANGE'; payload: { loanId: string; change: InterestRateChange } }
   | { type: 'ADD_CUSTOM_EMI_CHANGE'; payload: { loanId: string; change: CustomEMIChange } }
-  | { type: 'ADD_DISBURSEMENT'; payload: { loanId: string; disbursement: Disbursement } }; // New action type
+  | { type: 'ADD_DISBURSEMENT'; payload: { loanId: string; disbursement: Disbursement } }; 
 
 export interface AmortizationEntry {
   monthNumber: number;
-  paymentDate: string; // Could be more specific if we track exact payment dates
+  paymentDate: string; 
   openingBalance: number;
-  emi: number; // The EMI paid for this period
+  emi: number; 
   principalPaid: number;
-  interestPaid: number;
+  interestPaid: number; // This will now be REGULAR interest if not Pre-EMI
   closingBalance: number;
+  isPreEMIPeriod?: boolean; // New flag
   // Store arrays of events occurring *during* this month/period
   disbursements?: Array<{ id: string; amount: number }>;
   prepayments?: Array<{ id: string; amount: number }>;
@@ -109,31 +91,33 @@ export interface AnnualSummary {
   yearLabel: string; 
   startYear: number; 
   totalPrincipalPaid: number;
-  totalInterestPaid: number;
+  totalInterestPaid: number; // Regular EMI interest
+  totalPreEMIInterestPaid: number; // New field
   totalPayment: number;
-  deductiblePrincipal: number; // Max 1.5L (Sec 80C)
-  deductibleInterest: number; // Max 2L (Sec 24b)
+  deductiblePrincipal: number; 
+  deductibleInterest: number; // Combined deductible interest
 }
 
 export interface LifespanSummary {
   totalPrincipalPaid: number;
-  totalInterestPaid: number;
+  totalInterestPaid: number; // Regular EMI interest
+  totalPreEMIInterestPaid: number; // New field
   totalPayment: number;
   actualTenureMonths: number;
   totalDeductiblePrincipal: number;
-  totalDeductibleInterest: number;
+  totalDeductibleInterest: number; // Combined deductible interest
 }
 
-// Interface for the "Summary To Date"
 export interface CurrentSummary {
   monthsElapsed: number;
-  totalPrincipalPaid: number;
-  totalInterestPaid: number;
+  totalPrincipalPaid: number; // Uncapped regular principal paid to date
+  totalInterestPaid: number; // Uncapped regular interest paid to date
+  totalPreEMIInterestPaid: number; // New: Uncapped Pre-EMI interest paid to date
   totalPayment: number;
-  totalDeductiblePrincipal: number;
-  totalDeductibleInterest: number;
+  totalDeductiblePrincipal: number; // Cumulative capped principal
+  totalDeductibleInterest: number; // Cumulative capped combined interest
   currentOutstandingBalance: number;
-  // Add uncapped totals for overall summary
   uncappedTotalPrincipalPaid: number; 
-  uncappedTotalInterestPaid: number;
+  uncappedTotalInterestPaid: number; // This will become uncapped REGULAR interest
+  // uncappedTotalPreEMIInterestPaid: number; // Already added above as totalPreEMIInterestPaid
 }

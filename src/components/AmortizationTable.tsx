@@ -5,7 +5,7 @@ import { AmortizationEntry, Loan } from '../types';
 import { useAppDispatch } from '../contexts/AppContext'; 
 
 const TableContainer = styled.div`
-  margin-top: 10px; /* Reduced margin */
+  margin-top: 10px; 
   max-height: 500px; 
   overflow-y: auto;
   border: 1px solid #ddd;
@@ -18,9 +18,9 @@ const StyledTable = styled.table`
 
   th, td {
     border: 1px solid #ddd;
-    padding: 6px 8px; /* Slightly reduced padding */
+    padding: 6px 8px; 
     text-align: right;
-    vertical-align: top; /* Align content top */
+    vertical-align: top; 
   }
 
   th {
@@ -28,7 +28,7 @@ const StyledTable = styled.table`
     position: sticky;
     top: 0;
     z-index: 1;
-    white-space: nowrap; /* Prevent header wrapping */
+    white-space: nowrap; 
   }
 
   td:nth-child(1), td:nth-child(2) { 
@@ -36,23 +36,31 @@ const StyledTable = styled.table`
     white-space: nowrap;
   }
   
-  /* Row highlighting styles */
   tr.highlight-prepayment { background-color: #e6ffed; }
   tr.highlight-roi { background-color: #fff3cd; }
   tr.highlight-emi { background-color: #f3e7ff; }
   tr.highlight-disbursement { background-color: #d1ecf1; }
+  
+  tr.pre-emi-period { 
+    color: #555; /* Dimmer text for pre-emi */
+    /* font-style: italic; */ /* Optional */
+  }
+  tr.pre-emi-period td.interest-cell::before { /* Target specific cell */
+    content: "* "; 
+    color: #555;
+  }
+
   tr.highlight-current-month td { 
       border-top: 2px solid red; 
       border-bottom: 2px solid red;
    } 
 `;
 
-// Style for action buttons
 const ActionButton = styled.button`
   padding: 3px 6px;
   font-size: 0.8em;
   margin-right: 4px;
-  margin-bottom: 4px; /* Add bottom margin */
+  margin-bottom: 4px; 
   cursor: pointer;
   border-radius: 3px;
   border: 1px solid #ccc;
@@ -67,32 +75,30 @@ const ActionButton = styled.button`
   }
 `;
 
-// Small delete button for events
 const SmallDeleteButton = styled.button`
     background: none;
     border: none;
-    color: #dc3545; /* Red */
+    color: #dc3545; 
     cursor: pointer;
-    font-size: 1em; /* Adjust size relative to surrounding text */
-    padding: 0 0 0 5px; /* Add padding to left */
-    vertical-align: middle; /* Align with text */
-    line-height: 1; /* Prevent extra spacing */
+    font-size: 1em; 
+    padding: 0 0 0 5px; 
+    vertical-align: middle; 
+    line-height: 1; 
      &:hover {
-        color: #a71d2a; /* Darker red */
+        color: #a71d2a; 
      }
 `;
 
 const EventItem = styled.div`
     font-size: 0.85em;
     margin-bottom: 3px;
-    white-space: nowrap; /* Prevent wrapping */
+    white-space: nowrap; 
 `;
 
 
 interface AmortizationTableProps {
   schedule: AmortizationEntry[];
   loan: Loan; 
-  // Add delete handler props
   onDeleteDisbursement: (eventId: string) => void;
   onDeletePayment: (eventId: string) => void;
   onDeleteROIChange: (eventId: string) => void;
@@ -123,12 +129,11 @@ const AmortizationTable: React.FC<AmortizationTableProps> = ({
         const rowHeight = currentRowRef.current.clientHeight;
         const scrollTo = rowTop - (containerHeight / 2) + (rowHeight / 2);
         
-        tableContainerRef.current.scrollTo({ top: Math.max(0, scrollTo), behavior: 'smooth' }); // Ensure scroll is not negative
+        tableContainerRef.current.scrollTo({ top: Math.max(0, scrollTo), behavior: 'smooth' }); 
     }
   }, [schedule]); 
 
 
-  // --- Action Handlers ---
   const handleAddPrepayment = (entry: AmortizationEntry) => {
     const amountStr = window.prompt(`Enter prepayment amount for ${new Date(entry.paymentDate).toLocaleDateString()}:`);
     if (amountStr) {
@@ -211,7 +216,6 @@ const AmortizationTable: React.FC<AmortizationTableProps> = ({
        }
      }
   };
-  // --- End Action Handlers ---
 
   if (!schedule || schedule.length === 0) {
     return <p>Amortization schedule not available or loan fully paid.</p>;
@@ -219,7 +223,7 @@ const AmortizationTable: React.FC<AmortizationTableProps> = ({
 
   return (
     <div style={{marginTop: '20px'}}> 
-      <h4>Full Amortization Schedule</h4>
+      <h4>Full Amortization Schedule <em style={{fontSize: '0.8em', fontWeight: 'normal'}}> (* Pre-EMI Interest)</em></h4>
       <TableContainer ref={tableContainerRef}> 
         <StyledTable>
           <thead>
@@ -231,7 +235,7 @@ const AmortizationTable: React.FC<AmortizationTableProps> = ({
             <th>Principal</th>
             <th>Interest</th>
             <th>Closing Balance</th>
-            <th>Events / Actions</th> {/* Added Column */}
+            <th>Events / Actions</th> 
           </tr>
         </thead>
         <tbody ref={tableBodyRef}> 
@@ -245,7 +249,11 @@ const AmortizationTable: React.FC<AmortizationTableProps> = ({
             if (entry.emiChanges) highlightClass = 'highlight-emi'; 
 
             const isCurrentMonth = entryDate.getFullYear() === currentYear && entryDate.getMonth() === currentMonth;
-            const rowClass = `${highlightClass} ${isCurrentMonth ? 'highlight-current-month' : ''}`.trim();
+            let rowClass = `${highlightClass} ${isCurrentMonth ? 'highlight-current-month' : ''}`.trim();
+            if (entry.isPreEMIPeriod) {
+                rowClass = `${rowClass} pre-emi-period`.trim();
+            }
+
 
             return (
               <tr 
@@ -258,10 +266,9 @@ const AmortizationTable: React.FC<AmortizationTableProps> = ({
                 <td>{entry.openingBalance.toLocaleString()}</td>
                 <td>{entry.emi.toLocaleString()}</td>
                 <td>{entry.principalPaid.toLocaleString()}</td>
-                <td>{entry.interestPaid.toLocaleString()}</td>
+                <td className={entry.isPreEMIPeriod ? "interest-cell" : ""}>{entry.interestPaid.toLocaleString()}</td>
                 <td>{entry.closingBalance.toLocaleString()}</td>
-                <td> {/* Events / Actions Cell */}
-                    {/* Display Events with Delete Buttons */}
+                <td> 
                     {entry.disbursements?.map(d => (
                         <EventItem key={d.id}>
                             Disburse: ₹{d.amount.toLocaleString()}
@@ -286,8 +293,7 @@ const AmortizationTable: React.FC<AmortizationTableProps> = ({
                             <SmallDeleteButton onClick={() => onDeleteCustomEMIChange(c.id)} title="Delete Custom EMI Change">&#x274C;</SmallDeleteButton>
                         </EventItem>
                     ))}
-                    {/* Add Event Buttons */}
-                    <div style={{marginTop: '5px'}}> {/* Add some space */}
+                    <div style={{marginTop: '5px'}}> 
                         <ActionButton onClick={() => handleAddPrepayment(entry)} title={`Log a prepayment for ${entryDate.toLocaleDateString()}`}>Prepay</ActionButton>
                         <ActionButton onClick={() => handleSetROI(entry)} title={`Log an ROI change effective ${entryDate.toLocaleDateString()}`}>Set ROI</ActionButton>
                         <ActionButton onClick={() => handleSetEMI(entry)} title={`Log a custom EMI effective ${entryDate.toLocaleDateString()}`}>Set EMI</ActionButton>

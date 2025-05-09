@@ -3,14 +3,13 @@ import React, { useMemo } from 'react';
 import styled from 'styled-components';
 import { useAppState } from '../contexts/AppContext';
 import { generateAmortizationSchedule, generateSummaryToDate } from '../utils/amortizationCalculator'; 
-// import { Loan } from '../types'; // Removed unused Loan import
 
 const SummaryContainer = styled.div`
   padding: 20px;
   margin-bottom: 20px;
-  border: 1px solid #007bff; /* Blue border */
+  border: 1px solid #007bff; 
   border-radius: 8px;
-  background-color: #e7f3ff; /* Light blue background */
+  background-color: #e7f3ff; 
 `;
 
 const Title = styled.h3`
@@ -22,7 +21,7 @@ const Title = styled.h3`
 
 const SummaryGrid = styled.div`
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); /* Responsive columns */
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); /* Adjusted minmax for more items */
     gap: 15px;
 `;
 
@@ -33,8 +32,6 @@ const SummaryItem = styled.div`
     }
 `;
 
-// Removed calculateCurrentValues helper function
-
 const OverallSummary: React.FC = () => {
   const { loans } = useAppState();
 
@@ -42,33 +39,31 @@ const OverallSummary: React.FC = () => {
     let totalOutstanding = 0;
     let totalCurrentEMI = 0;
     let totalPrincipalPaid = 0;
-    let totalInterestPaid = 0;
-    let totalDeductiblePrincipal = 0; // Restore calculation
-    let totalDeductibleInterest = 0; // Restore calculation
+    let totalRegularInterestPaid = 0; // Renamed
+    let totalPreEMIInterestPaid = 0;  // New
+    let cumulativeDeductiblePrincipal = 0; 
+    let cumulativeDeductibleInterest = 0; 
 
     const now = new Date();
     const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth(); // 0-indexed
+    const currentMonth = now.getMonth(); 
 
     loans.forEach(loan => {
         const schedule = generateAmortizationSchedule(loan);
         if (schedule.length === 0) return; 
 
-        // Assume default FY start for this overall summary (April)
         const summaryToDate = generateSummaryToDate(schedule, loan.details, 3); 
         
         if(summaryToDate) {
             totalOutstanding += summaryToDate.currentOutstandingBalance;
-            // Use the new uncapped fields
             totalPrincipalPaid += summaryToDate.uncappedTotalPrincipalPaid; 
-            totalInterestPaid += summaryToDate.uncappedTotalInterestPaid; 
-            // Restore summing of capped values for display
-            totalDeductiblePrincipal += summaryToDate.totalDeductiblePrincipal; 
-            totalDeductibleInterest += summaryToDate.totalDeductibleInterest; 
+            totalRegularInterestPaid += summaryToDate.uncappedTotalInterestPaid; // This is now regular interest
+            totalPreEMIInterestPaid += summaryToDate.totalPreEMIInterestPaid; // Sum new field
+            
+            cumulativeDeductiblePrincipal += summaryToDate.totalDeductiblePrincipal; 
+            cumulativeDeductibleInterest += summaryToDate.totalDeductibleInterest; 
 
-            // --- Corrected Current EMI Calculation ---
             if (summaryToDate.currentOutstandingBalance > 0) {
-                // Find the schedule entry for the current calendar month/year
                 let currentMonthEntry = null;
                  for(let i = 0; i < schedule.length; i++) {
                     const entryDate = new Date(schedule[i].paymentDate);
@@ -76,20 +71,11 @@ const OverallSummary: React.FC = () => {
                         currentMonthEntry = schedule[i];
                         break;
                     }
-                    // If current date is past the schedule end, use the last entry's EMI if balance > 0
-                    if (i === schedule.length - 1 && schedule[i].closingBalance > 0) {
-                         // This case might indicate an issue or a very long loan
-                         // Using last EMI as fallback if current month not found but balance exists
-                         // currentMonthEntry = schedule[i]; 
-                    }
                  }
-
                  if (currentMonthEntry) {
                      totalCurrentEMI += currentMonthEntry.emi;
                  }
-                 // If currentMonthEntry is null (e.g., loan starts in future), EMI is 0 for this loan's contribution
             }
-            // --- End Corrected Current EMI Calculation ---
         }
     });
 
@@ -97,10 +83,10 @@ const OverallSummary: React.FC = () => {
         totalOutstanding: parseFloat(totalOutstanding.toFixed(2)),
         totalCurrentEMI: parseFloat(totalCurrentEMI.toFixed(2)),
         totalPrincipalPaid: parseFloat(totalPrincipalPaid.toFixed(2)), 
-        totalInterestPaid: parseFloat(totalInterestPaid.toFixed(2)),   
-        // Restore deductible totals to return object
-        totalDeductiblePrincipal: parseFloat(totalDeductiblePrincipal.toFixed(2)),
-        totalDeductibleInterest: parseFloat(totalDeductibleInterest.toFixed(2)),
+        totalRegularInterestPaid: parseFloat(totalRegularInterestPaid.toFixed(2)),   
+        totalPreEMIInterestPaid: parseFloat(totalPreEMIInterestPaid.toFixed(2)),
+        totalDeductiblePrincipal: parseFloat(cumulativeDeductiblePrincipal.toFixed(2)),
+        totalDeductibleInterest: parseFloat(cumulativeDeductibleInterest.toFixed(2)),
         numberOfLoans: loans.length
     };
   }, [loans]);
@@ -116,8 +102,8 @@ const OverallSummary: React.FC = () => {
         <SummaryItem><strong>Total Outstanding:</strong> ₹{overallData.totalOutstanding.toLocaleString()}</SummaryItem>
         <SummaryItem><strong>Total Current Monthly EMI:</strong> ₹{overallData.totalCurrentEMI.toLocaleString()}</SummaryItem>
         <SummaryItem><strong>Total Principal Paid (To Date):</strong> ₹{overallData.totalPrincipalPaid.toLocaleString()}</SummaryItem>
-        <SummaryItem><strong>Total Interest Paid (To Date):</strong> ₹{overallData.totalInterestPaid.toLocaleString()}</SummaryItem>
-        {/* Restore display of Total Deductible lines */}
+        <SummaryItem><strong>Total Pre-EMI Interest Paid (To Date):</strong> ₹{overallData.totalPreEMIInterestPaid.toLocaleString()}</SummaryItem>
+        <SummaryItem><strong>Total Regular Interest Paid (To Date):</strong> ₹{overallData.totalRegularInterestPaid.toLocaleString()}</SummaryItem>
         <SummaryItem title="Sum of max deductible principal claimed across all loans up to current date (based on annual limits)">
             <strong>Total Deductible Principal (To Date):</strong> ₹{overallData.totalDeductiblePrincipal.toLocaleString()}
         </SummaryItem>
