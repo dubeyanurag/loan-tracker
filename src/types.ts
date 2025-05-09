@@ -9,6 +9,7 @@ export interface Payment {
   interestPaid: number;
   balanceAfterPayment: number; 
   remarks?: string;
+  adjustmentPreference?: 'adjustTenure' | 'adjustEMI'; // New for prepayments
 }
 
 export interface InterestRateChange {
@@ -76,12 +77,11 @@ export interface AmortizationEntry {
   openingBalance: number;
   emi: number; 
   principalPaid: number;
-  interestPaid: number; // This will now be REGULAR interest if not Pre-EMI
+  interestPaid: number; 
   closingBalance: number;
-  isPreEMIPeriod?: boolean; // New flag
-  // Store arrays of events occurring *during* this month/period
+  isPreEMIPeriod?: boolean; 
   disbursements?: Array<{ id: string; amount: number }>;
-  prepayments?: Array<{ id: string; amount: number }>;
+  prepayments?: Array<{ id: string; amount: number; adjustmentPreference?: 'adjustTenure' | 'adjustEMI' }>; // Add preference here too for display
   roiChanges?: Array<{ id: string; newRate: number; preference?: string }>;
   emiChanges?: Array<{ id: string; newEMI: number }>;
 }
@@ -91,33 +91,33 @@ export interface AnnualSummary {
   yearLabel: string; 
   startYear: number; 
   totalPrincipalPaid: number;
-  totalInterestPaid: number; // Regular EMI interest
-  totalPreEMIInterestPaid: number; // New field
+  totalInterestPaid: number; 
+  totalPreEMIInterestPaid: number; 
+  totalPrepaymentsMade: number; // New field
   totalPayment: number;
   deductiblePrincipal: number; 
-  deductibleInterest: number; // Combined deductible interest
+  deductibleInterest: number; 
 }
 
 export interface LifespanSummary {
   totalPrincipalPaid: number;
-  totalInterestPaid: number; // Regular EMI interest
-  totalPreEMIInterestPaid: number; // New field
+  totalInterestPaid: number; 
+  totalPreEMIInterestPaid: number; 
   totalPayment: number;
   actualTenureMonths: number;
   totalDeductiblePrincipal: number;
-  totalDeductibleInterest: number; // Combined deductible interest
+  totalDeductibleInterest: number; 
 }
 
 export interface CurrentSummary {
   monthsElapsed: number;
-  totalPrincipalPaid: number; // Uncapped regular principal paid to date
-  totalInterestPaid: number; // Uncapped regular interest paid to date
-  totalPreEMIInterestPaid: number; // New: Uncapped Pre-EMI interest paid to date
+  totalPrincipalPaid: number; 
+  totalInterestPaid: number; 
+  totalPreEMIInterestPaid: number; 
   totalPayment: number;
-  totalDeductiblePrincipal: number; // Cumulative capped principal
-  totalDeductibleInterest: number; // Cumulative capped combined interest
+  totalDeductiblePrincipal: number; 
+  totalDeductibleInterest: number; 
   currentOutstandingBalance: number;
   uncappedTotalPrincipalPaid: number; 
-  uncappedTotalInterestPaid: number; // This will become uncapped REGULAR interest
-  // uncappedTotalPreEMIInterestPaid: number; // Already added above as totalPreEMIInterestPaid
+  uncappedTotalInterestPaid: number; 
 }

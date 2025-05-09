@@ -139,6 +139,14 @@ const AmortizationTable: React.FC<AmortizationTableProps> = ({
     if (amountStr) {
       const amount = parseFloat(amountStr);
       if (!isNaN(amount) && amount > 0) {
+        const preferencePrompt = window.prompt(`Prepayment of ₹${amount.toLocaleString()}. Choose effect:\n1: Reduce Tenure (Keep EMI Same - default)\n2: Reduce EMI (Keep Original Tenure)`, "1");
+        let adjustmentPreference: 'adjustTenure' | 'adjustEMI' = 'adjustTenure';
+        if (preferencePrompt === '2') {
+            adjustmentPreference = 'adjustEMI';
+        } else if (preferencePrompt !== '1') {
+            alert('Invalid choice. Defaulting to "Reduce Tenure".');
+        }
+
         dispatch({
           type: 'ADD_PAYMENT',
           payload: {
@@ -152,6 +160,7 @@ const AmortizationTable: React.FC<AmortizationTableProps> = ({
               interestPaid: 0, 
               balanceAfterPayment: 0, 
               remarks: 'In-table Prepayment',
+              adjustmentPreference: adjustmentPreference, // Add preference
             }
           }
         });
@@ -280,7 +289,7 @@ const AmortizationTable: React.FC<AmortizationTableProps> = ({
                     ))}
                     {entry.prepayments?.map(p => (
                         <EventItem key={p.id}>
-                            Prepay: ₹{p.amount.toLocaleString()}
+                            Prepay: ₹{p.amount.toLocaleString()} {p.adjustmentPreference === 'adjustEMI' ? '(EMI Adj.)' : ''}
                             <SmallDeleteButton onClick={() => onDeletePayment(p.id)} title="Delete Prepayment">&#x274C;</SmallDeleteButton>
                         </EventItem>
                     ))}

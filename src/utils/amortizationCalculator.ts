@@ -42,7 +42,7 @@ export const generateAmortizationSchedule = (loan: Loan): AmortizationEntry[] =>
     let interestPaidThisMonth = 0;
     
     let effectiveEMIForMonth = currentEMI; 
-    let isPreEmiPeriodCurrentMonth = loan.details.startedWithPreEMI && currentDate < emiStartDate; // Use a distinct var for the month
+    let isPreEmiPeriodCurrentMonth = loan.details.startedWithPreEMI && currentDate < emiStartDate; 
     let manualPaymentAmount: number | null = null; 
 
     let disbursementsThisMonth: AmortizationEntry['disbursements'] = [];
@@ -66,7 +66,19 @@ export const generateAmortizationSchedule = (loan: Loan): AmortizationEntry[] =>
             if (event.type === 'Prepayment') {
                 openingBalance -= event.amount; 
                 principalPaidFromPrepaymentsThisMonth += event.amount; 
-                prepaymentsThisMonth.push({ id: event.id, amount: event.amount }); 
+                prepaymentsThisMonth.push({ 
+                    id: event.id, 
+                    amount: event.amount, 
+                    adjustmentPreference: event.adjustmentPreference 
+                }); 
+                
+                if (event.adjustmentPreference === 'adjustEMI') {
+                    const remainingMonthsForEmiCalc = currentTenureMonths - (monthNumber -1); // Remaining months from original plan
+                    if (remainingMonthsForEmiCalc > 0) {
+                        currentEMI = calculateEMI(openingBalance, currentAnnualRate, remainingMonthsForEmiCalc);
+                        effectiveEMIForMonth = currentEMI;
+                    }
+                }
             } else { 
                 manualPaymentAmount = event.amount;
             }
@@ -115,23 +127,18 @@ export const generateAmortizationSchedule = (loan: Loan): AmortizationEntry[] =>
     }
     
     let totalPrincipalPaidThisMonth = principalPaidFromEMIThisMonth + principalPaidFromPrepaymentsThisMonth;
-    if (manualPaymentAmount === null) { // Only add prepayments if no manual EMI override
+    if (manualPaymentAmount === null) { 
         actualCashOutflowThisMonth += principalPaidFromPrepaymentsThisMonth; 
     } else if (prepaymentsThisMonth.length > 0 && manualPaymentAmount !== null) {
-        // If manual EMI and prepayments, cash outflow is sum. This case might need review.
-        // Assuming manualPaymentAmount is the *total* intended payment excluding separate prepayments.
-        // Or, if manualPaymentAmount is *just* the EMI part, then prepayments add to it.
-        // Current logic: manualPaymentAmount overrides scheduled EMI, prepayments are extra.
          actualCashOutflowThisMonth = manualPaymentAmount + principalPaidFromPrepaymentsThisMonth;
     }
-
 
     if (totalPrincipalPaidThisMonth > openingBalanceForInterestCalc) { 
         totalPrincipalPaidThisMonth = openingBalanceForInterestCalc;
     }
     if (totalPrincipalPaidThisMonth < 0) totalPrincipalPaidThisMonth = 0;
     
-    let closingBalance = openingBalance - principalPaidFromEMIThisMonth; // openingBalance already reflects prepayments
+    let closingBalance = openingBalance - principalPaidFromEMIThisMonth; 
 
     if (closingBalance < 0 && openingBalanceForInterestCalc > 0) {
         totalPrincipalPaidThisMonth = openingBalanceForInterestCalc; 
@@ -147,9 +154,9 @@ export const generateAmortizationSchedule = (loan: Loan): AmortizationEntry[] =>
       openingBalance: parseFloat(openingBalanceForInterestCalc.toFixed(2)), 
       emi: parseFloat(actualCashOutflowThisMonth.toFixed(2)), 
       principalPaid: parseFloat(totalPrincipalPaidThisMonth.toFixed(2)),
-      interestPaid: parseFloat(interestPaidThisMonth.toFixed(2)), // This is total interest for the month
+      interestPaid: parseFloat(interestPaidThisMonth.toFixed(2)), 
       closingBalance: parseFloat(closingBalance.toFixed(2)),
-      isPreEMIPeriod: isPreEmiPeriodCurrentMonth, // Set the flag
+      isPreEMIPeriod: isPreEmiPeriodCurrentMonth, 
       ...(disbursementsThisMonth.length > 0 && { disbursements: disbursementsThisMonth }),
       ...(prepaymentsThisMonth.length > 0 && { prepayments: prepaymentsThisMonth }),
       ...(roiChangesThisMonth.length > 0 && { roiChanges: roiChangesThisMonth }),
@@ -194,11 +201,12 @@ export const generateAnnualSummaries = (
 
     if (!summariesByFY[fyLabel]) {
       summariesByFY[fyLabel] = {
-        yearLabel: fyLabel, // Add yearLabel here
+        yearLabel: fyLabel, 
         startYear: financialYearStart, 
         totalPrincipalPaid: 0,
-        totalInterestPaid: 0, // This will be regular interest
-        totalPreEMIInterestPaid: 0, // Initialize new field
+        totalInterestPaid: 0, 
+        totalPreEMIInterestPaid: 0, 
+        totalPrepaymentsMade: 0, // Initialize new field
         totalPayment: 0,
         deductiblePrincipal: 0, 
         deductibleInterest: 0,
@@ -210,6 +218,11 @@ export const generateAnnualSummaries = (
     } else {
         summariesByFY[fyLabel].totalInterestPaid += entry.interestPaid;
     }
+    if (entry.prepayments) { // Sum prepayments for the annual summary
+        entry.prepayments.forEach(p => {
+            summariesByFY[fyLabel].totalPrepaymentsMade += p.amount;
+        });
+    }
     summariesByFY[fyLabel].totalPayment += entry.emi; 
   });
 
@@ -217,17 +230,16 @@ export const generateAnnualSummaries = (
       const summary = summariesByFY[fyLabel];
       if (isEligible) {
           summary.deductiblePrincipal = Math.min(summary.totalPrincipalPaid, principalLimit);
-          // Deductible interest is sum of regular and pre-EMI interest, capped
           const totalInterestForDeduction = summary.totalInterestPaid + summary.totalPreEMIInterestPaid;
           summary.deductibleInterest = Math.min(totalInterestForDeduction, interestLimit);
       } else {
           summary.deductiblePrincipal = 0;
           summary.deductibleInterest = 0;
       }
-      // Ensure all fields are numbers and formatted
       summary.totalPrincipalPaid = parseFloat(summary.totalPrincipalPaid.toFixed(2));
       summary.totalInterestPaid = parseFloat(summary.totalInterestPaid.toFixed(2));
       summary.totalPreEMIInterestPaid = parseFloat(summary.totalPreEMIInterestPaid.toFixed(2));
+      summary.totalPrepaymentsMade = parseFloat(summary.totalPrepaymentsMade.toFixed(2));
       summary.totalPayment = parseFloat(summary.totalPayment.toFixed(2));
       summary.deductiblePrincipal = parseFloat(summary.deductiblePrincipal.toFixed(2));
       summary.deductibleInterest = parseFloat(summary.deductibleInterest.toFixed(2));
@@ -244,8 +256,8 @@ export const generateLifespanSummary = (
 
   const summary: LifespanSummary = {
     totalPrincipalPaid: 0,
-    totalInterestPaid: 0, // Regular interest
-    totalPreEMIInterestPaid: 0, // New field
+    totalInterestPaid: 0, 
+    totalPreEMIInterestPaid: 0, 
     totalPayment: 0,
     actualTenureMonths: schedule.length,
     totalDeductiblePrincipal: 0, 
@@ -264,7 +276,7 @@ export const generateLifespanSummary = (
 
   annualSummaries.forEach(annual => {
       summary.totalDeductiblePrincipal += annual.deductiblePrincipal;
-      summary.totalDeductibleInterest += annual.deductibleInterest; // This already considers combined interest
+      summary.totalDeductibleInterest += annual.deductibleInterest; 
   });
   
   summary.totalPrincipalPaid = parseFloat(summary.totalPrincipalPaid.toFixed(2));
@@ -293,7 +305,7 @@ export const generateSummaryToDate = (
     let monthsElapsed = 0;
     let uncappedRegPrincipal = 0; 
     let uncappedRegInterest = 0;  
-    let uncappedPreEMIInterest = 0; // New
+    let uncappedPreEMIInterest = 0; 
     let totalPaymentToDate = 0;
     let cumulativeDeductiblePrincipal = 0;
     let cumulativeDeductibleInterest = 0;
@@ -316,7 +328,7 @@ export const generateSummaryToDate = (
                  monthsElapsed: 0, 
                  totalPrincipalPaid: 0, 
                  totalInterestPaid: 0,  
-                 totalPreEMIInterestPaid: 0, // New
+                 totalPreEMIInterestPaid: 0, 
                  totalPayment: 0,
                  totalDeductiblePrincipal: 0, 
                  totalDeductibleInterest: 0, 
@@ -352,9 +364,9 @@ export const generateSummaryToDate = (
 
     return {
         monthsElapsed,
-        totalPrincipalPaid: parseFloat(uncappedRegPrincipal.toFixed(2)), // This is uncapped regular principal
-        totalInterestPaid: parseFloat(uncappedRegInterest.toFixed(2)),  // This is uncapped regular interest
-        totalPreEMIInterestPaid: parseFloat(uncappedPreEMIInterest.toFixed(2)), // New
+        totalPrincipalPaid: parseFloat(uncappedRegPrincipal.toFixed(2)), 
+        totalInterestPaid: parseFloat(uncappedRegInterest.toFixed(2)),  
+        totalPreEMIInterestPaid: parseFloat(uncappedPreEMIInterest.toFixed(2)), 
         totalPayment: parseFloat(totalPaymentToDate.toFixed(2)),
         totalDeductiblePrincipal: parseFloat(cumulativeDeductiblePrincipal.toFixed(2)), 
         totalDeductibleInterest: parseFloat(cumulativeDeductibleInterest.toFixed(2)), 

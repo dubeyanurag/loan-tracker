@@ -149,6 +149,7 @@ const LoanSummaries: React.FC<LoanSummariesProps> = ({ schedule, loanDetails }) 
                   <th>Principal Paid</th>
                   {loanDetails.startedWithPreEMI && <th>Pre-EMI Interest</th>}
                   <th>Regular Interest</th>
+                  <th>Prepayments Made</th> {/* New Column */}
                   <th>Total Payment</th>
                   {loanDetails.isTaxDeductible && ( 
                     <> 
@@ -171,6 +172,7 @@ const LoanSummaries: React.FC<LoanSummariesProps> = ({ schedule, loanDetails }) 
                       <td>{summary.totalPrincipalPaid.toLocaleString()}</td>
                       {loanDetails.startedWithPreEMI && <td>{summary.totalPreEMIInterestPaid.toLocaleString()}</td>}
                       <td>{summary.totalInterestPaid.toLocaleString()}</td>
+                      <td>{summary.totalPrepaymentsMade.toLocaleString()}</td> {/* New Column Data */}
                       <td>{summary.totalPayment.toLocaleString()}</td>
                       {loanDetails.isTaxDeductible && ( 
                         <>
