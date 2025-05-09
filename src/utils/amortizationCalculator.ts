@@ -108,7 +108,7 @@ export const generateAmortizationSchedule = (loan: Loan): AmortizationEntry[] =>
     if (manualPaymentAmount !== null) {
         actualCashOutflowThisMonth = manualPaymentAmount;
         if (isPreEmiPeriodCurrentMonth) {
-            interestPaidThisMonth = Math.min(manualPaymentAmount, interestForMonthAccrued);
+            interestPaidThisMonth = manualPaymentAmount; // Entire custom payment is interest
             principalPaidFromEMIThisMonth = 0; 
         } else {
             interestPaidThisMonth = Math.min(interestForMonthAccrued, manualPaymentAmount);
