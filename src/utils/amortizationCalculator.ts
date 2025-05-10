@@ -7,9 +7,8 @@ type LoanEvent =
   | (Omit<InterestRateChange, 'date'> & { eventType: 'roiChange'; date: Date })
   | (Omit<CustomEMIChange, 'date'> & { eventType: 'emiChange'; date: Date });
 
-// Helper to get days in month (1-indexed month)
 const getDaysInMonth = (year: number, month: number): number => {
-    return new Date(year, month, 0).getDate();
+    return new Date(year, month, 0).getDate(); // month is 0-indexed for Date, but 1-indexed for this function's input
 };
 
 export const generateAmortizationSchedule = (loan: Loan): AmortizationEntry[] => {
@@ -26,36 +25,42 @@ export const generateAmortizationSchedule = (loan: Loan): AmortizationEntry[] =>
   let currentEMI = calculateEMI(cumulativeDisbursed, currentAnnualRate, currentTenureMonths); 
   
   const allEvents: (LoanEvent | (Omit<Disbursement, 'date'> & { eventType: 'disbursement'; date: Date }))[] = [
-    ...(loan.paymentHistory || []).map(p => ({ ...p, eventType: 'payment' as const, date: new Date(p.date) })),
-    ...(loan.interestRateChanges || []).map(c => ({ ...c, eventType: 'roiChange' as const, date: new Date(c.date) })),
-    ...(loan.customEMIChanges || []).map(c => ({ ...c, eventType: 'emiChange' as const, date: new Date(c.date) })),
-    ...sortedDisbursements.slice(1).map(d => ({ ...d, eventType: 'disbursement' as const, date: new Date(d.date) })) 
+    ...(loan.paymentHistory || []).map(p => ({ ...p, eventType: 'payment' as const, date: new Date(new Date(p.date).setHours(0,0,0,0)) })),
+    ...(loan.interestRateChanges || []).map(c => ({ ...c, eventType: 'roiChange' as const, date: new Date(new Date(c.date).setHours(0,0,0,0)) })),
+    ...(loan.customEMIChanges || []).map(c => ({ ...c, eventType: 'emiChange' as const, date: new Date(new Date(c.date).setHours(0,0,0,0)) })),
+    ...sortedDisbursements.slice(1).map(d => ({ ...d, eventType: 'disbursement' as const, date: new Date(new Date(d.date).setHours(0,0,0,0)) })) 
   ].sort((a, b) => a.date.getTime() - b.date.getTime());
 
   let eventPointer = 0;
-  let currentDate = new Date(new Date(sortedDisbursements[0].date).setHours(0,0,0,0)); // Normalize to start of day
-  const emiStartDate = loan.details.emiStartDate ? new Date(new Date(loan.details.emiStartDate).setHours(0,0,0,0)) : currentDate; 
   
-  // Determine the initial debit day for paymentDate entries
-  const initialStartDate = new Date(loan.details.startDate);
-  let actualDebitDay = loan.details.emiDebitDay || initialStartDate.getDate();
+  const loanStartDate = new Date(new Date(loan.details.startDate).setHours(0,0,0,0));
+  const emiStartDate = loan.details.emiStartDate ? new Date(new Date(loan.details.emiStartDate).setHours(0,0,0,0)) : loanStartDate; 
+  
+  let actualDebitDay = loan.details.emiDebitDay || loanStartDate.getDate();
+
+  // Determine the date for the first schedule entry (payment period end)
+  let paymentPeriodEndDate = new Date(loanStartDate);
+  if (loan.details.emiDebitDay) { // If a specific debit day is set
+    if (actualDebitDay < loanStartDate.getDate()) {
+      // If debit day is in the past for the start month, move to next month's debit day
+      paymentPeriodEndDate.setMonth(paymentPeriodEndDate.getMonth() + 1);
+    }
+    const daysInScheduledMonth = getDaysInMonth(paymentPeriodEndDate.getFullYear(), paymentPeriodEndDate.getMonth() + 1);
+    paymentPeriodEndDate.setDate(Math.min(actualDebitDay, daysInScheduledMonth));
+  }
+  // If no emiDebitDay, paymentPeriodEndDate remains loanStartDate for the first entry.
+  // For subsequent entries, it will be advanced by a month and day set to actualDebitDay.
 
 
   while (openingBalance > 0.01 && monthNumber < 600) { 
     monthNumber++;
     
-    // For the first month, paymentDate is based on startDate or emiStartDate logic
-    // For subsequent months, it's advanced by one month using actualDebitDay
-    let paymentDateForEntry: Date;
-    if (monthNumber === 1) {
-        paymentDateForEntry = new Date(currentDate); // Use the initial currentDate
-    } else {
-        currentDate.setMonth(currentDate.getMonth() + 1);
-        const daysInNewMonth = getDaysInMonth(currentDate.getFullYear(), currentDate.getMonth() + 1);
-        currentDate.setDate(Math.min(actualDebitDay, daysInNewMonth));
-        paymentDateForEntry = new Date(currentDate);
+    if (monthNumber > 1) { // For subsequent months, advance and set day
+        paymentPeriodEndDate.setMonth(paymentPeriodEndDate.getMonth() + 1);
+        const daysInNewMonth = getDaysInMonth(paymentPeriodEndDate.getFullYear(), paymentPeriodEndDate.getMonth() + 1);
+        paymentPeriodEndDate.setDate(Math.min(actualDebitDay, daysInNewMonth));
     }
-
+    // For monthNumber === 1, paymentPeriodEndDate is already set before the loop.
 
     const monthlyInterestRate = currentAnnualRate / 12 / 100;
     let interestForMonthAccrued = openingBalance * monthlyInterestRate;
@@ -65,7 +70,8 @@ export const generateAmortizationSchedule = (loan: Loan): AmortizationEntry[] =>
     let interestPaidThisMonth = 0;
     
     let effectiveEMIForMonth = currentEMI; 
-    let isPreEmiPeriodCurrentMonth = loan.details.startedWithPreEMI && paymentDateForEntry < emiStartDate; 
+    // Pre-EMI check is based on whether the calculated paymentPeriodEndDate is before the emiStartDate
+    let isPreEmiPeriodCurrentMonth = loan.details.startedWithPreEMI && paymentPeriodEndDate < emiStartDate; 
     let manualPaymentAmount: number | null = null; 
 
     let disbursementsThisMonth: AmortizationEntry['disbursements'] = [];
@@ -75,8 +81,9 @@ export const generateAmortizationSchedule = (loan: Loan): AmortizationEntry[] =>
     
     let openingBalanceForInterestCalc = openingBalance;
 
-    // Process events that fall on or before the paymentDateForEntry for this period
-    while(eventPointer < allEvents.length && allEvents[eventPointer].date <= paymentDateForEntry) {
+    // Process events that fall on or before the paymentPeriodEndDate for this period
+    // Ensure event dates are also normalized for comparison
+    while(eventPointer < allEvents.length && allEvents[eventPointer].date.getTime() <= paymentPeriodEndDate.getTime()) {
         const event = allEvents[eventPointer];
         
         if (event.eventType === 'disbursement') {
@@ -127,8 +134,7 @@ export const generateAmortizationSchedule = (loan: Loan): AmortizationEntry[] =>
     }
     
     let actualCashOutflowThisMonth = 0;
-    // Re-check PreEMI based on the actual paymentDateForEntry vs emiStartDate
-    isPreEmiPeriodCurrentMonth = loan.details.startedWithPreEMI && paymentDateForEntry < emiStartDate; 
+    isPreEmiPeriodCurrentMonth = loan.details.startedWithPreEMI && paymentPeriodEndDate < emiStartDate; 
 
     if (manualPaymentAmount !== null) {
         actualCashOutflowThisMonth = manualPaymentAmount;
@@ -175,7 +181,7 @@ export const generateAmortizationSchedule = (loan: Loan): AmortizationEntry[] =>
 
     schedule.push({
       monthNumber,
-      paymentDate: paymentDateForEntry.toISOString().split('T')[0], 
+      paymentDate: paymentPeriodEndDate.toISOString().split('T')[0], 
       openingBalance: parseFloat(openingBalanceForInterestCalc.toFixed(2)), 
       emi: parseFloat(actualCashOutflowThisMonth.toFixed(2)), 
       principalPaid: parseFloat(totalPrincipalPaidThisMonth.toFixed(2)),
@@ -189,7 +195,6 @@ export const generateAmortizationSchedule = (loan: Loan): AmortizationEntry[] =>
     });
 
     openingBalance = closingBalance; 
-    // currentDate is already advanced for the next iteration's paymentDateForEntry
     if (openingBalance <= 0.01) break;
   }
 
