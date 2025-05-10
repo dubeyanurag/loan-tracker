@@ -1,0 +1,63 @@
+{
+  "testName": "Pre-EMI, Multiple Disbursements, ROI Change",
+  "initialLoanDetails": {
+    "disbursements": [
+      { "id": "d1", "date": "2024-01-15", "amount": 1000000, "remarks": "Initial 1M" }
+    ],
+    "originalInterestRate": 8.0,
+    "originalTenureMonths": 120,
+    "startDate": "2024-01-15",
+    "startedWithPreEMI": true,
+    "emiStartDate": "2024-04-01",
+    "emiDebitDay": 5
+  },
+  "events": [
+    { 
+      "eventType": "DISBURSEMENT", 
+      "date": "2024-01-20", 
+      "amount": 500000,
+      "remarks": "Disb 500k"
+    },
+    { 
+      "eventType": "DISBURSEMENT", 
+      "date": "2024-02-10", 
+      "amount": 300000,
+      "remarks": "Disb 300k"
+    },
+    { 
+      "eventType": "ROI_CHANGE", 
+      "date": "2024-03-01", 
+      "newRate": 9.0, 
+      "adjustmentPreference": "adjustTenure" 
+    }
+  ],
+  "expectedResults": {
+    "scheduleEntryChecks": [
+      { 
+        "monthNumber": 1, 
+        "paymentDate": "2024-02-05", 
+        "isPreEMIPeriod": true, 
+        "openingBalance": 1000000, 
+        "interestPaid": 10000.00, 
+        "principalPaid": 0 
+      },
+      { 
+        "monthNumber": 2, 
+        "paymentDate": "2024-03-05", 
+        "isPreEMIPeriod": true,
+        "openingBalance": 1800000, 
+        "interestPaid": 12000.00, 
+        "principalPaid": 0 
+      },
+      { 
+        "monthNumber": 3, 
+        "paymentDate": "2024-04-05", 
+        "isPreEMIPeriod": false,
+        "openingBalance": 1800000,
+        "interestPaid": 13500.00, 
+        "principalPaid": 8786.52 
+      }
+    ],
+    "finalTenure": 120 
+  }
+}
