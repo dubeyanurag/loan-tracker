@@ -44,6 +44,7 @@ export interface LoanDetails {
   isTaxDeductible?: boolean; 
   principalDeductionLimit?: number; 
   interestDeductionLimit?: number; 
+  emiDebitDay?: number; // Day of the month (1-31) for EMI payments
 }
 
 export interface Loan {

@@ -7,6 +7,11 @@ type LoanEvent =
   | (Omit<InterestRateChange, 'date'> & { eventType: 'roiChange'; date: Date })
   | (Omit<CustomEMIChange, 'date'> & { eventType: 'emiChange'; date: Date });
 
+// Helper to get days in month (1-indexed month)
+const getDaysInMonth = (year: number, month: number): number => {
+    return new Date(year, month, 0).getDate();
+};
+
 export const generateAmortizationSchedule = (loan: Loan): AmortizationEntry[] => {
   const schedule: AmortizationEntry[] = [];
   if (!loan || !loan.details || !loan.details.disbursements || loan.details.disbursements.length === 0) return schedule;
@@ -28,13 +33,31 @@ export const generateAmortizationSchedule = (loan: Loan): AmortizationEntry[] =>
   ].sort((a, b) => a.date.getTime() - b.date.getTime());
 
   let eventPointer = 0;
-  let currentDate = new Date(sortedDisbursements[0].date); 
-  const emiStartDate = loan.details.emiStartDate ? new Date(loan.details.emiStartDate) : currentDate; 
+  let currentDate = new Date(new Date(sortedDisbursements[0].date).setHours(0,0,0,0)); // Normalize to start of day
+  const emiStartDate = loan.details.emiStartDate ? new Date(new Date(loan.details.emiStartDate).setHours(0,0,0,0)) : currentDate; 
+  
+  // Determine the initial debit day for paymentDate entries
+  const initialStartDate = new Date(loan.details.startDate);
+  let actualDebitDay = loan.details.emiDebitDay || initialStartDate.getDate();
+
 
   while (openingBalance > 0.01 && monthNumber < 600) { 
     monthNumber++;
-    const monthlyInterestRate = currentAnnualRate / 12 / 100;
     
+    // For the first month, paymentDate is based on startDate or emiStartDate logic
+    // For subsequent months, it's advanced by one month using actualDebitDay
+    let paymentDateForEntry: Date;
+    if (monthNumber === 1) {
+        paymentDateForEntry = new Date(currentDate); // Use the initial currentDate
+    } else {
+        currentDate.setMonth(currentDate.getMonth() + 1);
+        const daysInNewMonth = getDaysInMonth(currentDate.getFullYear(), currentDate.getMonth() + 1);
+        currentDate.setDate(Math.min(actualDebitDay, daysInNewMonth));
+        paymentDateForEntry = new Date(currentDate);
+    }
+
+
+    const monthlyInterestRate = currentAnnualRate / 12 / 100;
     let interestForMonthAccrued = openingBalance * monthlyInterestRate;
     
     let principalPaidFromEMIThisMonth = 0;
@@ -42,7 +65,7 @@ export const generateAmortizationSchedule = (loan: Loan): AmortizationEntry[] =>
     let interestPaidThisMonth = 0;
     
     let effectiveEMIForMonth = currentEMI; 
-    let isPreEmiPeriodCurrentMonth = loan.details.startedWithPreEMI && currentDate < emiStartDate; 
+    let isPreEmiPeriodCurrentMonth = loan.details.startedWithPreEMI && paymentDateForEntry < emiStartDate; 
     let manualPaymentAmount: number | null = null; 
 
     let disbursementsThisMonth: AmortizationEntry['disbursements'] = [];
@@ -52,7 +75,8 @@ export const generateAmortizationSchedule = (loan: Loan): AmortizationEntry[] =>
     
     let openingBalanceForInterestCalc = openingBalance;
 
-    while(eventPointer < allEvents.length && allEvents[eventPointer].date <= currentDate) {
+    // Process events that fall on or before the paymentDateForEntry for this period
+    while(eventPointer < allEvents.length && allEvents[eventPointer].date <= paymentDateForEntry) {
         const event = allEvents[eventPointer];
         
         if (event.eventType === 'disbursement') {
@@ -73,7 +97,7 @@ export const generateAmortizationSchedule = (loan: Loan): AmortizationEntry[] =>
                 }); 
                 
                 if (event.adjustmentPreference === 'adjustEMI') {
-                    const remainingMonthsForEmiCalc = currentTenureMonths - (monthNumber -1); // Remaining months from original plan
+                    const remainingMonthsForEmiCalc = currentTenureMonths - (monthNumber -1); 
                     if (remainingMonthsForEmiCalc > 0) {
                         currentEMI = calculateEMI(openingBalance, currentAnnualRate, remainingMonthsForEmiCalc);
                         effectiveEMIForMonth = currentEMI;
@@ -103,12 +127,13 @@ export const generateAmortizationSchedule = (loan: Loan): AmortizationEntry[] =>
     }
     
     let actualCashOutflowThisMonth = 0;
-    isPreEmiPeriodCurrentMonth = loan.details.startedWithPreEMI && currentDate < emiStartDate; 
+    // Re-check PreEMI based on the actual paymentDateForEntry vs emiStartDate
+    isPreEmiPeriodCurrentMonth = loan.details.startedWithPreEMI && paymentDateForEntry < emiStartDate; 
 
     if (manualPaymentAmount !== null) {
         actualCashOutflowThisMonth = manualPaymentAmount;
         if (isPreEmiPeriodCurrentMonth) {
-            interestPaidThisMonth = manualPaymentAmount; // Entire custom payment is interest
+            interestPaidThisMonth = manualPaymentAmount; 
             principalPaidFromEMIThisMonth = 0; 
         } else {
             interestPaidThisMonth = Math.min(interestForMonthAccrued, manualPaymentAmount);
@@ -150,7 +175,7 @@ export const generateAmortizationSchedule = (loan: Loan): AmortizationEntry[] =>
 
     schedule.push({
       monthNumber,
-      paymentDate: currentDate.toISOString().split('T')[0], 
+      paymentDate: paymentDateForEntry.toISOString().split('T')[0], 
       openingBalance: parseFloat(openingBalanceForInterestCalc.toFixed(2)), 
       emi: parseFloat(actualCashOutflowThisMonth.toFixed(2)), 
       principalPaid: parseFloat(totalPrincipalPaidThisMonth.toFixed(2)),
@@ -164,13 +189,14 @@ export const generateAmortizationSchedule = (loan: Loan): AmortizationEntry[] =>
     });
 
     openingBalance = closingBalance; 
-    
-    currentDate.setMonth(currentDate.getMonth() + 1);
+    // currentDate is already advanced for the next iteration's paymentDateForEntry
     if (openingBalance <= 0.01) break;
   }
 
   return schedule;
 };
+
+// ... (rest of the summary functions remain unchanged for this step) ...
 
 const DEFAULT_PRINCIPAL_DEDUCTION_LIMIT = 150000;
 const DEFAULT_INTEREST_DEDUCTION_LIMIT = 200000;
@@ -206,7 +232,7 @@ export const generateAnnualSummaries = (
         totalPrincipalPaid: 0,
         totalInterestPaid: 0, 
         totalPreEMIInterestPaid: 0, 
-        totalPrepaymentsMade: 0, // Initialize new field
+        totalPrepaymentsMade: 0, 
         totalPayment: 0,
         deductiblePrincipal: 0, 
         deductibleInterest: 0,
@@ -218,7 +244,7 @@ export const generateAnnualSummaries = (
     } else {
         summariesByFY[fyLabel].totalInterestPaid += entry.interestPaid;
     }
-    if (entry.prepayments) { // Sum prepayments for the annual summary
+    if (entry.prepayments) { 
         entry.prepayments.forEach(p => {
             summariesByFY[fyLabel].totalPrepaymentsMade += p.amount;
         });

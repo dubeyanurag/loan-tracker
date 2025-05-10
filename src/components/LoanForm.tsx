@@ -1,11 +1,10 @@
 // src/components/LoanForm.tsx
-import React, { useState, useEffect } from 'react'; // Import useEffect
-import { useAppDispatch, useAppState } from '../contexts/AppContext'; // Import useAppState
-import { Loan, LoanDetails, Disbursement } from '../types'; // Import Disbursement type
+import React, { useState, useEffect } from 'react';
+import { useAppDispatch, useAppState } from '../contexts/AppContext';
+import { Loan, LoanDetails, Disbursement } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 import styled from 'styled-components';
 
-// Basic Styled Components for the form
 const FormContainer = styled.form`
   display: flex;
   flex-direction: column;
@@ -34,12 +33,11 @@ const Input = styled.input`
   font-size: 1em;
 `;
 
-const Button = styled.button` // Inherits base button styles from index.css
-  padding: 0.6rem 1.2rem; /* Adjusted padding */
-  margin-top: 0.5rem; /* Add margin top */
-  background-color: #1976d2; /* Material Blue */
+const Button = styled.button`
+  padding: 0.6rem 1.2rem; 
+  margin-top: 0.5rem; 
+  background-color: #1976d2; 
   color: white;
-  /* border: none; */ /* Base style handles border */
   border-radius: 4px;
   cursor: pointer;
   font-size: 1em;
@@ -50,36 +48,35 @@ const Button = styled.button` // Inherits base button styles from index.css
   }
 `;
 
-// Simple button for toggling
 const ToggleButton = styled(Button)`
-  background-color: #607d8b; /* Material Blue Grey */
+  background-color: #607d8b; 
   margin-bottom: 1rem; 
-  align-self: flex-start; /* Prevent stretching */
+  align-self: flex-start; 
   &:hover {
     background-color: #455a64;
   }
 `;
 
 const LoanForm: React.FC = () => {
-  const { loans } = useAppState(); // Get loans state
+  const { loans } = useAppState(); 
   const dispatch = useAppDispatch();
-  const [isCollapsed, setIsCollapsed] = useState(loans.length > 0); // Collapse if loans exist
+  const [isCollapsed, setIsCollapsed] = useState(loans.length > 0); 
 
-  // Update collapsed state if loans array changes (e.g., last loan deleted)
   useEffect(() => {
     setIsCollapsed(loans.length > 0);
   }, [loans.length]);
 
   const [name, setName] = useState('');
-  const [initialDisbursementAmount, setInitialDisbursementAmount] = useState(''); // Renamed state
+  const [initialDisbursementAmount, setInitialDisbursementAmount] = useState('');
   const [interestRate, setInterestRate] = useState('');
   const [tenureMonths, setTenureMonths] = useState('');
   const [startDate, setStartDate] = useState(''); 
   const [startedWithPreEMI, setStartedWithPreEMI] = useState(false); 
   const [emiStartDate, setEmiStartDate] = useState(''); 
-  const [isTaxDeductible, setIsTaxDeductible] = useState(true); // Default to true? Or false? Let's default true
-  const [principalLimit, setPrincipalLimit] = useState('150000'); // Default limit
-  const [interestLimit, setInterestLimit] = useState('200000'); // Default limit
+  const [emiDebitDay, setEmiDebitDay] = useState(''); // New state for EMI Debit Day
+  const [isTaxDeductible, setIsTaxDeductible] = useState(true); 
+  const [principalLimit, setPrincipalLimit] = useState('150000'); 
+  const [interestLimit, setInterestLimit] = useState('200000'); 
 
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -94,8 +91,13 @@ const LoanForm: React.FC = () => {
         alert('Please enter the loan start/initial disbursement date.');
         return;
     }
+    const debitDay = emiDebitDay ? parseInt(emiDebitDay, 10) : undefined;
+    if (debitDay !== undefined && (isNaN(debitDay) || debitDay < 1 || debitDay > 31)) {
+        alert('Please enter a valid EMI Debit Day (1-31), or leave blank to use loan start day.');
+        return;
+    }
 
-    // Create the initial disbursement object
+
     const initialDisbursement: Disbursement = {
         id: uuidv4(),
         date: startDate,
@@ -104,25 +106,22 @@ const LoanForm: React.FC = () => {
     };
 
     const loanDetails: LoanDetails = {
-      disbursements: [initialDisbursement], // Initialize with the first disbursement
+      disbursements: [initialDisbursement], 
       originalInterestRate: parseFloat(interestRate),
       originalTenureMonths: parseInt(tenureMonths),
-      startDate: startDate, // Loan agreement start date
+      startDate: startDate, 
       startedWithPreEMI: startedWithPreEMI,
-      // Only include emiStartDate if startedWithPreEMI is true
       emiStartDate: startedWithPreEMI ? emiStartDate : undefined,
+      emiDebitDay: debitDay, // Add emiDebitDay
       isTaxDeductible: isTaxDeductible,
       principalDeductionLimit: isTaxDeductible ? parseFloat(principalLimit) || 150000 : undefined,
       interestDeductionLimit: isTaxDeductible ? parseFloat(interestLimit) || 200000 : undefined,
     };
 
-    // Basic validation (can be expanded)
-    // Note: principal validation is handled above by checking initialAmount
     if (!name || 
         isNaN(loanDetails.originalInterestRate) || loanDetails.originalInterestRate <= 0 ||
         isNaN(loanDetails.originalTenureMonths) || loanDetails.originalTenureMonths <= 0 ||
         !loanDetails.startDate ||
-        // Add validation for emiStartDate if startedWithPreEMI is true
         (startedWithPreEMI && !emiStartDate) ) { 
       alert('Please fill in all fields correctly, including EMI Start Date if applicable.');
       return;
@@ -132,7 +131,6 @@ const LoanForm: React.FC = () => {
       id: uuidv4(),
       name,
       details: loanDetails,
-      // preEMIInterestPayments: [], // Removed
       paymentHistory: [],
       interestRateChanges: [],
       customEMIChanges: [],
@@ -140,18 +138,18 @@ const LoanForm: React.FC = () => {
 
     dispatch({ type: 'ADD_LOAN', payload: newLoan });
 
-    // Reset form
     setName('');
-    setInitialDisbursementAmount(''); // Reset renamed state
+    setInitialDisbursementAmount(''); 
     setInterestRate('');
     setTenureMonths('');
     setStartDate('');
     setStartedWithPreEMI(false); 
     setEmiStartDate(''); 
-    setIsTaxDeductible(true); // Reset tax flag
-    setPrincipalLimit('150000'); // Reset limits
+    setEmiDebitDay(''); // Reset emiDebitDay
+    setIsTaxDeductible(true); 
+    setPrincipalLimit('150000'); 
     setInterestLimit('200000');
-    setIsCollapsed(true); // Collapse after adding
+    setIsCollapsed(true); 
   };
 
   if (isCollapsed) {
@@ -166,7 +164,6 @@ const LoanForm: React.FC = () => {
     <FormContainer onSubmit={handleSubmit}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h3>Add New Loan</h3>
-        {/* Add Collapse button only if loans exist (so it doesn't show on initial load) */}
         {loans.length > 0 && 
             <ToggleButton type="button" onClick={() => setIsCollapsed(true)} style={{marginBottom: 0, padding: '0.4rem 0.8rem', marginTop: 0}}> 
                 Collapse [-]
@@ -190,8 +187,20 @@ const LoanForm: React.FC = () => {
         <Input type="number" id="tenureMonths" value={tenureMonths} onChange={(e) => setTenureMonths(e.target.value)} placeholder="e.g., 240" required /> 
       </FormGroup>
       <FormGroup>
-        <Label htmlFor="startDate">Loan Start Date:</Label>
+        <Label htmlFor="startDate">Loan Start Date (Initial Disbursement Date):</Label>
         <Input type="date" id="startDate" value={startDate} onChange={(e) => setStartDate(e.target.value)} required />
+      </FormGroup>
+      <FormGroup>
+        <Label htmlFor="emiDebitDay">EMI Debit Day of Month (1-31):</Label>
+        <Input 
+            type="number" 
+            id="emiDebitDay" 
+            value={emiDebitDay} 
+            onChange={(e) => setEmiDebitDay(e.target.value)} 
+            placeholder="e.g., 5 (Defaults to loan start day if blank)" 
+            min="1" 
+            max="31" 
+        />
       </FormGroup>
       <FormGroup style={{ flexDirection: 'row', alignItems: 'center', gap: '10px' }}> 
         <Input 
@@ -199,12 +208,11 @@ const LoanForm: React.FC = () => {
           id="startedWithPreEMI" 
           checked={startedWithPreEMI} 
           onChange={(e) => setStartedWithPreEMI(e.target.checked)} 
-          style={{ width: 'auto' }} // Adjust checkbox width
+          style={{ width: 'auto' }} 
         />
         <Label htmlFor="startedWithPreEMI" style={{ marginBottom: 0 }} title="Check if you only paid interest for an initial period before regular EMIs began.">Did loan start with a Pre-EMI period?</Label>
       </FormGroup>
       
-      {/* Conditionally render EMI Start Date input */}
       {startedWithPreEMI && (
         <FormGroup>
           <Label htmlFor="emiStartDate">Full EMI Start Date:</Label>
@@ -218,7 +226,6 @@ const LoanForm: React.FC = () => {
         </FormGroup>
       )}
 
-      {/* Tax Deductibility Section */}
       <FormGroup style={{ borderTop: '1px solid #e0e0e0', paddingTop: '1rem', marginTop: '0.5rem' }}>
          <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
             <Input 
@@ -255,7 +262,6 @@ const LoanForm: React.FC = () => {
             </>
          )}
       </FormGroup>
-
 
       <Button type="submit">Add Loan</Button>
     </FormContainer>
