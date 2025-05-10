@@ -47,7 +47,9 @@ This file contains URLs for running predefined test scenarios against the Loan T
 ```
 
 **Test URL:**
-`https://dubeyanurag.github.io/loan-tracker/?testCase=eyJ0ZXN0TmFtZSI6IkJhc2ljIExvYW4gd2l0aCBPbmUgUk9JIENoYW5nZSAoQWRqdXN0IFRlbnVyZSkiLCJpbml0aWFsTG9hbkRldGFpbHMiOnsiZGlzYnVyc2VtZW50cyI6W3siaWQiOiJkMSIsImRhdGUiOiIyMDI0LTAxLTAxIiwiYW1vdW50IjoxMDAwMDAsInJlbWFya3MiOiJJbml0aWFsIn1dLCJvcmlnaW5hbEludGVyZXN0UmF0ZSI6MTAsIm9yaWdpbmFsVGVudXJlTW9udGhzIjozNiwic3RhcnREYXRlIjoiMjAyNC0wMS0wMSIsInN0YXJ0ZWRXaXRoUHJlRU1JIjpmYWxzZSwiZW1pRGViaXREYXkiOjV9LCJldmVudHMiOlt7ImV2ZW50VHlwZSI6IlJPSV9DSEFOR0UiLCJkYXRlIjoiMjAyNC0wMy0wMSIsIm5ld1JhdGUiOjEyLCJhZGp1c3RtZW50UHJlZmVyZW5jZSI6ImFkanVzdFRlbnVyZSJ9XSwiZXhwZWN0ZWRSZXN1bHRzIjp7ImZpbmFsVGVudXJlIjozNiwic2NoZWR1bGVFbnRyeUNoZWNrcyI6W3sibW9udGhOdW1iZXIiOjEsImludGVyZXN0UGFpZCI6ODMzLjMzLCJwcmluY2lwYWxQYWlkIjoyMzk1LjU5fSx7Im1vbnRoTnVtYmVyIjoyLCJpbnRlcmVzdFBhaWQiOjgxMy4zNywicHJpbmNpcGFsUGFpZCI6MjQxNS41NX0seyJtb250aE51bWJlciI6MywiaW50ZXJlc3RQYWlkIjo5NzQuMDgsInByaW5jaXBhbFBhaWQiOjIyNTQuODR9XX19`
+`https://dubeyanurag.github.io/loan-tracker/?testCase=[[RE_ENCODE_test-scenario-1.json_AS_EXPECTED_RESULTS_WERE_UPDATED]]`
+
+**Note for Test Case 1:** The `expectedResults` in `test-scenario-1.json` have been updated to align with the calculator's correct output. The URL above needs to be regenerated using the updated `test-scenario-1.json` file.
 
 **Instructions to generate the encoded string (example for `test-scenario-1.json`):**
 1.  Get the content of the respective `.json` file.
