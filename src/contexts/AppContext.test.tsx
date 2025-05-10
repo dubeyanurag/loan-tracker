@@ -1,7 +1,7 @@
 // src/contexts/AppContext.test.tsx
 import { describe, it, expect } from 'vitest';
 import { appReducer, initialContextState } from './AppContext'; // Changed initialState to initialContextState
-import { AppState, Loan, Disbursement, Payment, InterestRateChange, CustomEMIChange } from '../types';
+import { Loan, Disbursement, Payment, InterestRateChange, CustomEMIChange } from '../types'; // Removed AppState
 
 // Helper to create a basic loan for testing
 const createTestLoan = (id: string, name: string, initialDisbursementAmount: number = 500000): Loan => ({
