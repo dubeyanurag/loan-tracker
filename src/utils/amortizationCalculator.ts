@@ -1,66 +1,137 @@
 // src/utils/amortizationCalculator.ts
-import { Loan, AmortizationEntry, Payment, InterestRateChange, CustomEMIChange, Disbursement, CurrentSummary, AnnualSummary, LifespanSummary, LoanDetails } from '../types'; 
+import { Loan, AmortizationEntry, Payment, InterestRateChange, CustomEMIChange, Disbursement, CurrentSummary, AnnualSummary, LifespanSummary, LoanDetails, TestEvent } from '../types'; 
 import { calculateEMI } from './loanCalculations'; 
+import { v4 as uuidv4 } from 'uuid'; 
 
-type LoanEvent = 
-  | (Omit<Payment, 'date'> & { eventType: 'payment'; date: Date })
-  | (Omit<InterestRateChange, 'date'> & { eventType: 'roiChange'; date: Date })
-  | (Omit<CustomEMIChange, 'date'> & { eventType: 'emiChange'; date: Date });
+// Internal type for combined events with Date objects
+type CombinedEventInternal = 
+  | (Omit<Payment, 'id' | 'date' | 'principalPaid' | 'interestPaid' | 'balanceAfterPayment'> & { id: string; eventType: 'payment'; date: Date; type: 'EMI' | 'Prepayment' })
+  | (Omit<InterestRateChange, 'id' | 'date'> & { id: string; eventType: 'roiChange'; date: Date })
+  | (Omit<CustomEMIChange, 'id' | 'date'> & { id: string; eventType: 'emiChange'; date: Date })
+  | (Omit<Disbursement, 'id' | 'date'> & { id: string; eventType: 'disbursement'; date: Date });
 
-const getDaysInMonth = (year: number, month: number): number => {
-    return new Date(year, month, 0).getDate(); // month is 0-indexed for Date, but 1-indexed for this function's input
-};
 
-export const generateAmortizationSchedule = (loan: Loan): AmortizationEntry[] => {
+export const generateAmortizationSchedule = (
+  loanOrDetails: Loan | LoanDetails, 
+  testEvents?: TestEvent[] 
+): AmortizationEntry[] => {
   const schedule: AmortizationEntry[] = [];
-  if (!loan || !loan.details || !loan.details.disbursements || loan.details.disbursements.length === 0) return schedule;
 
-  const sortedDisbursements = [...loan.details.disbursements].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  let loanToProcess: Loan;
+
+  if ('id' in loanOrDetails && 'name' in loanOrDetails && testEvents === undefined) { 
+    loanToProcess = loanOrDetails as Loan;
+  } else if ('disbursements' in loanOrDetails && testEvents !== undefined) { 
+    const details = loanOrDetails as LoanDetails;
+    if (!details.disbursements || details.disbursements.length === 0) {
+        console.error("Test case initialLoanDetails must have at least one disbursement.");
+        return schedule;
+    }
+    loanToProcess = {
+      id: uuidv4(), 
+      name: "Test Loan",
+      details: JSON.parse(JSON.stringify(details)), // Deep copy details
+      paymentHistory: [],
+      interestRateChanges: [],
+      customEMIChanges: [],
+    };
+
+    // Ensure initial disbursements have IDs
+    loanToProcess.details.disbursements = loanToProcess.details.disbursements.map(d => ({ ...d, id: d.id || uuidv4() }));
+
+    testEvents.forEach(event => {
+      const id = uuidv4();
+      switch (event.eventType) {
+        case 'PREPAYMENT':
+          loanToProcess.paymentHistory.push({
+            id,
+            date: event.date,
+            amount: event.amount,
+            type: 'Prepayment',
+            adjustmentPreference: event.adjustmentPreference,
+            remarks: event.remarks,
+            principalPaid: 0, // Placeholder, will be calculated
+            interestPaid: 0,  // Placeholder
+            balanceAfterPayment: 0, // Placeholder
+          });
+          break;
+        case 'ROI_CHANGE':
+          loanToProcess.interestRateChanges.push({
+            id,
+            date: event.date,
+            newRate: event.newRate,
+            adjustmentPreference: event.adjustmentPreference,
+            newEMIIfApplicable: event.newEMIIfApplicable,
+          });
+          break;
+        case 'CUSTOM_EMI':
+          loanToProcess.customEMIChanges.push({
+            id,
+            date: event.date,
+            newEMI: event.newEMI,
+            remarks: event.remarks,
+          });
+          break;
+        case 'DISBURSEMENT': // Subsequent disbursements from testEvents
+          loanToProcess.details.disbursements.push({
+            id,
+            date: event.date,
+            amount: event.amount,
+            remarks: event.remarks,
+          });
+          break;
+      }
+    });
+    // Re-sort disbursements if new ones were added from testEvents
+    loanToProcess.details.disbursements.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+  } else {
+    console.error("Invalid parameters for generateAmortizationSchedule: Provide full Loan object, or LoanDetails with testEvents.");
+    return schedule;
+  }
+
+  if (!loanToProcess.details || !loanToProcess.details.disbursements || loanToProcess.details.disbursements.length === 0) return schedule;
+
+  const sortedDisbursements = loanToProcess.details.disbursements; // Already sorted if modified
 
   let monthNumber = 0;
   let openingBalance = sortedDisbursements[0].amount; 
   let cumulativeDisbursed = sortedDisbursements[0].amount; 
-  let currentAnnualRate = loan.details.originalInterestRate;
-  let currentTenureMonths = loan.details.originalTenureMonths; 
+  let currentAnnualRate = loanToProcess.details.originalInterestRate;
+  let currentTenureMonths = loanToProcess.details.originalTenureMonths; 
   let currentEMI = calculateEMI(cumulativeDisbursed, currentAnnualRate, currentTenureMonths); 
   
-  const allEvents: (LoanEvent | (Omit<Disbursement, 'date'> & { eventType: 'disbursement'; date: Date }))[] = [
-    ...(loan.paymentHistory || []).map(p => ({ ...p, eventType: 'payment' as const, date: new Date(new Date(p.date).setHours(0,0,0,0)) })),
-    ...(loan.interestRateChanges || []).map(c => ({ ...c, eventType: 'roiChange' as const, date: new Date(new Date(c.date).setHours(0,0,0,0)) })),
-    ...(loan.customEMIChanges || []).map(c => ({ ...c, eventType: 'emiChange' as const, date: new Date(new Date(c.date).setHours(0,0,0,0)) })),
+  const allCombinedEventsInternal: CombinedEventInternal[] = [
+    ...(loanToProcess.paymentHistory || []).map(p => ({ ...p, eventType: 'payment' as const, date: new Date(new Date(p.date).setHours(0,0,0,0)) })),
+    ...(loanToProcess.interestRateChanges || []).map(c => ({ ...c, eventType: 'roiChange' as const, date: new Date(new Date(c.date).setHours(0,0,0,0)) })),
+    ...(loanToProcess.customEMIChanges || []).map(c => ({ ...c, eventType: 'emiChange' as const, date: new Date(new Date(c.date).setHours(0,0,0,0)) })),
     ...sortedDisbursements.slice(1).map(d => ({ ...d, eventType: 'disbursement' as const, date: new Date(new Date(d.date).setHours(0,0,0,0)) })) 
   ].sort((a, b) => a.date.getTime() - b.date.getTime());
 
   let eventPointer = 0;
   
-  const loanStartDate = new Date(new Date(loan.details.startDate).setHours(0,0,0,0));
-  const emiStartDate = loan.details.emiStartDate ? new Date(new Date(loan.details.emiStartDate).setHours(0,0,0,0)) : loanStartDate; 
+  const loanStartDate = new Date(new Date(loanToProcess.details.startDate).setHours(0,0,0,0));
+  const emiStartDate = loanToProcess.details.emiStartDate ? new Date(new Date(loanToProcess.details.emiStartDate).setHours(0,0,0,0)) : loanStartDate; 
   
-  let actualDebitDay = loan.details.emiDebitDay || loanStartDate.getDate();
+  let actualDebitDay = loanToProcess.details.emiDebitDay || loanStartDate.getDate();
 
-  // Determine the date for the first schedule entry (payment period end)
   let paymentPeriodEndDate = new Date(loanStartDate);
-  if (loan.details.emiDebitDay) { // If a specific debit day is set
+  if (loanToProcess.details.emiDebitDay) { 
     if (actualDebitDay < loanStartDate.getDate()) {
-      // If debit day is in the past for the start month, move to next month's debit day
       paymentPeriodEndDate.setMonth(paymentPeriodEndDate.getMonth() + 1);
     }
     const daysInScheduledMonth = getDaysInMonth(paymentPeriodEndDate.getFullYear(), paymentPeriodEndDate.getMonth() + 1);
     paymentPeriodEndDate.setDate(Math.min(actualDebitDay, daysInScheduledMonth));
   }
-  // If no emiDebitDay, paymentPeriodEndDate remains loanStartDate for the first entry.
-  // For subsequent entries, it will be advanced by a month and day set to actualDebitDay.
-
 
   while (openingBalance > 0.01 && monthNumber < 600) { 
     monthNumber++;
     
-    if (monthNumber > 1) { // For subsequent months, advance and set day
+    if (monthNumber > 1) { 
         paymentPeriodEndDate.setMonth(paymentPeriodEndDate.getMonth() + 1);
         const daysInNewMonth = getDaysInMonth(paymentPeriodEndDate.getFullYear(), paymentPeriodEndDate.getMonth() + 1);
         paymentPeriodEndDate.setDate(Math.min(actualDebitDay, daysInNewMonth));
     }
-    // For monthNumber === 1, paymentPeriodEndDate is already set before the loop.
 
     const monthlyInterestRate = currentAnnualRate / 12 / 100;
     let interestForMonthAccrued = openingBalance * monthlyInterestRate;
@@ -70,8 +141,7 @@ export const generateAmortizationSchedule = (loan: Loan): AmortizationEntry[] =>
     let interestPaidThisMonth = 0;
     
     let effectiveEMIForMonth = currentEMI; 
-    // Pre-EMI check is based on whether the calculated paymentPeriodEndDate is before the emiStartDate
-    let isPreEmiPeriodCurrentMonth = loan.details.startedWithPreEMI && paymentPeriodEndDate < emiStartDate; 
+    let isPreEmiPeriodCurrentMonth = loanToProcess.details.startedWithPreEMI && paymentPeriodEndDate < emiStartDate; 
     let manualPaymentAmount: number | null = null; 
 
     let disbursementsThisMonth: AmortizationEntry['disbursements'] = [];
@@ -81,10 +151,8 @@ export const generateAmortizationSchedule = (loan: Loan): AmortizationEntry[] =>
     
     let openingBalanceForInterestCalc = openingBalance;
 
-    // Process events that fall on or before the paymentPeriodEndDate for this period
-    // Ensure event dates are also normalized for comparison
-    while(eventPointer < allEvents.length && allEvents[eventPointer].date.getTime() <= paymentPeriodEndDate.getTime()) {
-        const event = allEvents[eventPointer];
+    while(eventPointer < allCombinedEventsInternal.length && allCombinedEventsInternal[eventPointer].date.getTime() <= paymentPeriodEndDate.getTime()) {
+        const event = allCombinedEventsInternal[eventPointer];
         
         if (event.eventType === 'disbursement') {
             openingBalance += event.amount; 
@@ -124,7 +192,7 @@ export const generateAmortizationSchedule = (loan: Loan): AmortizationEntry[] =>
                 currentEMI = event.newEMIIfApplicable;
             }
             effectiveEMIForMonth = currentEMI; 
-            roiChangesThisMonth.push({ id: event.id, newRate: event.newRate, preference: event.adjustmentPreference }); 
+            roiChangesThisMonth.push({ id: event.id, newRate: event.newRate, preference: event.adjustmentPreference as string }); 
         } else if (event.eventType === 'emiChange') {
             currentEMI = event.newEMI;
             effectiveEMIForMonth = currentEMI; 
@@ -134,7 +202,7 @@ export const generateAmortizationSchedule = (loan: Loan): AmortizationEntry[] =>
     }
     
     let actualCashOutflowThisMonth = 0;
-    isPreEmiPeriodCurrentMonth = loan.details.startedWithPreEMI && paymentPeriodEndDate < emiStartDate; 
+    isPreEmiPeriodCurrentMonth = loanToProcess.details.startedWithPreEMI && paymentPeriodEndDate < emiStartDate; 
 
     if (manualPaymentAmount !== null) {
         actualCashOutflowThisMonth = manualPaymentAmount;
@@ -201,7 +269,10 @@ export const generateAmortizationSchedule = (loan: Loan): AmortizationEntry[] =>
   return schedule;
 };
 
-// ... (rest of the summary functions remain unchanged for this step) ...
+const getDaysInMonth = (year: number, month: number): number => { 
+    return new Date(year, month + 1, 0).getDate(); // month is 0-indexed for Date constructor
+};
+
 
 const DEFAULT_PRINCIPAL_DEDUCTION_LIMIT = 150000;
 const DEFAULT_INTEREST_DEDUCTION_LIMIT = 200000;

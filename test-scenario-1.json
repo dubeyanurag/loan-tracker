@@ -1,0 +1,29 @@
+{
+  "testName": "Basic Loan with One ROI Change (Adjust Tenure)",
+  "initialLoanDetails": {
+    "disbursements": [
+      { "id": "d1", "date": "2024-01-01", "amount": 100000, "remarks": "Initial" }
+    ],
+    "originalInterestRate": 10,
+    "originalTenureMonths": 36,
+    "startDate": "2024-01-01",
+    "startedWithPreEMI": false,
+    "emiDebitDay": 5
+  },
+  "events": [
+    { 
+      "eventType": "ROI_CHANGE", 
+      "date": "2024-03-01", 
+      "newRate": 12, 
+      "adjustmentPreference": "adjustTenure" 
+    }
+  ],
+  "expectedResults": {
+    "finalTenure": 36, 
+    "scheduleEntryChecks": [
+      { "monthNumber": 1, "interestPaid": 833.33, "principalPaid": 2395.59 },
+      { "monthNumber": 2, "interestPaid": 813.37, "principalPaid": 2415.55 },
+      { "monthNumber": 3, "interestPaid": 974.08, "principalPaid": 2254.84 } 
+    ]
+  }
+}

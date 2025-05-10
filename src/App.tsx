@@ -2,10 +2,11 @@
 import styled from 'styled-components';
 import LoanForm from './components/LoanForm';
 import LoanList from './components/LoanList';
-import { useAppState } from './contexts/AppContext';
+import { useAppContextShape } from './contexts/AppContext'; // Use useAppContextShape
 import LoanDetailsDisplay from './components/LoanDetailsDisplay';
 import ShareState from './components/ShareState'; 
-import OverallSummary from './components/OverallSummary'; // Import OverallSummary
+import OverallSummary from './components/OverallSummary'; 
+import TestRunner from './components/TestRunner'; // Import TestRunner
 
 // Basic layout styled components
 const AppContainer = styled.div`
@@ -56,8 +57,12 @@ const Section = styled.section`
 
 
 function App() {
-  const { selectedLoanId, loans } = useAppState();
+  const { selectedLoanId, loans, testCaseData } = useAppContextShape(); // Get testCaseData
   const selectedLoan = loans.find(loan => loan.id === selectedLoanId);
+
+  if (testCaseData) {
+    return <TestRunner testCase={testCaseData} />;
+  }
 
   return (
     <AppContainer>
