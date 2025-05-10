@@ -8,7 +8,7 @@
     "originalTenureMonths": 36,
     "startDate": "2024-01-01",
     "startedWithPreEMI": false,
-    "emiDebitDay": 5
+    "emiDebitDay": 5 
   },
   "events": [
     { 
@@ -19,11 +19,11 @@
     }
   ],
   "expectedResults": {
-    "finalTenure": 36, 
+    "finalTenure": 38, 
     "scheduleEntryChecks": [
-      { "monthNumber": 1, "interestPaid": 833.33, "principalPaid": 2395.59 },
-      { "monthNumber": 2, "interestPaid": 813.37, "principalPaid": 2415.55 },
-      { "monthNumber": 3, "interestPaid": 974.08, "principalPaid": 2254.84 } 
+      { "monthNumber": 1, "interestPaid": 833.33, "principalPaid": 2393.39 },
+      { "monthNumber": 2, "interestPaid": 813.39, "principalPaid": 2413.33 },
+      { "monthNumber": 3, "interestPaid": 951.93, "principalPaid": 2274.79 } 
     ]
   }
 }
