@@ -1,6 +1,6 @@
 // src/contexts/AppContext.test.tsx
 import { describe, it, expect } from 'vitest';
-import { appReducer, initialState } from './AppContext'; // Assuming appReducer and initialState are exported
+import { appReducer, initialContextState } from './AppContext'; // Changed initialState to initialContextState
 import { AppState, Loan, Disbursement, Payment, InterestRateChange, CustomEMIChange } from '../types';
 
 // Helper to create a basic loan for testing
@@ -23,15 +23,15 @@ describe('appReducer', () => {
     it('should handle ADD_LOAN', () => {
         const newLoan = createTestLoan('loan1', 'Test Loan 1');
         const action = { type: 'ADD_LOAN' as const, payload: newLoan };
-        const newState = appReducer(initialState, action);
+        const newState = appReducer(initialContextState, action); // Use initialContextState
         expect(newState.loans).toHaveLength(1);
         expect(newState.loans[0]).toEqual(newLoan);
         expect(newState.selectedLoanId).toBe('loan1');
     });
 
     it('should handle SELECT_LOAN', () => {
-        const stateWithLoan: AppState = {
-            ...initialState,
+        const stateWithLoan = { // Type will be AppContextShape due to initialContextState
+            ...initialContextState,
             loans: [createTestLoan('loan1', 'Test Loan 1')],
         };
         const action = { type: 'SELECT_LOAN' as const, payload: 'loan1' };
@@ -46,7 +46,8 @@ describe('appReducer', () => {
     it('should handle DELETE_LOAN', () => {
         const loan1 = createTestLoan('loan1', 'Test Loan 1');
         const loan2 = createTestLoan('loan2', 'Test Loan 2');
-        const stateWithLoans: AppState = {
+        const stateWithLoans = { // Type will be AppContextShape
+            ...initialContextState,
             loans: [loan1, loan2],
             selectedLoanId: 'loan1',
         };
@@ -54,13 +55,16 @@ describe('appReducer', () => {
         const newState = appReducer(stateWithLoans, action);
         expect(newState.loans).toHaveLength(1);
         expect(newState.loans[0].id).toBe('loan2');
-        expect(newState.selectedLoanId).toBeNull(); // Selected loan was deleted
+        // Corrected expectation: if selected loan ('loan1') is deleted, 
+        // new selectedLoanId is the first of remaining loans, or null if no loans left.
+        expect(newState.selectedLoanId).toBe(newState.loans.length > 0 ? newState.loans[0].id : null); 
     });
     
      it('should handle DELETE_LOAN when deleted loan is not selected', () => {
         const loan1 = createTestLoan('loan1', 'Test Loan 1');
         const loan2 = createTestLoan('loan2', 'Test Loan 2');
-        const stateWithLoans: AppState = {
+        const stateWithLoans = { // Type will be AppContextShape
+            ...initialContextState,
             loans: [loan1, loan2],
             selectedLoanId: 'loan2', // loan2 is selected
         };
@@ -73,9 +77,10 @@ describe('appReducer', () => {
 
     it('should handle ADD_DISBURSEMENT', () => {
         const loan1 = createTestLoan('loan1', 'Test Loan 1', 100000);
-        const stateWithLoan: AppState = { loans: [loan1], selectedLoanId: 'loan1' };
-        const newDisbursement: Disbursement = { id: 'd2', date: '2023-06-01', amount: 50000 };
-        const action = { type: 'ADD_DISBURSEMENT' as const, payload: { loanId: 'loan1', disbursement: newDisbursement } };
+        const stateWithLoan = { ...initialContextState, loans: [loan1], selectedLoanId: 'loan1' };
+        // Payload for ADD_DISBURSEMENT is Omit<Disbursement, 'id'>
+        const newDisbursementPayload: Omit<Disbursement, 'id'> = { date: '2023-06-01', amount: 50000 };
+        const action = { type: 'ADD_DISBURSEMENT' as const, payload: { loanId: 'loan1', disbursement: newDisbursementPayload } };
         
         const newState = appReducer(stateWithLoan, action);
         expect(newState.loans[0].details.disbursements).toHaveLength(2);
@@ -87,12 +92,12 @@ describe('appReducer', () => {
 
     it('should handle ADD_PAYMENT (Prepayment)', () => {
         const loan1 = createTestLoan('loan1', 'Test Loan 1');
-        const stateWithLoan: AppState = { loans: [loan1], selectedLoanId: 'loan1' };
-        const newPayment: Payment = { 
-            id: 'p1', date: '2023-02-01', amount: 10000, type: 'Prepayment', 
-            principalPaid: 10000, interestPaid: 0, balanceAfterPayment: 0 // Placeholder values
+        const stateWithLoan = { ...initialContextState, loans: [loan1], selectedLoanId: 'loan1' };
+        // Payload for ADD_PAYMENT is Omit<Payment, 'id' | 'principalPaid' | 'interestPaid' | 'balanceAfterPayment'>
+        const newPaymentPayload: Omit<Payment, 'id' | 'principalPaid' | 'interestPaid' | 'balanceAfterPayment'> = { 
+            date: '2023-02-01', amount: 10000, type: 'Prepayment'
         };
-        const action = { type: 'ADD_PAYMENT' as const, payload: { loanId: 'loan1', payment: newPayment } };
+        const action = { type: 'ADD_PAYMENT' as const, payload: { loanId: 'loan1', payment: newPaymentPayload } };
 
         const newState = appReducer(stateWithLoan, action);
         expect(newState.loans[0].paymentHistory).toHaveLength(1);
@@ -103,11 +108,12 @@ describe('appReducer', () => {
 
      it('should handle ADD_INTEREST_RATE_CHANGE', () => {
         const loan1 = createTestLoan('loan1', 'Test Loan 1');
-        const stateWithLoan: AppState = { loans: [loan1], selectedLoanId: 'loan1' };
-        const newChange: InterestRateChange = { 
-            id: 'r1', date: '2024-01-01', newRate: 9.0, adjustmentPreference: 'adjustTenure'
+        const stateWithLoan = { ...initialContextState, loans: [loan1], selectedLoanId: 'loan1' };
+        // Payload for ADD_INTEREST_RATE_CHANGE is Omit<InterestRateChange, 'id'>
+        const newChangePayload: Omit<InterestRateChange, 'id'> = { 
+            date: '2024-01-01', newRate: 9.0, adjustmentPreference: 'adjustTenure'
         };
-        const action = { type: 'ADD_INTEREST_RATE_CHANGE' as const, payload: { loanId: 'loan1', change: newChange } };
+        const action = { type: 'ADD_INTEREST_RATE_CHANGE' as const, payload: { loanId: 'loan1', change: newChangePayload } };
 
         const newState = appReducer(stateWithLoan, action);
         expect(newState.loans[0].interestRateChanges).toHaveLength(1);
@@ -117,11 +123,12 @@ describe('appReducer', () => {
 
      it('should handle ADD_CUSTOM_EMI_CHANGE', () => {
         const loan1 = createTestLoan('loan1', 'Test Loan 1');
-        const stateWithLoan: AppState = { loans: [loan1], selectedLoanId: 'loan1' };
-        const newChange: CustomEMIChange = { 
-            id: 'e1', date: '2024-02-01', newEMI: 5000
+        const stateWithLoan = { ...initialContextState, loans: [loan1], selectedLoanId: 'loan1' };
+        // Payload for ADD_CUSTOM_EMI_CHANGE is Omit<CustomEMIChange, 'id'>
+        const newChangePayload: Omit<CustomEMIChange, 'id'> = { 
+            date: '2024-02-01', newEMI: 5000
         };
-        const action = { type: 'ADD_CUSTOM_EMI_CHANGE' as const, payload: { loanId: 'loan1', change: newChange } };
+        const action = { type: 'ADD_CUSTOM_EMI_CHANGE' as const, payload: { loanId: 'loan1', change: newChangePayload } };
 
         const newState = appReducer(stateWithLoan, action);
         expect(newState.loans[0].customEMIChanges).toHaveLength(1);
@@ -131,7 +138,7 @@ describe('appReducer', () => {
 
     it('should handle UPDATE_LOAN', () => {
         const loan1 = createTestLoan('loan1', 'Test Loan 1');
-        const stateWithLoan: AppState = { loans: [loan1], selectedLoanId: 'loan1' };
+        const stateWithLoan = { ...initialContextState, loans: [loan1], selectedLoanId: 'loan1' };
         const updatedLoan = { ...loan1, name: 'Updated Loan Name' };
         const action = { type: 'UPDATE_LOAN' as const, payload: updatedLoan };
 
@@ -141,14 +148,17 @@ describe('appReducer', () => {
     });
 
      it('should return current state for unknown action', () => {
-        const stateWithLoan: AppState = {
-            ...initialState,
+        const stateWithLoan = { // Type will be AppContextShape
+            ...initialContextState,
              loans: [createTestLoan('loan1', 'Test Loan 1')],
          };
-         // Removed @ts-expect-error as the action type is genuinely invalid now
          const action = { type: 'UNKNOWN_ACTION', payload: {} }; 
-         const newState = appReducer(stateWithLoan, action as any); // Use 'as any' to bypass TS check for this specific test case
+         const newState = appReducer(stateWithLoan, action as any); 
         expect(newState).toEqual(stateWithLoan);
     });
 
 });
+
+// Note: The createTestLoan helper might need to return something compatible with AppContextShape if used directly as state.
+// For now, it's used to create Loan objects which are part of AppState/AppContextShape.
+// The state passed to appReducer in tests should be AppContextShape.

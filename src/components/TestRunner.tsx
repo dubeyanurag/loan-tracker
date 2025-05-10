@@ -2,7 +2,8 @@
 import React, { useMemo } from 'react';
 import styled from 'styled-components';
 import { v4 as uuidv4 } from 'uuid'; // Import uuid
-import { TestCaseJson, AmortizationEntry, AnnualSummary, LifespanSummary, LoanDetails } from '../types';
+import type { AmortizationEntry, AnnualSummary, LifespanSummary } from '../types'; // Use import type
+import { TestCaseJson, LoanDetails } from '../types'; // Keep these as direct imports
 import { 
     generateAmortizationSchedule, 
     generateAnnualSummaries, 
