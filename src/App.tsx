@@ -2,67 +2,63 @@
 import styled from 'styled-components';
 import LoanForm from './components/LoanForm';
 import LoanList from './components/LoanList';
-import { useAppContextShape } from './contexts/AppContext'; // Use useAppContextShape
+import { useAppState } from './contexts/AppContext'; // Reverted to useAppState
 import LoanDetailsDisplay from './components/LoanDetailsDisplay';
 import ShareState from './components/ShareState'; 
 import OverallSummary from './components/OverallSummary'; 
-import TestRunner from './components/TestRunner'; // Import TestRunner
+// import TestRunner from './components/TestRunner'; // Removed TestRunner import
 
 // Basic layout styled components
 const AppContainer = styled.div`
-  position: relative; /* Needed for absolute positioning of children */
-  /* max-width: 900px; */ 
+  position: relative; 
   margin: 0; 
-  padding: 1.5rem; /* Use rem */
-  font-family: inherit; /* Inherit from :root */
-  color: inherit; /* Inherit from :root */
-  background-color: #ffffff; /* White background for main app area */
-  border-radius: 8px; /* Slightly larger radius */
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* Refined shadow */
-  margin: 1rem auto; /* Add margin for spacing from viewport edges */
-  max-width: 1200px; /* Add back a max-width for large screens */
+  padding: 1.5rem; 
+  font-family: inherit; 
+  color: inherit; 
+  background-color: #ffffff; 
+  border-radius: 8px; 
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
+  margin: 1rem auto; 
+  max-width: 1200px; 
 `;
 
-// New Header Container using Flexbox
 const HeaderContainer = styled.div`
   display: flex;
-  justify-content: space-between; /* Pushes title left, share right */
+  justify-content: space-between; 
   align-items: center; 
-  margin-bottom: 1.5rem; /* Use rem */
-  padding-bottom: 1rem; /* Add padding below title/share */
-  border-bottom: 1px solid #e0e0e0; /* Separator line */
+  margin-bottom: 1.5rem; 
+  padding-bottom: 1rem; 
+  border-bottom: 1px solid #e0e0e0; 
 `;
 
 const MainTitle = styled.h1`
-  color: #1976d2; /* Material Blue */
+  color: #1976d2; 
   margin: 0; 
-  font-size: 2rem; /* Adjusted size */
+  font-size: 2rem; 
 `;
 
 const ContentLayout = styled.div`
   display: flex; 
   flex-direction: column; 
-  gap: 1.5rem; /* Use rem */
-
-  /* Remove media query for columns */
-  /* @media (min-width: 768px) { ... } */
+  gap: 1.5rem; 
 `;
 
 const Section = styled.section`
-  padding: 1rem; /* Use rem */
-  border-radius: 6px; /* Consistent radius */
-  background-color: #f9f9f9; /* Very light grey for sections */
-  border: 1px solid #e0e0e0; /* Light border */
+  padding: 1rem; 
+  border-radius: 6px; 
+  background-color: #f9f9f9; 
+  border: 1px solid #e0e0e0; 
 `;
 
 
 function App() {
-  const { selectedLoanId, loans, testCaseData } = useAppContextShape(); // Get testCaseData
-  const selectedLoan = loans.find(loan => loan.id === selectedLoanId);
+  const { selectedLoanId, loans } = useAppState(); // Use useAppState, no testCaseData
+  const selectedLoan = loans.find(loan => loan.id === selectedLoanId); // loan type should be inferred
 
-  if (testCaseData) {
-    return <TestRunner testCase={testCaseData} />;
-  }
+  // Removed TestRunner conditional rendering
+  // if (testCaseData) {
+  //   return <TestRunner testCase={testCaseData} />;
+  // }
 
   return (
     <AppContainer>
@@ -71,7 +67,7 @@ function App() {
         <ShareState /> 
       </HeaderContainer>
 
-      <OverallSummary /> {/* Add Overall Summary Component */}
+      <OverallSummary /> 
       
       <ContentLayout>
         <Section>
@@ -82,8 +78,7 @@ function App() {
         <Section>
           {selectedLoan ? (
             <div>
-              <h2 style={{color: '#3f51b5'}}>{selectedLoan.name} Details</h2> {/* Material Indigo */}
-              {/* Interest rate removed */}
+              <h2 style={{color: '#3f51b5'}}>{selectedLoan.name} Details</h2> 
               <LoanDetailsDisplay loan={selectedLoan} /> 
             </div>
           ) : (
@@ -91,7 +86,6 @@ function App() {
           )}
         </Section>
       </ContentLayout>
-      {/* ShareState moved into HeaderContainer */}
     </AppContainer>
   );
 }

@@ -1,5 +1,5 @@
 // src/utils/amortizationCalculator.ts
-import { Loan, AmortizationEntry, Payment, InterestRateChange, CustomEMIChange, Disbursement, CurrentSummary, AnnualSummary, LifespanSummary, LoanDetails, TestEvent } from '../types'; 
+import { Loan, AmortizationEntry, Payment, InterestRateChange, CustomEMIChange, Disbursement, CurrentSummary, AnnualSummary, LifespanSummary, LoanDetails } from '../types'; 
 import { calculateEMI } from './loanCalculations'; 
 import { v4 as uuidv4 } from 'uuid'; 
 
@@ -12,87 +12,20 @@ type CombinedEventInternal =
 
 
 export const generateAmortizationSchedule = (
-  loanOrDetails: Loan | LoanDetails, 
-  testEvents?: TestEvent[] 
+  loan: Loan // Changed signature back to loan: Loan
 ): AmortizationEntry[] => {
   const schedule: AmortizationEntry[] = [];
-
-  let loanToProcess: Loan;
-
-  if ('id' in loanOrDetails && 'name' in loanOrDetails && testEvents === undefined) { 
-    loanToProcess = loanOrDetails as Loan;
-  } else if ('disbursements' in loanOrDetails && testEvents !== undefined) { 
-    const details = loanOrDetails as LoanDetails;
-    if (!details.disbursements || details.disbursements.length === 0) {
-        console.error("Test case initialLoanDetails must have at least one disbursement.");
-        return schedule;
-    }
-    loanToProcess = {
-      id: uuidv4(), 
-      name: "Test Loan",
-      details: JSON.parse(JSON.stringify(details)), // Deep copy details
-      paymentHistory: [],
-      interestRateChanges: [],
-      customEMIChanges: [],
-    };
-
-    // Ensure initial disbursements have IDs
-    loanToProcess.details.disbursements = loanToProcess.details.disbursements.map(d => ({ ...d, id: d.id || uuidv4() }));
-
-    testEvents.forEach(event => {
-      const id = uuidv4();
-      switch (event.eventType) {
-        case 'PREPAYMENT':
-          loanToProcess.paymentHistory.push({
-            id,
-            date: event.date,
-            amount: event.amount,
-            type: 'Prepayment',
-            adjustmentPreference: event.adjustmentPreference,
-            remarks: event.remarks,
-            principalPaid: 0, // Placeholder, will be calculated
-            interestPaid: 0,  // Placeholder
-            balanceAfterPayment: 0, // Placeholder
-          });
-          break;
-        case 'ROI_CHANGE':
-          loanToProcess.interestRateChanges.push({
-            id,
-            date: event.date,
-            newRate: event.newRate,
-            adjustmentPreference: event.adjustmentPreference,
-            newEMIIfApplicable: event.newEMIIfApplicable,
-          });
-          break;
-        case 'CUSTOM_EMI':
-          loanToProcess.customEMIChanges.push({
-            id,
-            date: event.date,
-            newEMI: event.newEMI,
-            remarks: event.remarks,
-          });
-          break;
-        case 'DISBURSEMENT': // Subsequent disbursements from testEvents
-          loanToProcess.details.disbursements.push({
-            id,
-            date: event.date,
-            amount: event.amount,
-            remarks: event.remarks,
-          });
-          break;
-      }
-    });
-    // Re-sort disbursements if new ones were added from testEvents
-    loanToProcess.details.disbursements.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
-  } else {
-    console.error("Invalid parameters for generateAmortizationSchedule: Provide full Loan object, or LoanDetails with testEvents.");
-    return schedule;
-  }
+  
+  // Removed test case specific logic for loanOrDetails and testEvents
+  // Directly use the passed 'loan' object
+  const loanToProcess = loan;
 
   if (!loanToProcess.details || !loanToProcess.details.disbursements || loanToProcess.details.disbursements.length === 0) return schedule;
 
-  const sortedDisbursements = loanToProcess.details.disbursements; // Already sorted if modified
+  // Ensure all disbursements in details have IDs (this might still be useful if some are added without IDs elsewhere)
+  loanToProcess.details.disbursements = loanToProcess.details.disbursements.map(d => ({ ...d, id: d.id || uuidv4() }));
+
+  const sortedDisbursements = [...loanToProcess.details.disbursements].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
   let monthNumber = 0;
   let openingBalance = sortedDisbursements[0].amount; 

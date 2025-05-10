@@ -1,28 +1,21 @@
 // src/contexts/AppContext.tsx
 import React, { createContext, useReducer, useContext, ReactNode, useEffect } from 'react';
-import { AppState, AppAction, Loan, Payment, InterestRateChange, CustomEMIChange, Disbursement, TestCaseJson } from '../types'; 
+import { AppState, AppAction, Loan, Payment, InterestRateChange, CustomEMIChange, Disbursement } from '../types'; 
 import { v4 as uuidv4 } from 'uuid'; 
 
 const LOCAL_STORAGE_KEY = 'homeLoanTrackerAppState';
 
-// Define the shape of the context state, including testCaseData
-interface AppContextShape extends AppState {
-  testCaseData?: TestCaseJson | null;
-}
-
-// Initial state should conform to AppContextShape
-export const initialContextState: AppContextShape = { 
+// Initial state 
+export const initialState: AppState = { 
   loans: [],
   selectedLoanId: null,
-  testCaseData: null, // Initialize testCaseData
 };
 
-// Reducer now manages AppContextShape
-export const appReducer = (state: AppContextShape, action: AppAction): AppContextShape => { 
+// Reducer manages AppState
+export const appReducer = (state: AppState, action: AppAction): AppState => { 
   switch (action.type) {
     case 'LOAD_STATE':
-      // When loading state, ensure it's compatible with AppContextShape
-      return { ...initialContextState, ...action.payload, testCaseData: state.testCaseData }; // Preserve testCaseData if already set
+      return { ...initialState, ...action.payload };
     case 'ADD_LOAN':
       return {
         ...state,
@@ -56,9 +49,9 @@ export const appReducer = (state: AppContextShape, action: AppAction): AppContex
       const newPayment: Payment = {
         ...payment,
         id: uuidv4(),
-        principalPaid: 0, // Placeholder, will be calculated by schedule
-        interestPaid: 0,  // Placeholder
-        balanceAfterPayment: 0, // Placeholder
+        principalPaid: 0, 
+        interestPaid: 0,  
+        balanceAfterPayment: 0, 
       };
       return {
         ...state,
@@ -116,7 +109,7 @@ export const appReducer = (state: AppContextShape, action: AppAction): AppContex
   }
 };
 
-const AppStateContext = createContext<AppContextShape | undefined>(undefined);
+const AppStateContext = createContext<AppState | undefined>(undefined); // Uses AppState
 const AppDispatchContext = createContext<React.Dispatch<AppAction> | undefined>(undefined);
 
 interface AppProviderProps {
@@ -128,110 +121,81 @@ const isValidAppState = (data: any): data is AppState => {
            (data.selectedLoanId === null || typeof data.selectedLoanId === 'string');
 };
 
-const isValidTestCaseJson = (data: any): data is TestCaseJson => {
-    return data && typeof data.testName === 'string' && 
-           data.initialLoanDetails && typeof data.initialLoanDetails === 'object' &&
-           Array.isArray(data.events) &&
-           data.expectedResults && typeof data.expectedResults === 'object';
-};
-
-
 export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
-  const [state, dispatch] = useReducer(appReducer, initialContextState, (initial) => {
-    let loadedState: AppState = { loans: initial.loans, selectedLoanId: initial.selectedLoanId };
-    let parsedTestCase: TestCaseJson | null = null;
-    const urlParams = new URLSearchParams(window.location.search); // Define urlParams here
+  const [state, dispatch] = useReducer(appReducer, initialState, (initial) => {
+    let loadedState: AppState = initial; // Start with initial AppState
 
-    // 1. Check for testCase URL parameter
+    // Check for loadState URL parameter (for sharing state)
     try {
-        // const urlParams = new URLSearchParams(window.location.search); // Moved up
-        const base64TestCase = urlParams.get('testCase');
-        if (base64TestCase) {
-            console.log("Found testCase in URL parameter.");
-            const jsonTestCase = atob(base64TestCase);
-            const tempParsedTestCase = JSON.parse(jsonTestCase);
-            if (isValidTestCaseJson(tempParsedTestCase)) {
-                parsedTestCase = tempParsedTestCase;
-                console.log("Successfully parsed testCase from URL.", parsedTestCase);
+        const urlParams = new URLSearchParams(window.location.search);
+        const base64State = urlParams.get('loadState');
+        if (base64State) {
+            console.log("Found loadState in URL parameter.");
+            const jsonState = atob(base64State);
+            const parsedStateFromUrl = JSON.parse(jsonState);
+            if (isValidAppState(parsedStateFromUrl)) {
+                console.log("Successfully parsed state from URL for merging/loading.");
+                // Merge logic: URL state takes precedence for shared loans
+                let existingStateFromStorage = initial;
+                 try {
+                    const storedState = localStorage.getItem(LOCAL_STORAGE_KEY);
+                    if (storedState) {
+                        const parsedLocalStorageState = JSON.parse(storedState);
+                        if (isValidAppState(parsedLocalStorageState)) {
+                            existingStateFromStorage = parsedLocalStorageState;
+                        }
+                    }
+                } catch (e) { /* ignore */ }
+
+                const urlLoansMap = new Map<string, Loan>();
+                parsedStateFromUrl.loans.forEach(loan => urlLoansMap.set(loan.id, loan));
+                
+                const mergedLoans = existingStateFromStorage.loans.filter(l => !urlLoansMap.has(l.id));
+                mergedLoans.push(...parsedStateFromUrl.loans);
+                
+                loadedState = {
+                    loans: mergedLoans,
+                    selectedLoanId: parsedStateFromUrl.loans.length > 0 ? parsedStateFromUrl.loans[0].id : (mergedLoans.length > 0 ? mergedLoans[0].id : null)
+                };
             } else {
-                console.warn("Invalid TestCaseJson structure from URL.");
+                console.warn("Invalid AppState structure from loadState URL parameter.");
             }
-            // Clear the URL parameter after attempting to load
             window.history.replaceState({}, document.title, window.location.pathname + window.location.hash); 
+        } else {
+            // Fallback to localStorage if no loadState URL param
+            try {
+              const storedState = localStorage.getItem(LOCAL_STORAGE_KEY);
+              if (storedState) {
+                const parsedState = JSON.parse(storedState);
+                 if (isValidAppState(parsedState)) {
+                    console.log("Successfully loaded state from localStorage.");
+                    loadedState = parsedState;
+                 } else {
+                     console.warn("Invalid state structure found in localStorage.");
+                 }
+              }
+            } catch (error) {
+              console.error("Error loading state from localStorage:", error);
+            }
         }
     } catch (error) {
-        console.error("Error processing testCase from URL parameter:", error);
-    }
-
-    // 2. If not in test mode, check for loadState URL parameter
-    if (!parsedTestCase) {
-        try {
-            const urlParams = new URLSearchParams(window.location.search);
-            const base64State = urlParams.get('loadState');
-            if (base64State) {
-                console.log("Found loadState in URL parameter.");
-                const jsonState = atob(base64State);
-                const parsedStateFromUrl = JSON.parse(jsonState);
-                if (isValidAppState(parsedStateFromUrl)) {
-                    console.log("Successfully parsed state from URL for merging/loading.");
-                    // Merge logic (simplified: URL state takes precedence for shared loans)
-                    let existingStateFromStorage = initial;
-                     try {
-                        const storedState = localStorage.getItem(LOCAL_STORAGE_KEY);
-                        if (storedState) {
-                            const parsedLocalStorageState = JSON.parse(storedState);
-                            if (isValidAppState(parsedLocalStorageState)) {
-                                existingStateFromStorage = parsedLocalStorageState;
-                            }
-                        }
-                    } catch (e) { /* ignore */ }
-
-                    const urlLoansMap = new Map<string, Loan>();
-                    parsedStateFromUrl.loans.forEach(loan => urlLoansMap.set(loan.id, loan));
-                    
-                    const mergedLoans = existingStateFromStorage.loans.filter(l => !urlLoansMap.has(l.id));
-                    mergedLoans.push(...parsedStateFromUrl.loans);
-                    
-                    loadedState = {
-                        loans: mergedLoans,
-                        selectedLoanId: parsedStateFromUrl.loans.length > 0 ? parsedStateFromUrl.loans[0].id : (mergedLoans.length > 0 ? mergedLoans[0].id : null)
-                    };
-                } else {
-                    console.warn("Invalid AppState structure from loadState URL parameter.");
-                }
-                window.history.replaceState({}, document.title, window.location.pathname + window.location.hash); 
+        console.error("Error processing URL parameters or localStorage:", error);
+        // Fallback to initial or localStorage if URL processing fails catastrophically
+         try {
+            const storedState = localStorage.getItem(LOCAL_STORAGE_KEY);
+            if (storedState) {
+                const parsedState = JSON.parse(storedState);
+                if (isValidAppState(parsedState)) loadedState = parsedState;
             }
-        } catch (error) {
-            console.error("Error processing loadState from URL parameter:", error);
-        }
-    }
-
-    // 3. If no URL parameters handled state, fallback to localStorage
-    if (!parsedTestCase && !urlParams.get('loadState')) { // Check if loadState was processed
-        try {
-          const storedState = localStorage.getItem(LOCAL_STORAGE_KEY);
-          if (storedState) {
-            const parsedState = JSON.parse(storedState);
-             if (isValidAppState(parsedState)) {
-                console.log("Successfully loaded state from localStorage.");
-                loadedState = parsedState;
-             } else {
-                 console.warn("Invalid state structure found in localStorage.");
-             }
-          }
-        } catch (error) {
-          console.error("Error loading state from localStorage:", error);
-        }
+        } catch (e) { /* ignore */ }
     }
     
-    return { ...initial, ...loadedState, testCaseData: parsedTestCase };
+    return loadedState; // Returns AppState
   });
 
   useEffect(() => {
-    // Save only the AppState part, not testCaseData to localStorage
-    const { testCaseData, ...stateToSave } = state;
     try {
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(stateToSave));
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(state));
     } catch (error) {
       console.error("Error saving state to localStorage:", error);
     }
@@ -246,26 +210,13 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   );
 };
 
-// Custom Hooks for AppState (not AppContextShape directly for external consumers)
 export const useAppState = (): AppState => {
   const context = useContext(AppStateContext);
   if (context === undefined) {
     throw new Error('useAppState must be used within an AppProvider');
   }
-  // Exclude testCaseData for general app consumption
-  const { testCaseData, ...appState } = context;
-  return appState;
+  return context;
 };
-
-// Hook to get the full context shape including testCaseData (for App.tsx)
-export const useAppContextShape = (): AppContextShape => {
-    const context = useContext(AppStateContext);
-    if (context === undefined) {
-      throw new Error('useAppContextShape must be used within an AppProvider');
-    }
-    return context;
-};
-
 
 export const useAppDispatch = (): React.Dispatch<AppAction> => {
   const context = useContext(AppDispatchContext);
