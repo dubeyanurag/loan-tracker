@@ -1,6 +1,6 @@
 // src/utils/loanCalculations.test.ts
 import { describe, it, expect } from 'vitest';
-import { calculateEMI, calculateTotalDisbursed, calculateTotalInterestAndPayment } from './loanCalculations';
+import { calculateEMI, calculateTotalDisbursed } from './loanCalculations'; // Removed calculateTotalInterestAndPayment
 import { Disbursement } from '../types';
 
 describe('loanCalculations', () => {
@@ -58,26 +58,6 @@ describe('loanCalculations', () => {
      it('should handle negative interest rate (treat as zero)', () => {
       expect(calculateEMI(120000, -1, 12)).toBe(10000);
     });
-  });
-
-  describe('calculateTotalInterestAndPayment', () => {
-     it('should calculate total interest and payment correctly', () => {
-        const principal = 5000000;
-        const emi = 43391.16;
-        const tenureMonths = 240;
-        const expectedTotalPayment = 43391.16 * 240; // 10413878.4
-        const expectedTotalInterest = expectedTotalPayment - principal; // 5413878.4
-
-        const result = calculateTotalInterestAndPayment(principal, emi, tenureMonths);
-        expect(result.totalPayment).toBeCloseTo(expectedTotalPayment, 2);
-        expect(result.totalInterest).toBeCloseTo(expectedTotalInterest, 2);
-     });
-
-      it('should return zero if inputs are invalid', () => {
-        expect(calculateTotalInterestAndPayment(0, 1000, 12)).toEqual({ totalInterest: 0, totalPayment: 0 });
-        expect(calculateTotalInterestAndPayment(10000, 0, 12)).toEqual({ totalInterest: 0, totalPayment: 0 });
-        expect(calculateTotalInterestAndPayment(10000, 1000, 0)).toEqual({ totalInterest: 0, totalPayment: 0 });
-      });
   });
 
   // Add tests for calculateNewTenureAfterPrepayment later if needed
