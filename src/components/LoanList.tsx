@@ -28,7 +28,7 @@ const LoanList: React.FC = () => {
   // handleDeleteLoan is now handled within LoanListItem
 
   if (loans.length === 0) {
-    return <p>No loans added yet. Use the form above to add a new loan.</p>;
+    return null; // Render nothing if no loans
   }
 
   return (

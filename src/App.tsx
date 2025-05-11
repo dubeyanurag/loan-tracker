@@ -65,27 +65,30 @@ function App() {
     <AppContainer>
       <HeaderContainer>
         <MainTitle>Loan Tracker</MainTitle> 
-        <ShareState /> 
+        {loans.length > 0 && <ShareState />} {/* Conditionally render ShareState */}
       </HeaderContainer>
 
-      <OverallSummary /> 
+      {loans.length > 0 && <OverallSummary />} {/* Conditionally render OverallSummary if it makes sense */}
       
       <ContentLayout>
         <Section>
-          <LoanForm /> {/* FAB is inside LoanForm */}
+          <LoanForm /> {/* FAB is inside LoanForm and always visible */}
           <LoanList />
         </Section>
         
-        <Section>
-          {selectedLoan ? (
-            <div>
-              <h2 style={{color: '#3f51b5'}}>{selectedLoan.name} Details</h2> 
-              <LoanDetailsDisplay loan={selectedLoan} /> 
-            </div>
-          ) : (
-            <p style={{ textAlign: 'center', color: '#777', marginTop: '30px' }}>Select a loan to see details or add a new loan.</p>
-          )}
-        </Section>
+        {loans.length > 0 && ( /* Only show this section if there are loans */
+          <Section>
+            {selectedLoan ? (
+              <div>
+                <h2 style={{color: '#3f51b5'}}>{selectedLoan.name} Details</h2> 
+                <LoanDetailsDisplay loan={selectedLoan} /> 
+              </div>
+            ) : (
+              // This message is shown if loans exist but none is selected
+              <p style={{ textAlign: 'center', color: '#777', marginTop: '30px' }}>Select a loan to see details.</p>
+            )}
+          </Section>
+        )}
       </ContentLayout>
 
       {/* Edit Loan Modal */}
