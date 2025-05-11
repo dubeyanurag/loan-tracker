@@ -1,12 +1,12 @@
 // src/components/LoanDetailsDisplay.tsx
 import React, { useMemo, useState } from 'react';
-import styled from 'styled-components';
+import styled, { css } from 'styled-components'; // Import css
 import { Loan } from '../types';
 import { generateAmortizationSchedule } from '../utils/amortizationCalculator';
 import AmortizationTable from './AmortizationTable';
 import LoanSummaries from './LoanSummaries'; 
 import LoanChart from './LoanChart';
-import LoanHistoryTimeline from './LoanHistoryTimeline'; // Import Timeline
+import LoanHistoryTimeline from './LoanHistoryTimeline';
 import { useAppDispatch } from '../contexts/AppContext';
 import Modal from './Modal'; 
 import AddDisbursementForm from './AddDisbursementForm'; 
@@ -19,17 +19,40 @@ const DisplayContainer = styled.div`
   background-color: #fff;
 `;
 
-const ButtonContainer = styled.div`
+const TopControlsContainer = styled.div`
   margin-bottom: 1rem;
   display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
+  justify-content: space-between; // To push Add Disbursement button to the right
   align-items: center; 
+  flex-wrap: wrap; // Allow wrapping on small screens
+  gap: 0.5rem;
 `;
 
-const StyledButton = styled.button`
+const TabNav = styled.div`
+  display: flex;
+  border-bottom: 2px solid #eee;
+  margin-bottom: 1rem; // Add margin below tabs
+`;
+
+const TabButton = styled.button<{$isActive: boolean}>`
+  padding: 0.75rem 1.25rem;
+  cursor: pointer;
+  border: none;
+  background-color: transparent;
+  font-size: 1em;
+  color: ${props => props.$isActive ? '#1976d2' : '#555'};
+  border-bottom: 3px solid ${props => props.$isActive ? '#1976d2' : 'transparent'};
+  margin-bottom: -2px; // Align with TabNav border
+  transition: color 0.2s, border-bottom-color 0.2s;
+
+  &:hover {
+    color: #1976d2;
+  }
+`;
+
+const AddEventButton = styled.button` // Re-styled from StyledButton for this specific use
   padding: 0.5rem 1rem;
-  background-color: #4CAF50;
+  background-color: #007bff; 
   color: white;
   border: none;
   border-radius: 4px;
@@ -37,19 +60,6 @@ const StyledButton = styled.button`
   font-size: 0.9em;
   transition: background-color 0.2s;
 
-  &:hover:not(:disabled) {
-    background-color: #45a049;
-  }
-  &:disabled {
-    background-color: #cccccc;
-    cursor: not-allowed;
-  }
-`;
-
-const AddEventButton = styled(StyledButton)`
-  background-color: #007bff; 
-  font-size: 0.8em;
-  padding: 0.4rem 0.8rem;
   &:hover:not(:disabled) {
     background-color: #0056b3;
   }
@@ -91,17 +101,19 @@ const LoanDetailsDisplay: React.FC<LoanDetailsDisplayProps> = ({ loan }) => {
 
   return (
     <DisplayContainer>
-      <ButtonContainer>
-        <StyledButton onClick={() => setActiveView('summaries')} disabled={activeView === 'summaries'}>
-          View Summaries
-        </StyledButton>
-        <StyledButton onClick={() => setActiveView('scheduleAndChart')} disabled={activeView === 'scheduleAndChart'}>
-          View Full Schedule
-        </StyledButton>
-        <AddEventButton onClick={() => setIsAddDisbursementModalOpen(true)} style={{marginLeft: 'auto'}}>
+      <TopControlsContainer>
+        <TabNav>
+          <TabButton onClick={() => setActiveView('summaries')} $isActive={activeView === 'summaries'}>
+            Summaries
+          </TabButton>
+          <TabButton onClick={() => setActiveView('scheduleAndChart')} $isActive={activeView === 'scheduleAndChart'}>
+            Schedule & Chart
+          </TabButton>
+        </TabNav>
+        <AddEventButton onClick={() => setIsAddDisbursementModalOpen(true)}>
           + Add Disbursement
         </AddEventButton>
-      </ButtonContainer>
+      </TopControlsContainer>
 
       {activeView === 'summaries' && (
         <>
@@ -109,7 +121,7 @@ const LoanDetailsDisplay: React.FC<LoanDetailsDisplayProps> = ({ loan }) => {
             schedule={schedule}
             loanDetails={loan.details}
           />
-          <LoanHistoryTimeline loan={loan} schedule={schedule} /> {/* Pass schedule prop */}
+          <LoanHistoryTimeline loan={loan} schedule={schedule} />
         </>
       )}
 
