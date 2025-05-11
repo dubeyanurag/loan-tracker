@@ -318,9 +318,9 @@ const AmortizationTable: React.FC<AmortizationTableProps> = ({
                         </EventItem>
                     ))}
                     <div style={{marginTop: '5px'}}> 
-                        <ActionButton onClick={() => handleAddPrepayment(entry)} title={`Log a prepayment for ${entryDate.toLocaleDateString()}`}>Prepay</ActionButton>
-                        <ActionButton onClick={() => handleSetROI(entry)} title={`Log an ROI change effective ${entryDate.toLocaleDateString()}`}>Set ROI</ActionButton>
-                        <ActionButton onClick={() => handleSetEMI(entry)} title={`Log a custom EMI effective ${entryDate.toLocaleDateString()}`}>Set EMI</ActionButton>
+                        <ActionButton onClick={() => handleAddPrepayment(entry)} title={`Log a prepayment for ${entryDate.toLocaleDateString()}`}>💰 Prepay</ActionButton>
+                        <ActionButton onClick={() => handleSetROI(entry)} title={`Log an ROI change effective ${entryDate.toLocaleDateString()}`}>📈 Set ROI</ActionButton>
+                        <ActionButton onClick={() => handleSetEMI(entry)} title={`Log a custom EMI effective ${entryDate.toLocaleDateString()}`}>⚙️ Set EMI</ActionButton>
                     </div>
                 </td>
               </tr>
