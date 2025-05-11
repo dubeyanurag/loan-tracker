@@ -197,7 +197,7 @@ Error generating stack: `+o.message+`
   border: 1px solid #eee;
   border-radius: 8px;
   background-color: #fff;
-`,Vw=()=>{const{loans:e,selectedLoanId:t}=Af(),n=hi(),i=r=>{n({type:"SELECT_LOAN",payload:r})};return e.length===0?_.jsx("p",{children:"No loans added yet. Use the form above to add a new loan."}):_.jsxs(Ww,{children:[_.jsx("h3",{children:"Your Loans"}),e.map(r=>_.jsx(Hw,{loan:r,isSelected:r.id===t,onSelectLoan:i},r.id))]})},Uw=z.div`
+`,Vw=()=>{const{loans:e,selectedLoanId:t}=Af(),n=hi(),i=r=>{n({type:"SELECT_LOAN",payload:r})};return e.length===0?null:_.jsxs(Ww,{children:[_.jsx("h3",{children:"Your Loans"}),e.map(r=>_.jsx(Hw,{loan:r,isSelected:r.id===t,onSelectLoan:i},r.id))]})},Uw=z.div`
   margin-top: 10px; 
   max-height: 500px; 
   overflow-y: auto;
@@ -632,4 +632,4 @@ Error generating stack: `+o.message+`
   border-radius: 6px; 
   background-color: #f9f9f9; 
   border: 1px solid #e0e0e0; 
-`;function cI(){const{selectedLoanId:e,loans:t,editingLoanId:n}=Pw(),i=hi(),r=t.find(a=>a.id===e),o=t.find(a=>a.id===n),s=()=>{i({type:"END_EDIT_LOAN"})};return _.jsxs(oI,{children:[_.jsxs(sI,{children:[_.jsx(aI,{children:"Loan Tracker"}),_.jsx(ZT,{})]}),_.jsx(tI,{}),_.jsxs(lI,{children:[_.jsxs(Ym,{children:[_.jsx(Lw,{})," ",_.jsx(Vw,{})]}),_.jsx(Ym,{children:r?_.jsxs("div",{children:[_.jsxs("h2",{style:{color:"#3f51b5"},children:[r.name," Details"]}),_.jsx(XT,{loan:r})]}):_.jsx("p",{style:{textAlign:"center",color:"#777",marginTop:"30px"},children:"Select a loan to see details or add a new loan."})})]}),o&&_.jsx(Rf,{isOpen:!!n,onClose:s,title:`Edit Loan: ${o.name}`,children:_.jsx(rI,{loan:o,onClose:s})})]})}sv(document.getElementById("root")).render(_.jsx(En.StrictMode,{children:_.jsx(kw,{children:_.jsx(cI,{})})}));
+`;function cI(){const{selectedLoanId:e,loans:t,editingLoanId:n}=Pw(),i=hi(),r=t.find(a=>a.id===e),o=t.find(a=>a.id===n),s=()=>{i({type:"END_EDIT_LOAN"})};return _.jsxs(oI,{children:[_.jsxs(sI,{children:[_.jsx(aI,{children:"Loan Tracker"}),t.length>0&&_.jsx(ZT,{})," "]}),t.length>0&&_.jsx(tI,{})," ",_.jsxs(lI,{children:[_.jsxs(Ym,{children:[_.jsx(Lw,{})," ",_.jsx(Vw,{})]}),t.length>0&&_.jsx(Ym,{children:r?_.jsxs("div",{children:[_.jsxs("h2",{style:{color:"#3f51b5"},children:[r.name," Details"]}),_.jsx(XT,{loan:r})]}):_.jsx("p",{style:{textAlign:"center",color:"#777",marginTop:"30px"},children:"Select a loan to see details."})})]}),o&&_.jsx(Rf,{isOpen:!!n,onClose:s,title:`Edit Loan: ${o.name}`,children:_.jsx(rI,{loan:o,onClose:s})})]})}sv(document.getElementById("root")).render(_.jsx(En.StrictMode,{children:_.jsx(kw,{children:_.jsx(cI,{})})}));
