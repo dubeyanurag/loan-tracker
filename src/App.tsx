@@ -2,12 +2,13 @@
 import styled from 'styled-components';
 import LoanForm from './components/LoanForm';
 import LoanList from './components/LoanList';
-import { useAppStateWithEdit, useAppDispatch } from './contexts/AppContext'; // Use AppStateWithEdit
+import { useAppStateWithEdit, useAppDispatch } from './contexts/AppContext'; 
 import LoanDetailsDisplay from './components/LoanDetailsDisplay';
 import ShareState from './components/ShareState'; 
 import OverallSummary from './components/OverallSummary'; 
-import Modal from './components/Modal'; // Import Modal
-import EditLoanDetailsForm from './components/EditLoanDetailsForm'; // Import Edit Form
+import Modal from './components/Modal'; 
+import EditLoanDetailsForm from './components/EditLoanDetailsForm'; 
+import EmptyState from './components/EmptyState'; // Import EmptyState
 
 const AppContainer = styled.div`
   position: relative; 
@@ -52,7 +53,7 @@ const Section = styled.section`
 
 
 function App() {
-  const { selectedLoanId, loans, editingLoanId } = useAppStateWithEdit(); // Get editingLoanId
+  const { selectedLoanId, loans, editingLoanId } = useAppStateWithEdit(); 
   const dispatch = useAppDispatch();
   const selectedLoan = loans.find(loan => loan.id === selectedLoanId);
   const loanToEdit = loans.find(loan => loan.id === editingLoanId);
@@ -65,31 +66,35 @@ function App() {
     <AppContainer>
       <HeaderContainer>
         <MainTitle>Loan Tracker</MainTitle> 
-        {loans.length > 0 && <ShareState />} {/* Conditionally render ShareState */}
+        {loans.length > 0 && <ShareState />} 
       </HeaderContainer>
 
-      {loans.length > 0 && <OverallSummary />} {/* Conditionally render OverallSummary if it makes sense */}
+      <LoanForm /> {/* FAB is inside LoanForm and always visible, outside ContentLayout for stacking */}
       
-      <ContentLayout>
-        <Section>
-          <LoanForm /> {/* FAB is inside LoanForm and always visible */}
-          <LoanList />
-        </Section>
-        
-        {loans.length > 0 && ( /* Only show this section if there are loans */
-          <Section>
-            {selectedLoan ? (
-              <div>
-                <h2 style={{color: '#3f51b5'}}>{selectedLoan.name} Details</h2> 
-                <LoanDetailsDisplay loan={selectedLoan} /> 
-              </div>
-            ) : (
-              // This message is shown if loans exist but none is selected
-              <p style={{ textAlign: 'center', color: '#777', marginTop: '30px' }}>Select a loan to see details.</p>
-            )}
-          </Section>
-        )}
-      </ContentLayout>
+      {loans.length === 0 ? (
+        <EmptyState />
+      ) : (
+        <>
+          <OverallSummary /> 
+          <ContentLayout>
+            <Section>
+              {/* LoanForm is now only the FAB, actual form is in modal */}
+              <LoanList />
+            </Section>
+            
+            <Section>
+              {selectedLoan ? (
+                <div>
+                  <h2 style={{color: '#3f51b5'}}>{selectedLoan.name} Details</h2> 
+                  <LoanDetailsDisplay loan={selectedLoan} /> 
+                </div>
+              ) : (
+                <p style={{ textAlign: 'center', color: '#777', marginTop: '30px' }}>Select a loan to see details.</p>
+              )}
+            </Section>
+          </ContentLayout>
+        </>
+      )}
 
       {/* Edit Loan Modal */}
       {loanToEdit && (
