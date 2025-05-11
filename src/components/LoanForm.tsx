@@ -1,5 +1,5 @@
 // src/components/LoanForm.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react'; // Removed useEffect
 import { useAppDispatch } from '../contexts/AppContext'; // Removed useAppState as loans.length not needed here directly
 import { Loan, LoanDetails, Disbursement } from '../types';
 import { v4 as uuidv4 } from 'uuid';
