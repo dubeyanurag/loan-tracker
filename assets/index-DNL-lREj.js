@@ -201,6 +201,7 @@ Error generating stack: `+o.message+`
   margin-top: 10px; 
   max-height: 500px; 
   overflow-y: auto;
+  overflow-x: auto; // Added for horizontal scrolling
   border: 1px solid #ddd;
 `,Xw=j.table`
   width: 100%;
@@ -334,6 +335,7 @@ Error generating stack: `+o.message+`
 `,fC=j.div`
     max-height: 300px; 
     overflow-y: auto;
+    overflow-x: auto; // Added for horizontal scrolling
     border: 1px solid #eee; 
     margin-top: 10px;
 `,hC=j.table`
@@ -667,4 +669,8 @@ Error generating stack: `+o.message+`
   border-radius: 6px; 
   background-color: #f9f9f9; 
   border: 1px solid #e0e0e0; 
+
+  @media (max-width: 600px) {
+    padding: 0.75rem; // Slightly reduce padding on small screens
+  }
 `;function mI(){const{selectedLoanId:e,loans:t,editingLoanId:n}=Mw(),i=hi(),r=t.find(a=>a.id===e),o=t.find(a=>a.id===n),s=()=>{i({type:"END_EDIT_LOAN"})};return b.jsxs(fI,{children:[b.jsxs(hI,{children:[b.jsx(pI,{children:"Loan Tracker"}),t.length>0&&b.jsx(qT,{})]}),b.jsx(Aw,{})," ",t.length===0?b.jsx(dI,{}):b.jsxs(b.Fragment,{children:[b.jsx(nI,{}),b.jsxs(gI,{children:[b.jsx(Xm,{children:b.jsx(Uw,{})}),b.jsx(Xm,{children:r?b.jsxs("div",{children:[b.jsxs("h2",{style:{color:"#3f51b5"},children:[r.name," Details"]}),b.jsx(KT,{loan:r})]}):b.jsx("p",{style:{textAlign:"center",color:"#777",marginTop:"30px"},children:"Select a loan to see details."})})]})]}),o&&b.jsx(Nf,{isOpen:!!n,onClose:s,title:`Edit Loan: ${o.name}`,children:b.jsx(oI,{loan:o,onClose:s})})]})}av(document.getElementById("root")).render(b.jsx(En.StrictMode,{children:b.jsx(Pw,{children:b.jsx(mI,{})})}));
