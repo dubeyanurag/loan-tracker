@@ -30,6 +30,16 @@ const ChartContainer = styled.div`
   border: 1px solid #eee;
   border-radius: 8px;
   background-color: #f9f9f9; // Slightly different background for chart section
+  height: 350px; // Default height
+
+  @media (max-width: 768px) {
+    height: 280px; // Smaller height for tablets and mobile
+  }
+
+  @media (max-width: 480px) {
+    height: 220px; // Even smaller for very small screens
+    padding: 10px; // Reduce padding too
+  }
 `;
 
 interface AnnualSummaryChartProps {
@@ -72,7 +82,7 @@ const AnnualSummaryChart: React.FC<AnnualSummaryChartProps> = ({ annualSummaries
 
   const options: ChartOptions<'bar'> = {
     responsive: true,
-    maintainAspectRatio: true,
+    maintainAspectRatio: false, // Set to false
     plugins: {
       legend: {
         position: 'bottom' as const, // Changed to bottom

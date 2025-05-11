@@ -37,6 +37,15 @@ const ChartContainer = styled.div`
   border-radius: 8px;
   background-color: #fff;
   position: relative; /* Needed for reset button positioning */
+  height: 400px; // Default height
+
+  @media (max-width: 768px) {
+    height: 300px; // Smaller height for tablets and mobile
+  }
+
+  @media (max-width: 480px) {
+    height: 250px; // Even smaller for very small screens
+  }
 `;
 
 const ResetZoomButton = styled.button`
@@ -211,7 +220,7 @@ const LoanChart: React.FC<LoanChartProps> = ({ schedule, loan }) => {
   // --- Prepare Chart Options ---
   const options: ChartOptions<'line'> = {
     responsive: true,
-    maintainAspectRatio: true,
+    maintainAspectRatio: false, // Set to false
     interaction: { // Enable interaction for tooltips etc.
         mode: 'index',
         intersect: false,
