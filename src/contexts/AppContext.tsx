@@ -1,5 +1,5 @@
 // src/contexts/AppContext.tsx
-import React, { createContext, useReducer, useContext, Dispatch, ReactNode, useEffect } from 'react';
+import React, { createContext, useReducer, useContext, Dispatch, ReactNode } from 'react'; // Removed useEffect
 import { AppState, AppAction, Payment, InterestRateChange, CustomEMIChange, Disbursement } from '../types'; // Removed Loan
 import { v4 as uuidv4 } from 'uuid';
 
