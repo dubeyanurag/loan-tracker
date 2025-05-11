@@ -1,5 +1,5 @@
 // src/components/AnnualSummaryChart.tsx
-import React, { useState, useEffect, useRef } from 'react'; // Added useRef back
+import React from 'react'; // Removed useState, useEffect, useRef
 import { Bar } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -24,14 +24,14 @@ ChartJS.register(
   Legend
 );
 
-const ChartWrapper = styled.div` // Renamed from ChartContainer
+const ChartWrapper = styled.div`
   margin-top: 20px;
   padding: 15px;
   border: 1px solid #eee;
   border-radius: 8px;
   background-color: #f9f9f9; 
   height: 350px; 
-  position: relative; // For controls
+  position: relative;
 
   @media (max-width: 768px) {
     height: 280px; 
@@ -41,70 +41,23 @@ const ChartWrapper = styled.div` // Renamed from ChartContainer
     height: 220px; 
     padding: 10px; 
   }
-
-  &.fullscreen {
-    padding: 10px;
-    height: 100vh !important;
-    width: 100vw !important;
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    z-index: 2000 !important;
-    background-color: #fff !important;
-  }
+  // Fullscreen class removed as functionality is temporarily disabled
 `;
 
-const ChartControls = styled.div`
-  position: absolute;
-  top: 5px; // Adjusted for this chart's layout (no zoom reset)
-  right: 10px;
-  z-index: 10;
-`;
-
-const ControlButton = styled.button`
-    padding: 3px 8px;
-    font-size: 0.8em;
-    cursor: pointer;
-    background-color: #eee;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-     &:hover {
-        background-color: #ddd;
-     }
-`;
+// ChartControls and ControlButton removed as fullscreen button is removed
 
 interface AnnualSummaryChartProps {
   annualSummaries: AnnualSummary[];
 }
 
 const AnnualSummaryChart: React.FC<AnnualSummaryChartProps> = ({ annualSummaries }) => {
-  const chartWrapperRef = React.useRef<HTMLDivElement>(null);
-  const [isFullscreen, setIsFullscreen] = useState(false);
+  // Fullscreen state and refs removed
+  // const chartWrapperRef = React.useRef<HTMLDivElement>(null);
+  // const [isFullscreen, setIsFullscreen] = useState(false);
 
-  useEffect(() => {
-    const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
-    };
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-    // Temporary log to ensure useRef is seen as used
-    if (process.env.NODE_ENV === 'development') {
-      console.log('AnnualSummaryChart chartWrapperRef:', chartWrapperRef.current);
-    }
-    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
-  }, []);
+  // useEffect for fullscreenchange removed
 
-  const toggleFullscreen = () => {
-    if (!chartWrapperRef.current) return;
-    if (!document.fullscreenElement) {
-      chartWrapperRef.current.requestFullscreen().catch(err => {
-        alert(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
-      });
-    } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
-      }
-    }
-  };
+  // toggleFullscreen function removed
 
   if (!annualSummaries || annualSummaries.length === 0) {
     return <p>No annual summary data available for chart.</p>;
@@ -184,12 +137,9 @@ const AnnualSummaryChart: React.FC<AnnualSummaryChartProps> = ({ annualSummaries
   };
 
   return (
-    <ChartWrapper ref={chartWrapperRef} className={isFullscreen ? 'fullscreen' : ''}>
-      <ChartControls>
-        <ControlButton onClick={toggleFullscreen}>
-          {isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
-        </ControlButton>
-      </ChartControls>
+    // Removed ref and className from ChartWrapper
+    <ChartWrapper> 
+      {/* ChartControls and Fullscreen button removed */}
       <Bar options={options} data={data} />
     </ChartWrapper>
   );
