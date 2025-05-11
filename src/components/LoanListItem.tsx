@@ -2,11 +2,10 @@
 import React, { useMemo } from 'react';
 import styled, { css } from 'styled-components';
 import { Loan } from '../types';
-// Removed useAppState, useAppDispatch as props will be passed down
+import { useAppDispatch } from '../contexts/AppContext'; // Import useAppDispatch
 import { calculateTotalDisbursed } from '../utils/loanCalculations';
 import { generateAmortizationSchedule, generateSummaryToDate } from '../utils/amortizationCalculator';
 
-// Styled components for LoanItem and DeleteButton (copied from LoanList.tsx)
 const LoanItem = styled.div<{$isSelected: boolean; $isClosed: boolean}>` 
   padding: 0.75rem; 
   margin-bottom: 0.5rem; 
@@ -29,7 +28,6 @@ const LoanItem = styled.div<{$isSelected: boolean; $isClosed: boolean}>`
   ${props => props.$isClosed && css`
     opacity: 0.6;
     background-color: #e9ecef; 
-    /* cursor: default; */ /* Keep selectable as per last requirement */
      &:hover {
         background-color: #e9ecef; 
         box-shadow: 0 1px 2px rgba(0,0,0,0.05);
@@ -37,13 +35,31 @@ const LoanItem = styled.div<{$isSelected: boolean; $isClosed: boolean}>`
   `}
 `;
 
-const DeleteButton = styled.button` 
+const ActionButtonsContainer = styled.div`
+  display: flex;
+  gap: 8px;
+`;
+
+const StyledButton = styled.button` 
   padding: 0.25rem 0.5rem; 
   font-size: 0.8rem; 
-  background-color: #dc3545; 
   color: white;
-  /* Base button styles from index.css will apply for border, radius, cursor */
-  
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+`;
+
+const EditButtonStyled = styled(StyledButton)`
+  background-color: #ffc107; // Yellow
+  color: #212529;
+  &:hover {
+    background-color: #e0a800; 
+  }
+`;
+
+const DeleteButtonStyled = styled(StyledButton)` 
+  background-color: #dc3545; // Red
   &:hover {
     background-color: #c82333; 
   }
@@ -53,18 +69,29 @@ interface LoanListItemProps {
   loan: Loan;
   isSelected: boolean;
   onSelectLoan: (loanId: string) => void;
-  onDeleteLoan: (event: React.MouseEvent, loanId: string) => void;
+  // onDeleteLoan prop is no longer needed here if dispatching directly
 }
 
-const LoanListItem: React.FC<LoanListItemProps> = ({ loan, isSelected, onSelectLoan, onDeleteLoan }) => {
-  // Hooks are now at the top level of this component
+const LoanListItem: React.FC<LoanListItemProps> = ({ loan, isSelected, onSelectLoan }) => {
+  const dispatch = useAppDispatch();
   const schedule = useMemo(() => generateAmortizationSchedule(loan), [loan]);
   const summaryToDate = useMemo(() => generateSummaryToDate(schedule, loan.details, 3), [schedule, loan.details]);
   const isClosed = summaryToDate ? summaryToDate.currentOutstandingBalance <= 0.01 : false;
 
+  const handleEdit = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent loan selection when clicking edit
+    dispatch({ type: 'START_EDIT_LOAN', payload: loan.id });
+  };
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent loan selection
+    if (window.confirm(`Are you sure you want to delete loan "${loan.name}"?`)) {
+      dispatch({ type: 'DELETE_LOAN', payload: loan.id });
+    }
+  };
+
   return (
     <LoanItem
-      // key prop is applied by the parent in the .map() function
       onClick={() => onSelectLoan(loan.id)}
       $isSelected={isSelected}
       $isClosed={isClosed}
@@ -74,7 +101,14 @@ const LoanListItem: React.FC<LoanListItemProps> = ({ loan, isSelected, onSelectL
         (Total Disbursed: ₹{calculateTotalDisbursed(loan.details.disbursements).toLocaleString()})
         {isClosed && <em style={{marginLeft: '10px', color: '#555'}}>(Closed)</em>} 
       </span>
-      <DeleteButton onClick={(e) => onDeleteLoan(e, loan.id)}>Delete</DeleteButton>
+      <ActionButtonsContainer>
+        <EditButtonStyled onClick={handleEdit} title="Edit loan details">
+          ✏️ Edit
+        </EditButtonStyled>
+        <DeleteButtonStyled onClick={handleDelete} title="Delete loan">
+          🗑️ Delete
+        </DeleteButtonStyled>
+      </ActionButtonsContainer>
     </LoanItem>
   );
 };

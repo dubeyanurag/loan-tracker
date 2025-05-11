@@ -1,14 +1,14 @@
-// import React from 'react'; // Removed unused import
+// import React from 'react';
 import styled from 'styled-components';
 import LoanForm from './components/LoanForm';
 import LoanList from './components/LoanList';
-import { useAppState } from './contexts/AppContext'; // Reverted to useAppState
+import { useAppStateWithEdit, useAppDispatch } from './contexts/AppContext'; // Use AppStateWithEdit
 import LoanDetailsDisplay from './components/LoanDetailsDisplay';
 import ShareState from './components/ShareState'; 
 import OverallSummary from './components/OverallSummary'; 
-// import TestRunner from './components/TestRunner'; // Removed TestRunner import
+import Modal from './components/Modal'; // Import Modal
+import EditLoanDetailsForm from './components/EditLoanDetailsForm'; // Import Edit Form
 
-// Basic layout styled components
 const AppContainer = styled.div`
   position: relative; 
   margin: 0; 
@@ -52,13 +52,14 @@ const Section = styled.section`
 
 
 function App() {
-  const { selectedLoanId, loans } = useAppState(); // Use useAppState, no testCaseData
-  const selectedLoan = loans.find(loan => loan.id === selectedLoanId); // loan type should be inferred
+  const { selectedLoanId, loans, editingLoanId } = useAppStateWithEdit(); // Get editingLoanId
+  const dispatch = useAppDispatch();
+  const selectedLoan = loans.find(loan => loan.id === selectedLoanId);
+  const loanToEdit = loans.find(loan => loan.id === editingLoanId);
 
-  // Removed TestRunner conditional rendering
-  // if (testCaseData) {
-  //   return <TestRunner testCase={testCaseData} />;
-  // }
+  const handleCloseEditModal = () => {
+    dispatch({ type: 'END_EDIT_LOAN' });
+  };
 
   return (
     <AppContainer>
@@ -71,7 +72,7 @@ function App() {
       
       <ContentLayout>
         <Section>
-          <LoanForm />
+          <LoanForm /> {/* FAB is inside LoanForm */}
           <LoanList />
         </Section>
         
@@ -86,6 +87,13 @@ function App() {
           )}
         </Section>
       </ContentLayout>
+
+      {/* Edit Loan Modal */}
+      {loanToEdit && (
+        <Modal isOpen={!!editingLoanId} onClose={handleCloseEditModal} title={`Edit Loan: ${loanToEdit.name}`}>
+          <EditLoanDetailsForm loan={loanToEdit} onClose={handleCloseEditModal} />
+        </Modal>
+      )}
     </AppContainer>
   );
 }

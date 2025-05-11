@@ -67,10 +67,16 @@ export type AppAction =
   | { type: 'UPDATE_LOAN'; payload: Loan } 
   | { type: 'DELETE_LOAN'; payload: string } 
   | { type: 'LOAD_STATE'; payload: AppState } 
-  | { type: 'ADD_PAYMENT'; payload: { loanId: string; payment: Omit<Payment, 'id' | 'principalPaid' | 'interestPaid' | 'balanceAfterPayment'> } } // Allow passing partial for new
+  | { type: 'ADD_PAYMENT'; payload: { loanId: string; payment: Omit<Payment, 'id' | 'principalPaid' | 'interestPaid' | 'balanceAfterPayment'> } } 
   | { type: 'ADD_INTEREST_RATE_CHANGE'; payload: { loanId: string; change: Omit<InterestRateChange, 'id'> } }
   | { type: 'ADD_CUSTOM_EMI_CHANGE'; payload: { loanId: string; change: Omit<CustomEMIChange, 'id'> } }
-  | { type: 'ADD_DISBURSEMENT'; payload: { loanId: string; disbursement: Omit<Disbursement, 'id'> } }; 
+  | { type: 'ADD_DISBURSEMENT'; payload: { loanId: string; disbursement: Omit<Disbursement, 'id'> } }
+  | { type: 'START_EDIT_LOAN'; payload: string } // loanId
+  | { type: 'END_EDIT_LOAN' }
+  | { type: 'DELETE_PAYMENT'; payload: { loanId: string; paymentId: string } }
+  | { type: 'DELETE_ROI_CHANGE'; payload: { loanId: string; changeId: string } }
+  | { type: 'DELETE_CUSTOM_EMI_CHANGE'; payload: { loanId: string; changeId: string } }
+  | { type: 'DELETE_DISBURSEMENT'; payload: { loanId: string; disbursementId: string } }; 
 
 export interface AmortizationEntry {
   monthNumber: number;

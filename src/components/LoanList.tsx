@@ -25,12 +25,7 @@ const LoanList: React.FC = () => {
     dispatch({ type: 'SELECT_LOAN', payload: loanId });
   };
 
-  const handleDeleteLoan = (e: React.MouseEvent, loanId: string) => {
-    e.stopPropagation(); // Prevent selection when deleting
-    if (window.confirm('Are you sure you want to delete this loan?')) {
-      dispatch({ type: 'DELETE_LOAN', payload: loanId });
-    }
-  };
+  // handleDeleteLoan is now handled within LoanListItem
 
   if (loans.length === 0) {
     return <p>No loans added yet. Use the form above to add a new loan.</p>;
@@ -43,11 +38,11 @@ const LoanList: React.FC = () => {
         <LoanListItem
           key={loan.id}
           loan={loan}
-          isSelected={loan.id === selectedLoanId}
-          onSelectLoan={handleSelectLoan}
-          onDeleteLoan={handleDeleteLoan}
-        />
-      ))}
+              isSelected={loan.id === selectedLoanId}
+              onSelectLoan={handleSelectLoan}
+              // onDeleteLoan prop removed
+            />
+          ))}
     </ListContainer>
   );
 };
