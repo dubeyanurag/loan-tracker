@@ -1,6 +1,6 @@
 // src/contexts/AppContext.tsx
 import React, { createContext, useReducer, useContext, Dispatch, ReactNode, useEffect } from 'react';
-import { AppState, AppAction, Loan, Payment, InterestRateChange, CustomEMIChange, Disbursement } from '../types';
+import { AppState, AppAction, Payment, InterestRateChange, CustomEMIChange, Disbursement } from '../types'; // Removed Loan
 import { v4 as uuidv4 } from 'uuid';
 
 // Separate state for UI concerns like editing, not persisted or shared

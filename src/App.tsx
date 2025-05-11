@@ -1,5 +1,5 @@
 // import React from 'react';
-import React, { useState } from 'react'; // Added useState
+import { useState } from 'react'; // Removed React import
 import styled from 'styled-components';
 import LoanForm from './components/LoanForm';
 import LoanList from './components/LoanList';
