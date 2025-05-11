@@ -70,10 +70,11 @@ function App() {
     <AppContainer>
       <HeaderContainer>
         <MainTitle>Loan Tracker</MainTitle> 
-        {loans.length > 0 && <ShareState />} 
+        {/* ShareState moved out of HeaderContainer */}
       </HeaderContainer>
 
       <LoanForm /> {/* FAB is inside LoanForm and always visible, outside ContentLayout for stacking */}
+      {loans.length > 0 && <ShareState />} {/* Conditionally render ShareState as a floating button */}
       
       {loans.length === 0 ? (
         <EmptyState />
