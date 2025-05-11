@@ -61,9 +61,11 @@ interface LoanHistoryTimelineProps {
   schedule: AmortizationEntry[]; 
 }
 
+type TimelineEventType = 'Disbursement' | 'Prepayment' | 'ROI Change' | 'Custom EMI' | 'Loan Start' | 'Loan End';
+
 type TimelineEvent = {
   date: string;
-  type: 'Disbursement' | 'Prepayment' | 'ROI Change' | 'Custom EMI' | 'Loan Start';
+  type: TimelineEventType;
   details: string;
   icon: string;
   originalEvent: any; 
@@ -102,14 +104,13 @@ const LoanHistoryTimeline: React.FC<LoanHistoryTimelineProps> = ({ loan, schedul
     if (p.adjustmentPreference) {
       detailString += ` (Preference: ${p.adjustmentPreference})`;
       const eventDate = new Date(p.date);
-      // Find the first schedule entry whose paymentDate is on or after the event date.
       const scheduleEntryIndex = schedule.findIndex(entry => new Date(entry.paymentDate) >= eventDate);
 
       if (scheduleEntryIndex !== -1) {
         const scheduleEntryAfterEvent = schedule[scheduleEntryIndex];
         if (p.adjustmentPreference === 'adjustEMI') {
           detailString += `. New EMI: <span>₹${scheduleEntryAfterEvent.emi.toLocaleString()}</span>.`;
-        } else { // adjustTenure
+        } else { 
           const remainingTenure = schedule.length - scheduleEntryIndex;
           detailString += `. EMI maintained at ~<span>₹${scheduleEntryAfterEvent.emi.toLocaleString()}</span>. Projected remaining tenure: ${remainingTenure} months.`;
         }
@@ -134,10 +135,8 @@ const LoanHistoryTimeline: React.FC<LoanHistoryTimelineProps> = ({ loan, schedul
       if (scheduleEntryIndex !== -1) {
         const scheduleEntryAfterEvent = schedule[scheduleEntryIndex];
         if (c.adjustmentPreference === 'adjustEMI' || c.adjustmentPreference === 'customEMI') {
-          // For customEMI preference on ROI change, the newEMIIfApplicable is used by calculator,
-          // and the resulting EMI will be in the schedule.
           detailString += `. New EMI: <span>₹${scheduleEntryAfterEvent.emi.toLocaleString()}</span>.`;
-        } else { // adjustTenure
+        } else { 
           const remainingTenure = schedule.length - scheduleEntryIndex;
           detailString += `. EMI maintained at ~<span>₹${scheduleEntryAfterEvent.emi.toLocaleString()}</span>. Projected remaining tenure: ${remainingTenure} months.`;
         }
@@ -153,8 +152,6 @@ const LoanHistoryTimeline: React.FC<LoanHistoryTimelineProps> = ({ loan, schedul
   });
 
   loan.customEMIChanges?.forEach(c => {
-    // For custom EMI changes, the new EMI is directly known from the event itself.
-    // The schedule will reflect this EMI from the event date onwards.
     let detailString = `EMI set to <span>₹${c.newEMI.toLocaleString()}</span>. ${c.remarks || ''}`;
     events.push({
       date: c.date,
@@ -165,7 +162,24 @@ const LoanHistoryTimeline: React.FC<LoanHistoryTimelineProps> = ({ loan, schedul
     });
   });
 
+  // Sort all events by date before potentially adding Loan End
   events.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+  // Add Loan End event if applicable
+  if (schedule && schedule.length > 0) {
+    const lastEntry = schedule[schedule.length - 1];
+    if (lastEntry.closingBalance <= 0.01) { // Consider loan paid off
+      events.push({
+        date: lastEntry.paymentDate,
+        type: 'Loan End',
+        details: `Loan fully paid off. Total tenure: <span>${lastEntry.monthNumber}</span> months.`,
+        icon: '🏆', // Trophy for completion
+        originalEvent: lastEntry,
+      });
+      // No need to re-sort if this is guaranteed to be the last chronological event
+    }
+  }
+
 
   if (events.length <= 1 && events[0]?.type === 'Loan Start' && !events[0].details.includes('Initial disbursement')) {
     return (
