@@ -1,5 +1,5 @@
 // src/components/LoanChart.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react'; // Keep useRef for chartRef
 import { Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -49,13 +49,14 @@ const ChartWrapper = styled.div`
 
   &.fullscreen {
     padding: 10px;
-    height: 100vh !important;
+    height: 100vh !important; 
     width: 100vw !important;
     position: fixed !important;
     top: 0 !important;
     left: 0 !important;
-    z-index: 2000 !important;
-    background-color: #fff !important;
+    z-index: 2000 !important; 
+    background-color: #fff !important; 
+    overflow: hidden; // Prevent scrollbars on the wrapper itself in fullscreen
   }
 `;
 
@@ -63,7 +64,7 @@ const ChartControls = styled.div`
   position: absolute;
   top: 10px;
   right: 10px;
-  z-index: 10;
+  z-index: 10; // Ensure controls are above chart canvas
   display: flex;
   gap: 5px;
 `;
@@ -88,63 +89,27 @@ interface LoanChartProps {
 
 const LoanChart: React.FC<LoanChartProps> = ({ schedule, loan }) => {
   const chartRef = React.useRef<ChartJS<'line'>>(null); 
-  const chartWrapperRef = React.useRef<HTMLDivElement>(null);
-  const [isFullscreen, setIsFullscreen] = useState(false);
+  const chartWrapperRef = React.useRef<HTMLDivElement>(null); // Still useful for targeting the wrapper if needed
+  const [isMaximized, setIsMaximized] = useState(false); // Renamed for clarity
 
-  useEffect(() => {
-    const handleFullscreenChange = () => {
-      // Check for prefixed fullscreenElement properties
-      const fsElement = document.fullscreenElement || 
-                        (document as any).webkitFullscreenElement || 
-                        (document as any).mozFullScreenElement || 
-                        (document as any).msFullscreenElement;
-      setIsFullscreen(!!fsElement);
-    };
+  // Remove useEffect for native fullscreenchange listeners
+  // useEffect(() => {
+  //   const handleFullscreenChange = () => { ... };
+  //   ...
+  //   return () => { ... };
+  // }, []);
 
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-    document.addEventListener('webkitfullscreenchange', handleFullscreenChange); // Safari
-    document.addEventListener('mozfullscreenchange', handleFullscreenChange);    // Firefox
-    document.addEventListener('MSFullscreenChange', handleFullscreenChange);     // IE/Edge
-
-    return () => {
-      document.removeEventListener('fullscreenchange', handleFullscreenChange);
-      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
-      document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
-      document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
-    };
-  }, []);
-
-  const toggleFullscreen = () => {
-    if (!chartWrapperRef.current) return;
-    const element = chartWrapperRef.current as any; // Use 'any' for vendor prefixes
-
-    const fsElement = document.fullscreenElement || 
-                      (document as any).webkitFullscreenElement || 
-                      (document as any).mozFullScreenElement || 
-                      (document as any).msFullscreenElement;
-
-    if (!fsElement) {
-      const requestFS = element.requestFullscreen || element.webkitRequestFullscreen || element.mozRequestFullScreen || element.msRequestFullscreen;
-      if (requestFS) {
-        requestFS.call(element).catch((err: Error) => {
-          console.error("Fullscreen request failed:", err);
-          alert(`Error requesting fullscreen: ${err.name} - ${err.message}`);
-        });
-      } else {
-        alert('Fullscreen API is not supported by this browser.');
-        console.warn('Fullscreen API is not supported by this browser.');
-      }
-    } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
-      } else if ((document as any).webkitExitFullscreen) { // Safari
-        (document as any).webkitExitFullscreen();
-      } else if ((document as any).mozCancelFullScreen) { // Firefox
-        (document as any).mozCancelFullScreen();
-      } else if ((document as any).msExitFullscreen) { // IE/Edge
-        (document as any).msExitFullscreen();
-      }
+  const toggleMaximizedView = () => {
+    setIsMaximized(!isMaximized);
+    // Optional: Scroll to top when maximizing
+    if (!isMaximized) {
+      window.scrollTo(0, 0);
     }
+    // Force chart redraw after a short delay to ensure it resizes correctly within the new dimensions
+    // This is sometimes necessary when container dimensions change drastically.
+    setTimeout(() => {
+        chartRef.current?.resize();
+    }, 50);
   };
   
   const resetZoom = () => {
@@ -155,6 +120,7 @@ const LoanChart: React.FC<LoanChartProps> = ({ schedule, loan }) => {
     return null; 
   }
 
+  // ... (rest of the chart data and options logic remains the same) ...
   const now = new Date();
   const currentYear = now.getFullYear();
   const currentMonth = now.getMonth(); 
@@ -267,11 +233,11 @@ const LoanChart: React.FC<LoanChartProps> = ({ schedule, loan }) => {
   };
 
   return (
-    <ChartWrapper ref={chartWrapperRef} className={isFullscreen ? 'fullscreen' : ''}>
+    <ChartWrapper ref={chartWrapperRef} className={isMaximized ? 'fullscreen' : ''}>
       <ChartControls>
         <ControlButton onClick={resetZoom}>Reset Zoom</ControlButton>
-        <ControlButton onClick={toggleFullscreen}>
-          {isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
+        <ControlButton onClick={toggleMaximizedView}>
+          {isMaximized ? 'Exit Maximize' : 'Maximize'}
         </ControlButton>
       </ChartControls>
       <Line ref={chartRef} options={options} data={data} />

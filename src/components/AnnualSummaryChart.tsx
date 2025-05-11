@@ -1,5 +1,5 @@
 // src/components/AnnualSummaryChart.tsx
-import React, { useState, useEffect, useRef } from 'react'; // Added back useState, useEffect, useRef
+import React, { useState, useEffect, useRef } from 'react'; 
 import { Bar } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -42,7 +42,7 @@ const ChartWrapper = styled.div`
     padding: 10px; 
   }
   
-  &.fullscreen {
+  &.fullscreen { // Class for maximized view
     padding: 10px;
     height: 100vh !important;
     width: 100vw !important;
@@ -51,6 +51,7 @@ const ChartWrapper = styled.div`
     left: 0 !important;
     z-index: 2000 !important;
     background-color: #fff !important;
+    overflow: hidden;
   }
 `;
 
@@ -78,62 +79,21 @@ interface AnnualSummaryChartProps {
 }
 
 const AnnualSummaryChart: React.FC<AnnualSummaryChartProps> = ({ annualSummaries }) => {
-  const chartWrapperRef = useRef<HTMLDivElement>(null);
-  const [isFullscreen, setIsFullscreen] = useState(false);
+  const chartWrapperRef = useRef<HTMLDivElement>(null); 
+  const chartRef = useRef<ChartJS<'bar'>>(null); 
+  const [isMaximized, setIsMaximized] = useState(false);
 
-  useEffect(() => {
-    const handleFullscreenChange = () => {
-      const fsElement = document.fullscreenElement || 
-                        (document as any).webkitFullscreenElement || 
-                        (document as any).mozFullScreenElement || 
-                        (document as any).msFullscreenElement;
-      setIsFullscreen(!!fsElement);
-    };
+  // useEffect for native fullscreenchange listeners is removed
 
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
-    document.addEventListener('mozfullscreenchange', handleFullscreenChange);
-    document.addEventListener('MSFullscreenChange', handleFullscreenChange);
-
-    return () => {
-      document.removeEventListener('fullscreenchange', handleFullscreenChange);
-      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
-      document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
-      document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
-    };
-  }, []);
-
-  const toggleFullscreen = () => {
-    if (!chartWrapperRef.current) return;
-    const element = chartWrapperRef.current as any;
-
-    const fsElement = document.fullscreenElement || 
-                      (document as any).webkitFullscreenElement || 
-                      (document as any).mozFullScreenElement || 
-                      (document as any).msFullscreenElement;
-
-    if (!fsElement) {
-      const requestFS = element.requestFullscreen || element.webkitRequestFullscreen || element.mozRequestFullScreen || element.msRequestFullscreen;
-      if (requestFS) {
-        requestFS.call(element).catch((err: Error) => {
-          console.error("Fullscreen request failed (AnnualSummaryChart):", err);
-          alert(`Error requesting fullscreen: ${err.name} - ${err.message}`);
-        });
-      } else {
-        alert('Fullscreen API is not supported by this browser.');
-        console.warn('Fullscreen API is not supported by this browser. (AnnualSummaryChart)');
-      }
-    } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
-      } else if ((document as any).webkitExitFullscreen) {
-        (document as any).webkitExitFullscreen();
-      } else if ((document as any).mozCancelFullScreen) {
-        (document as any).mozCancelFullScreen();
-      } else if ((document as any).msExitFullscreen) {
-        (document as any).msExitFullscreen();
-      }
+  const toggleMaximizedView = () => {
+    setIsMaximized(!isMaximized);
+    if (!isMaximized) { // When entering maximized view
+      window.scrollTo(0, 0);
     }
+    // Force chart redraw after a short delay
+    setTimeout(() => {
+        chartRef.current?.resize(); 
+    }, 50);
   };
 
   if (!annualSummaries || annualSummaries.length === 0) {
@@ -214,13 +174,13 @@ const AnnualSummaryChart: React.FC<AnnualSummaryChartProps> = ({ annualSummaries
   };
 
   return (
-    <ChartWrapper ref={chartWrapperRef} className={isFullscreen ? 'fullscreen' : ''}> 
+    <ChartWrapper ref={chartWrapperRef} className={isMaximized ? 'fullscreen' : ''}> 
       <ChartControls>
-        <ControlButton onClick={toggleFullscreen}>
-          {isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
+        <ControlButton onClick={toggleMaximizedView}>
+          {isMaximized ? 'Exit Maximize' : 'Maximize'}
         </ControlButton>
       </ChartControls>
-      <Bar options={options} data={data} />
+      <Bar ref={chartRef} options={options} data={data} />
     </ChartWrapper>
   );
 };
