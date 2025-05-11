@@ -1,5 +1,5 @@
 // src/components/LoanChart.tsx
-import React, { useState, useEffect, useRef } from 'react'; // Keep useRef for chartRef
+import React, { useState, useRef } from 'react'; // Removed useEffect, useRef is used
 import { Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS,

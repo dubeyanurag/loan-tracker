@@ -1,5 +1,5 @@
 // src/components/AnnualSummaryChart.tsx
-import React, { useState, useEffect, useRef } from 'react'; 
+import React, { useState, useRef } from 'react'; // Removed useEffect
 import { Bar } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
