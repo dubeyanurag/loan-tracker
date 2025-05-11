@@ -1,13 +1,13 @@
 // src/components/LoanHistoryTimeline.tsx
 import React from 'react';
 import styled from 'styled-components';
-import { Loan } from '../types'; // Removed unused Disbursement, Payment, InterestRateChange, CustomEMIChange
+import { Loan, AmortizationEntry } from '../types'; // Added AmortizationEntry
 
 const TimelineContainer = styled.div`
   margin-top: 20px;
   h4 {
     margin-bottom: 10px;
-    color: #3f51b5; // Similar to other subheadings
+    color: #3f51b5; 
   }
 `;
 
@@ -15,19 +15,19 @@ const TimelineList = styled.ul`
   list-style-type: none;
   padding-left: 0;
   position: relative;
-  border-left: 2px solid #1976d2; // Timeline main line
-  margin-left: 10px; // Space for icons
+  border-left: 2px solid #1976d2; 
+  margin-left: 10px; 
 `;
 
 const TimelineItem = styled.li`
   margin-bottom: 15px;
-  padding-left: 25px; // Space for icon and line
+  padding-left: 25px; 
   position: relative;
 
-  &:before { // Circle on the timeline
+  &:before { 
     content: '';
     position: absolute;
-    left: -9px; // Adjust to center on the border-left of TimelineList
+    left: -9px; 
     top: 5px;
     width: 16px;
     height: 16px;
@@ -50,23 +50,15 @@ const EventDetails = styled.p`
   color: #333;
   line-height: 1.4;
 
-  span { // For highlighting amounts or rates
+  span { 
     font-weight: bold;
     color: #007bff;
   }
 `;
 
-// Removed EventIcon styled component as it's not used
-// const EventIcon = styled.span`
-//   position: absolute;
-//   left: -20px; // Adjust to be slightly left of the circle
-//   top: 3px;
-//   font-size: 1.2em;
-// `;
-
-
 interface LoanHistoryTimelineProps {
   loan: Loan;
+  schedule: AmortizationEntry[]; // Added schedule prop
 }
 
 type TimelineEvent = {
@@ -74,13 +66,12 @@ type TimelineEvent = {
   type: 'Disbursement' | 'Prepayment' | 'ROI Change' | 'Custom EMI' | 'Loan Start';
   details: string;
   icon: string;
-  originalEvent: any; // Store original event for potential future use (e.g., editing from timeline)
+  originalEvent: any; 
 };
 
-const LoanHistoryTimeline: React.FC<LoanHistoryTimelineProps> = ({ loan }) => {
+const LoanHistoryTimeline: React.FC<LoanHistoryTimelineProps> = ({ loan, schedule }) => {
   const events: TimelineEvent[] = [];
 
-  // Loan Start
   events.push({
     date: loan.details.startDate,
     type: 'Loan Start',
@@ -89,9 +80,7 @@ const LoanHistoryTimeline: React.FC<LoanHistoryTimelineProps> = ({ loan }) => {
     originalEvent: loan.details,
   });
   
-  // Disbursements
   loan.details.disbursements.forEach((d, index) => {
-    // Avoid duplicating the very first disbursement if it's the same as loan start
     if (index === 0 && d.date === loan.details.startDate && d.remarks === 'Initial Disbursement') {
         const firstDisbursementDetail = events.find(e => e.type === 'Loan Start');
         if (firstDisbursementDetail) {
@@ -108,43 +97,77 @@ const LoanHistoryTimeline: React.FC<LoanHistoryTimelineProps> = ({ loan }) => {
     }
   });
 
-  // Prepayments
   loan.paymentHistory?.filter(p => p.type === 'Prepayment').forEach(p => {
+    let detailString = `Prepayment: <span>₹${p.amount.toLocaleString()}</span>. ${p.remarks || ''}`;
+    if (p.adjustmentPreference) {
+      detailString += ` (Preference: ${p.adjustmentPreference})`;
+      // Find the schedule entry for the month of or after this prepayment
+      const eventDate = new Date(p.date);
+      const scheduleEntryAfterEvent = schedule.find(entry => {
+        const entryDate = new Date(entry.paymentDate);
+        // Check if entryDate is in the same month as eventDate or the next month
+        return entryDate.getFullYear() > eventDate.getFullYear() ||
+               (entryDate.getFullYear() === eventDate.getFullYear() && entryDate.getMonth() >= eventDate.getMonth());
+      });
+
+      if (scheduleEntryAfterEvent) {
+        if (p.adjustmentPreference === 'adjustEMI') {
+          detailString += `. New EMI: <span>₹${scheduleEntryAfterEvent.emi.toLocaleString()}</span>.`;
+        } else { // adjustTenure
+          detailString += `. EMI maintained at ~<span>₹${scheduleEntryAfterEvent.emi.toLocaleString()}</span>. Tenure adjusted.`;
+        }
+      }
+    }
     events.push({
       date: p.date,
       type: 'Prepayment',
-      details: `Prepayment: <span>₹${p.amount.toLocaleString()}</span>. ${p.remarks || ''} ${p.adjustmentPreference ? `(Preference: ${p.adjustmentPreference})` : ''}`,
+      details: detailString,
       icon: '💰',
       originalEvent: p,
     });
   });
 
-  // ROI Changes
   loan.interestRateChanges?.forEach(c => {
+    let detailString = `Interest rate changed to <span>${c.newRate}%</span>.`;
+    if (c.adjustmentPreference) {
+      detailString += ` (Preference: ${c.adjustmentPreference})`;
+      const eventDate = new Date(c.date);
+      const scheduleEntryAfterEvent = schedule.find(entry => {
+        const entryDate = new Date(entry.paymentDate);
+        return entryDate.getFullYear() > eventDate.getFullYear() ||
+               (entryDate.getFullYear() === eventDate.getFullYear() && entryDate.getMonth() >= eventDate.getMonth());
+      });
+      
+      if (scheduleEntryAfterEvent) {
+        if (c.adjustmentPreference === 'adjustEMI' || c.adjustmentPreference === 'customEMI') {
+          detailString += `. New EMI: <span>₹${scheduleEntryAfterEvent.emi.toLocaleString()}</span>.`;
+        } else { // adjustTenure
+          detailString += `. EMI maintained at ~<span>₹${scheduleEntryAfterEvent.emi.toLocaleString()}</span>. Tenure adjusted.`;
+        }
+      }
+    }
     events.push({
       date: c.date,
       type: 'ROI Change',
-      details: `Interest rate changed to <span>${c.newRate}%</span>. ${c.adjustmentPreference ? `(Preference: ${c.adjustmentPreference})` : ''}`,
+      details: detailString,
       icon: '📈',
       originalEvent: c,
     });
   });
 
-  // Custom EMI Changes
   loan.customEMIChanges?.forEach(c => {
     events.push({
       date: c.date,
       type: 'Custom EMI',
       details: `EMI set to <span>₹${c.newEMI.toLocaleString()}</span>. ${c.remarks || ''}`,
-      icon: '⚙️', // Using gear for custom/set
+      icon: '⚙️',
       originalEvent: c,
     });
   });
 
-  // Sort all events by date
   events.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-  if (events.length <= 1 && events[0]?.type === 'Loan Start' && !events[0].details.includes('Initial disbursement')) { // Only loan start without disbursement info
+  if (events.length <= 1 && events[0]?.type === 'Loan Start' && !events[0].details.includes('Initial disbursement')) {
     return (
       <TimelineContainer>
         <h4>Loan Event History</h4>
@@ -153,14 +176,12 @@ const LoanHistoryTimeline: React.FC<LoanHistoryTimelineProps> = ({ loan }) => {
     );
   }
 
-
   return (
     <TimelineContainer>
       <h4>Loan Event History</h4>
       <TimelineList>
         {events.map((event, index) => (
           <TimelineItem key={index}>
-            {/* <EventIcon>{event.icon}</EventIcon> */} {/* Icon can be part of details or styled differently */}
             <EventDate>{new Date(event.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} - {event.type}</EventDate>
             <EventDetails dangerouslySetInnerHTML={{ __html: `${event.icon} ${event.details}` }} />
           </TimelineItem>

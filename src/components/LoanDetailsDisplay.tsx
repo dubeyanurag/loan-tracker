@@ -109,7 +109,7 @@ const LoanDetailsDisplay: React.FC<LoanDetailsDisplayProps> = ({ loan }) => {
             schedule={schedule}
             loanDetails={loan.details}
           />
-          <LoanHistoryTimeline loan={loan} /> {/* Add Timeline here */}
+          <LoanHistoryTimeline loan={loan} schedule={schedule} /> {/* Pass schedule prop */}
         </>
       )}
 
