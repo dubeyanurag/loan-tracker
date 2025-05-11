@@ -1,5 +1,5 @@
 // src/components/AnnualSummaryChart.tsx
-import React from 'react'; // Removed useState, useEffect, useRef
+import React, { useState, useEffect, useRef } from 'react'; // Added back useState, useEffect, useRef
 import { Bar } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -41,23 +41,99 @@ const ChartWrapper = styled.div`
     height: 220px; 
     padding: 10px; 
   }
-  // Fullscreen class removed as functionality is temporarily disabled
+  
+  &.fullscreen {
+    padding: 10px;
+    height: 100vh !important;
+    width: 100vw !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    z-index: 2000 !important;
+    background-color: #fff !important;
+  }
 `;
 
-// ChartControls and ControlButton removed as fullscreen button is removed
+const ChartControls = styled.div`
+  position: absolute;
+  top: 5px;
+  right: 10px;
+  z-index: 10;
+`;
+
+const ControlButton = styled.button`
+    padding: 3px 8px;
+    font-size: 0.8em;
+    cursor: pointer;
+    background-color: #eee;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+     &:hover {
+        background-color: #ddd;
+     }
+`;
 
 interface AnnualSummaryChartProps {
   annualSummaries: AnnualSummary[];
 }
 
 const AnnualSummaryChart: React.FC<AnnualSummaryChartProps> = ({ annualSummaries }) => {
-  // Fullscreen state and refs removed
-  // const chartWrapperRef = React.useRef<HTMLDivElement>(null);
-  // const [isFullscreen, setIsFullscreen] = useState(false);
+  const chartWrapperRef = useRef<HTMLDivElement>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
-  // useEffect for fullscreenchange removed
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      const fsElement = document.fullscreenElement || 
+                        (document as any).webkitFullscreenElement || 
+                        (document as any).mozFullScreenElement || 
+                        (document as any).msFullscreenElement;
+      setIsFullscreen(!!fsElement);
+    };
 
-  // toggleFullscreen function removed
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+    document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
+    };
+  }, []);
+
+  const toggleFullscreen = () => {
+    if (!chartWrapperRef.current) return;
+    const element = chartWrapperRef.current as any;
+
+    const fsElement = document.fullscreenElement || 
+                      (document as any).webkitFullscreenElement || 
+                      (document as any).mozFullScreenElement || 
+                      (document as any).msFullscreenElement;
+
+    if (!fsElement) {
+      if (element.requestFullscreen) {
+        element.requestFullscreen().catch((err:Error) => alert(`Error: ${err.message}`));
+      } else if (element.webkitRequestFullscreen) {
+        element.webkitRequestFullscreen().catch((err:Error) => alert(`Error: ${err.message}`));
+      } else if (element.mozRequestFullScreen) {
+        element.mozRequestFullScreen().catch((err:Error) => alert(`Error: ${err.message}`));
+      } else if (element.msRequestFullscreen) {
+        element.msRequestFullscreen().catch((err:Error) => alert(`Error: ${err.message}`));
+      }
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      } else if ((document as any).webkitExitFullscreen) {
+        (document as any).webkitExitFullscreen();
+      } else if ((document as any).mozCancelFullScreen) {
+        (document as any).mozCancelFullScreen();
+      } else if ((document as any).msExitFullscreen) {
+        (document as any).msExitFullscreen();
+      }
+    }
+  };
 
   if (!annualSummaries || annualSummaries.length === 0) {
     return <p>No annual summary data available for chart.</p>;
@@ -137,9 +213,12 @@ const AnnualSummaryChart: React.FC<AnnualSummaryChartProps> = ({ annualSummaries
   };
 
   return (
-    // Removed ref and className from ChartWrapper
-    <ChartWrapper> 
-      {/* ChartControls and Fullscreen button removed */}
+    <ChartWrapper ref={chartWrapperRef} className={isFullscreen ? 'fullscreen' : ''}> 
+      <ChartControls>
+        <ControlButton onClick={toggleFullscreen}>
+          {isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
+        </ControlButton>
+      </ChartControls>
       <Bar options={options} data={data} />
     </ChartWrapper>
   );
