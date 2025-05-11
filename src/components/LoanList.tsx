@@ -84,9 +84,16 @@ const LoanList: React.FC = () => {
       let calculatedProjectedEndDate: string | undefined = undefined;
 
       if (schedule.length > 0) {
-        // Find first non-pre-EMI entry for a representative EMI
-        const firstFullPaymentEntry = schedule.find(entry => !entry.isPreEMIPeriod && entry.emi > 0);
-        calculatedCurrentEMI = firstFullPaymentEntry?.emi || schedule[0].emi; // Fallback to first EMI
+        // Find first entry that represents a principal-paying EMI
+        const firstPrincipalPayingEntry = schedule.find(entry => !entry.isPreEMIPeriod && entry.principalPaid > 0 && entry.emi > 0);
+        if (firstPrincipalPayingEntry) {
+            calculatedCurrentEMI = firstPrincipalPayingEntry.emi;
+        } else {
+            // If no such entry, could be all pre-EMI or an interest-only loan.
+            // For sorting, let's try to find any EMI payment, or default to 0.
+            const anyEmiEntry = schedule.find(entry => entry.emi > 0);
+            calculatedCurrentEMI = anyEmiEntry?.emi || 0;
+        }
 
         const summaryToDate = generateSummaryToDate(schedule, loan.details, fyStartMonth);
         calculatedOutstandingPrincipal = summaryToDate?.currentOutstandingBalance;
