@@ -6,9 +6,10 @@ import { generateAmortizationSchedule } from '../utils/amortizationCalculator';
 import AmortizationTable from './AmortizationTable';
 import LoanSummaries from './LoanSummaries'; 
 import LoanChart from './LoanChart';
+import LoanHistoryTimeline from './LoanHistoryTimeline'; // Import Timeline
 import { useAppDispatch } from '../contexts/AppContext';
-import Modal from './Modal'; // Import Modal
-import AddDisbursementForm from './AddDisbursementForm'; // Import AddDisbursementForm
+import Modal from './Modal'; 
+import AddDisbursementForm from './AddDisbursementForm'; 
 
 const DisplayContainer = styled.div`
   margin-top: 20px;
@@ -23,7 +24,7 @@ const ButtonContainer = styled.div`
   display: flex;
   gap: 0.5rem;
   flex-wrap: wrap;
-  align-items: center; // Align items for the new button
+  align-items: center; 
 `;
 
 const StyledButton = styled.button`
@@ -46,7 +47,7 @@ const StyledButton = styled.button`
 `;
 
 const AddEventButton = styled(StyledButton)`
-  background-color: #007bff; // Blue for add actions
+  background-color: #007bff; 
   font-size: 0.8em;
   padding: 0.4rem 0.8rem;
   &:hover:not(:disabled) {
@@ -97,20 +98,22 @@ const LoanDetailsDisplay: React.FC<LoanDetailsDisplayProps> = ({ loan }) => {
         <StyledButton onClick={() => setActiveView('scheduleAndChart')} disabled={activeView === 'scheduleAndChart'}>
           View Schedule & Chart
         </StyledButton>
-        {/* Add Disbursement Button - shown when summaries are active or generally available */}
         <AddEventButton onClick={() => setIsAddDisbursementModalOpen(true)} style={{marginLeft: 'auto'}}>
           + Add Disbursement
         </AddEventButton>
       </ButtonContainer>
 
       {activeView === 'summaries' && (
-        <LoanSummaries 
-          schedule={schedule}
-          loanDetails={loan.details}
-        />
+        <>
+          <LoanSummaries 
+            schedule={schedule}
+            loanDetails={loan.details}
+          />
+          <LoanHistoryTimeline loan={loan} /> {/* Add Timeline here */}
+        </>
       )}
 
-      {activeView === 'scheduleAndChart' && (
+      {activeView === 'scheduleAndChart' && ( 
         <>
           {schedule.length > 0 && <LoanChart schedule={schedule} loan={loan} />}
           {schedule.length > 0 && (
