@@ -10,7 +10,8 @@ import SettingsButton from './components/SettingsButton'; // New import
 import OverallSummary from './components/OverallSummary'; 
 import Modal from './components/Modal'; 
 import EditLoanDetailsForm from './components/EditLoanDetailsForm'; 
-import EmptyState from './components/EmptyState'; // Import EmptyState
+import EmptyState from './components/EmptyState'; 
+import SettingsModal from './components/SettingsModal'; // Import SettingsModal
 
 const AppContainer = styled.div`
   position: relative; 
@@ -78,10 +79,10 @@ function App() {
       <LoanForm /> {/* Add Loan FAB */}
       {loans.length > 0 && <SettingsButton onClick={() => setIsSettingsModalOpen(true)} />} {/* Settings FAB */}
       
-      {/* TODO: Render SettingsModal when isSettingsModalOpen is true */}
-      {/* <Modal isOpen={isSettingsModalOpen} onClose={() => setIsSettingsModalOpen(false)} title="Settings"> */}
-      {/*   <p>Settings content will go here...</p> */}
-      {/* </Modal> */}
+      <SettingsModal 
+        isOpen={isSettingsModalOpen} 
+        onClose={() => setIsSettingsModalOpen(false)} 
+      />
 
       {loans.length === 0 ? (
         <EmptyState />
