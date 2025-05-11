@@ -96,7 +96,7 @@ const LoanDetailsDisplay: React.FC<LoanDetailsDisplayProps> = ({ loan }) => {
           View Summaries
         </StyledButton>
         <StyledButton onClick={() => setActiveView('scheduleAndChart')} disabled={activeView === 'scheduleAndChart'}>
-          View Schedule & Chart
+          View Full Schedule
         </StyledButton>
         <AddEventButton onClick={() => setIsAddDisbursementModalOpen(true)} style={{marginLeft: 'auto'}}>
           + Add Disbursement
