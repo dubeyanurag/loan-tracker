@@ -1,5 +1,5 @@
 // src/components/AnnualSummaryChart.tsx
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react'; // Added useState, useEffect, useRef
 import { Bar } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -24,22 +24,53 @@ ChartJS.register(
   Legend
 );
 
-const ChartContainer = styled.div`
+const ChartWrapper = styled.div` // Renamed from ChartContainer
   margin-top: 20px;
   padding: 15px;
   border: 1px solid #eee;
   border-radius: 8px;
-  background-color: #f9f9f9; // Slightly different background for chart section
-  height: 350px; // Default height
+  background-color: #f9f9f9; 
+  height: 350px; 
+  position: relative; // For controls
 
   @media (max-width: 768px) {
-    height: 280px; // Smaller height for tablets and mobile
+    height: 280px; 
   }
 
   @media (max-width: 480px) {
-    height: 220px; // Even smaller for very small screens
-    padding: 10px; // Reduce padding too
+    height: 220px; 
+    padding: 10px; 
   }
+
+  &.fullscreen {
+    padding: 10px;
+    height: 100vh !important;
+    width: 100vw !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    z-index: 2000 !important;
+    background-color: #fff !important;
+  }
+`;
+
+const ChartControls = styled.div`
+  position: absolute;
+  top: 5px; // Adjusted for this chart's layout (no zoom reset)
+  right: 10px;
+  z-index: 10;
+`;
+
+const ControlButton = styled.button`
+    padding: 3px 8px;
+    font-size: 0.8em;
+    cursor: pointer;
+    background-color: #eee;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+     &:hover {
+        background-color: #ddd;
+     }
 `;
 
 interface AnnualSummaryChartProps {
@@ -47,6 +78,30 @@ interface AnnualSummaryChartProps {
 }
 
 const AnnualSummaryChart: React.FC<AnnualSummaryChartProps> = ({ annualSummaries }) => {
+  const chartWrapperRef = React.useRef<HTMLDivElement>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
+
+  const toggleFullscreen = () => {
+    if (!chartWrapperRef.current) return;
+    if (!document.fullscreenElement) {
+      chartWrapperRef.current.requestFullscreen().catch(err => {
+        alert(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+      });
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+    }
+  };
+
   if (!annualSummaries || annualSummaries.length === 0) {
     return <p>No annual summary data available for chart.</p>;
   }
@@ -82,10 +137,10 @@ const AnnualSummaryChart: React.FC<AnnualSummaryChartProps> = ({ annualSummaries
 
   const options: ChartOptions<'bar'> = {
     responsive: true,
-    maintainAspectRatio: false, // Set to false
+    maintainAspectRatio: false, 
     plugins: {
       legend: {
-        position: 'bottom' as const, // Changed to bottom
+        position: 'bottom' as const, 
       },
       title: {
         display: true,
@@ -106,7 +161,7 @@ const AnnualSummaryChart: React.FC<AnnualSummaryChartProps> = ({ annualSummaries
     },
     scales: {
       x: {
-        stacked: false, // Set to true if you want bars for P, I, Prepay stacked for each year
+        stacked: false, 
       },
       y: {
         stacked: false,
@@ -125,9 +180,14 @@ const AnnualSummaryChart: React.FC<AnnualSummaryChartProps> = ({ annualSummaries
   };
 
   return (
-    <ChartContainer>
+    <ChartWrapper ref={chartWrapperRef} className={isFullscreen ? 'fullscreen' : ''}>
+      <ChartControls>
+        <ControlButton onClick={toggleFullscreen}>
+          {isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
+        </ControlButton>
+      </ChartControls>
       <Bar options={options} data={data} />
-    </ChartContainer>
+    </ChartWrapper>
   );
 };
 
