@@ -1,7 +1,7 @@
 // src/components/LoanHistoryTimeline.tsx
 import React from 'react';
 import styled from 'styled-components';
-import { Loan, Disbursement, Payment, InterestRateChange, CustomEMIChange } from '../types';
+import { Loan } from '../types'; // Removed unused Disbursement, Payment, InterestRateChange, CustomEMIChange
 
 const TimelineContainer = styled.div`
   margin-top: 20px;
@@ -56,12 +56,13 @@ const EventDetails = styled.p`
   }
 `;
 
-const EventIcon = styled.span`
-  position: absolute;
-  left: -20px; // Adjust to be slightly left of the circle
-  top: 3px;
-  font-size: 1.2em;
-`;
+// Removed EventIcon styled component as it's not used
+// const EventIcon = styled.span`
+//   position: absolute;
+//   left: -20px; // Adjust to be slightly left of the circle
+//   top: 3px;
+//   font-size: 1.2em;
+// `;
 
 
 interface LoanHistoryTimelineProps {
