@@ -152,11 +152,11 @@ const LoanForm: React.FC = () => {
     };
 
     if (!name || 
-        isNaN(loanDetails.originalInterestRate) || loanDetails.originalInterestRate <= 0 ||
+        isNaN(loanDetails.originalInterestRate) || loanDetails.originalInterestRate < 0 || // Allow 0%
         isNaN(loanDetails.originalTenureMonths) || loanDetails.originalTenureMonths <= 0 ||
         !loanDetails.startDate ||
         (startedWithPreEMI && !emiStartDate) ) { 
-      alert('Please fill in all fields correctly, including EMI Start Date if applicable.');
+      alert('Please fill in all fields correctly (Interest rate can be 0). Ensure EMI Start Date is provided if Pre-EMI is selected.');
       return;
     }
 
