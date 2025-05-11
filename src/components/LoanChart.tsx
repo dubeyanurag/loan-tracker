@@ -124,14 +124,15 @@ const LoanChart: React.FC<LoanChartProps> = ({ schedule, loan }) => {
                       (document as any).msFullscreenElement;
 
     if (!fsElement) {
-      if (element.requestFullscreen) {
-        element.requestFullscreen().catch((err:Error) => alert(`Error: ${err.message}`));
-      } else if (element.webkitRequestFullscreen) { // Safari
-        element.webkitRequestFullscreen().catch((err:Error) => alert(`Error: ${err.message}`));
-      } else if (element.mozRequestFullScreen) { // Firefox
-        element.mozRequestFullScreen().catch((err:Error) => alert(`Error: ${err.message}`));
-      } else if (element.msRequestFullscreen) { // IE/Edge
-        element.msRequestFullscreen().catch((err:Error) => alert(`Error: ${err.message}`));
+      const requestFS = element.requestFullscreen || element.webkitRequestFullscreen || element.mozRequestFullScreen || element.msRequestFullscreen;
+      if (requestFS) {
+        requestFS.call(element).catch((err: Error) => {
+          console.error("Fullscreen request failed:", err);
+          alert(`Error requesting fullscreen: ${err.name} - ${err.message}`);
+        });
+      } else {
+        alert('Fullscreen API is not supported by this browser.');
+        console.warn('Fullscreen API is not supported by this browser.');
       }
     } else {
       if (document.exitFullscreen) {

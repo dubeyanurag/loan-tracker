@@ -113,14 +113,15 @@ const AnnualSummaryChart: React.FC<AnnualSummaryChartProps> = ({ annualSummaries
                       (document as any).msFullscreenElement;
 
     if (!fsElement) {
-      if (element.requestFullscreen) {
-        element.requestFullscreen().catch((err:Error) => alert(`Error: ${err.message}`));
-      } else if (element.webkitRequestFullscreen) {
-        element.webkitRequestFullscreen().catch((err:Error) => alert(`Error: ${err.message}`));
-      } else if (element.mozRequestFullScreen) {
-        element.mozRequestFullScreen().catch((err:Error) => alert(`Error: ${err.message}`));
-      } else if (element.msRequestFullscreen) {
-        element.msRequestFullscreen().catch((err:Error) => alert(`Error: ${err.message}`));
+      const requestFS = element.requestFullscreen || element.webkitRequestFullscreen || element.mozRequestFullScreen || element.msRequestFullscreen;
+      if (requestFS) {
+        requestFS.call(element).catch((err: Error) => {
+          console.error("Fullscreen request failed (AnnualSummaryChart):", err);
+          alert(`Error requesting fullscreen: ${err.name} - ${err.message}`);
+        });
+      } else {
+        alert('Fullscreen API is not supported by this browser.');
+        console.warn('Fullscreen API is not supported by this browser. (AnnualSummaryChart)');
       }
     } else {
       if (document.exitFullscreen) {
