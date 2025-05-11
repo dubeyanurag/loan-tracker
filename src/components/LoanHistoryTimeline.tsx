@@ -1,7 +1,7 @@
 // src/components/LoanHistoryTimeline.tsx
 import React from 'react';
 import styled from 'styled-components';
-import { Loan, AmortizationEntry } from '../types'; // Added AmortizationEntry
+import { Loan, AmortizationEntry } from '../types'; 
 
 const TimelineContainer = styled.div`
   margin-top: 20px;
@@ -58,7 +58,7 @@ const EventDetails = styled.p`
 
 interface LoanHistoryTimelineProps {
   loan: Loan;
-  schedule: AmortizationEntry[]; // Added schedule prop
+  schedule: AmortizationEntry[]; 
 }
 
 type TimelineEvent = {
@@ -101,20 +101,17 @@ const LoanHistoryTimeline: React.FC<LoanHistoryTimelineProps> = ({ loan, schedul
     let detailString = `Prepayment: <span>₹${p.amount.toLocaleString()}</span>. ${p.remarks || ''}`;
     if (p.adjustmentPreference) {
       detailString += ` (Preference: ${p.adjustmentPreference})`;
-      // Find the schedule entry for the month of or after this prepayment
       const eventDate = new Date(p.date);
-      const scheduleEntryAfterEvent = schedule.find(entry => {
-        const entryDate = new Date(entry.paymentDate);
-        // Check if entryDate is in the same month as eventDate or the next month
-        return entryDate.getFullYear() > eventDate.getFullYear() ||
-               (entryDate.getFullYear() === eventDate.getFullYear() && entryDate.getMonth() >= eventDate.getMonth());
-      });
+      // Find the first schedule entry whose paymentDate is on or after the event date.
+      const scheduleEntryIndex = schedule.findIndex(entry => new Date(entry.paymentDate) >= eventDate);
 
-      if (scheduleEntryAfterEvent) {
+      if (scheduleEntryIndex !== -1) {
+        const scheduleEntryAfterEvent = schedule[scheduleEntryIndex];
         if (p.adjustmentPreference === 'adjustEMI') {
           detailString += `. New EMI: <span>₹${scheduleEntryAfterEvent.emi.toLocaleString()}</span>.`;
         } else { // adjustTenure
-          detailString += `. EMI maintained at ~<span>₹${scheduleEntryAfterEvent.emi.toLocaleString()}</span>. Tenure adjusted.`;
+          const remainingTenure = schedule.length - scheduleEntryIndex;
+          detailString += `. EMI maintained at ~<span>₹${scheduleEntryAfterEvent.emi.toLocaleString()}</span>. Projected remaining tenure: ${remainingTenure} months.`;
         }
       }
     }
@@ -132,17 +129,17 @@ const LoanHistoryTimeline: React.FC<LoanHistoryTimelineProps> = ({ loan, schedul
     if (c.adjustmentPreference) {
       detailString += ` (Preference: ${c.adjustmentPreference})`;
       const eventDate = new Date(c.date);
-      const scheduleEntryAfterEvent = schedule.find(entry => {
-        const entryDate = new Date(entry.paymentDate);
-        return entryDate.getFullYear() > eventDate.getFullYear() ||
-               (entryDate.getFullYear() === eventDate.getFullYear() && entryDate.getMonth() >= eventDate.getMonth());
-      });
+      const scheduleEntryIndex = schedule.findIndex(entry => new Date(entry.paymentDate) >= eventDate);
       
-      if (scheduleEntryAfterEvent) {
+      if (scheduleEntryIndex !== -1) {
+        const scheduleEntryAfterEvent = schedule[scheduleEntryIndex];
         if (c.adjustmentPreference === 'adjustEMI' || c.adjustmentPreference === 'customEMI') {
+          // For customEMI preference on ROI change, the newEMIIfApplicable is used by calculator,
+          // and the resulting EMI will be in the schedule.
           detailString += `. New EMI: <span>₹${scheduleEntryAfterEvent.emi.toLocaleString()}</span>.`;
         } else { // adjustTenure
-          detailString += `. EMI maintained at ~<span>₹${scheduleEntryAfterEvent.emi.toLocaleString()}</span>. Tenure adjusted.`;
+          const remainingTenure = schedule.length - scheduleEntryIndex;
+          detailString += `. EMI maintained at ~<span>₹${scheduleEntryAfterEvent.emi.toLocaleString()}</span>. Projected remaining tenure: ${remainingTenure} months.`;
         }
       }
     }
@@ -156,10 +153,13 @@ const LoanHistoryTimeline: React.FC<LoanHistoryTimelineProps> = ({ loan, schedul
   });
 
   loan.customEMIChanges?.forEach(c => {
+    // For custom EMI changes, the new EMI is directly known from the event itself.
+    // The schedule will reflect this EMI from the event date onwards.
+    let detailString = `EMI set to <span>₹${c.newEMI.toLocaleString()}</span>. ${c.remarks || ''}`;
     events.push({
       date: c.date,
       type: 'Custom EMI',
-      details: `EMI set to <span>₹${c.newEMI.toLocaleString()}</span>. ${c.remarks || ''}`,
+      details: detailString,
       icon: '⚙️',
       originalEvent: c,
     });
