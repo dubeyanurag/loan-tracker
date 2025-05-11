@@ -59,7 +59,8 @@ export interface Loan {
 export interface AppState {
   loans: Loan[];
   selectedLoanId: string | null;
-  currency: string; // Added currency
+  currency: string; 
+  fyStartMonth: number; // Added for Financial Year start month (0-11)
 }
 
 export type AppAction =
@@ -78,7 +79,8 @@ export type AppAction =
   | { type: 'DELETE_ROI_CHANGE'; payload: { loanId: string; changeId: string } }
   | { type: 'DELETE_CUSTOM_EMI_CHANGE'; payload: { loanId: string; changeId: string } }
   | { type: 'DELETE_DISBURSEMENT'; payload: { loanId: string; disbursementId: string } }
-  | { type: 'SET_CURRENCY'; payload: string }; 
+  | { type: 'SET_CURRENCY'; payload: string }
+  | { type: 'SET_FY_START_MONTH'; payload: number }; 
 
 export interface AmortizationEntry {
   monthNumber: number;

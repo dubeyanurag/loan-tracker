@@ -1,9 +1,8 @@
 // src/contexts/AppContext.tsx
-import React, { createContext, useReducer, useContext, Dispatch, ReactNode } from 'react'; // Removed useEffect
-import { AppState, AppAction, Payment, InterestRateChange, CustomEMIChange, Disbursement } from '../types'; // Removed Loan
+import React, { createContext, useReducer, useContext, Dispatch, ReactNode } from 'react';
+import { AppState, AppAction, Payment, InterestRateChange, CustomEMIChange, Disbursement } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 
-// Separate state for UI concerns like editing, not persisted or shared
 interface UIState {
   editingLoanId: string | null;
 }
@@ -14,7 +13,8 @@ const initialUIState: UIState = {
   editingLoanId: null,
 };
 
-// Function to load initial state from localStorage
+const FY_START_MONTH_DEFAULT = 3; // April (0-indexed March)
+
 const loadInitialState = (): AppState => {
   try {
     const serializedState = localStorage.getItem('loanAppState');
@@ -22,13 +22,15 @@ const loadInitialState = (): AppState => {
       return {
         loans: [],
         selectedLoanId: null,
-        currency: 'INR', // Default currency
+        currency: 'INR', 
+        fyStartMonth: FY_START_MONTH_DEFAULT, 
       };
     }
     const storedState = JSON.parse(serializedState);
     return {
         ...storedState,
-        currency: storedState.currency || 'INR' // Ensure currency exists
+        currency: storedState.currency || 'INR',
+        fyStartMonth: storedState.fyStartMonth ?? FY_START_MONTH_DEFAULT, // Handle missing fyStartMonth
     };
   } catch (error) {
     console.error("Could not load state from localStorage", error);
@@ -36,12 +38,13 @@ const loadInitialState = (): AppState => {
       loans: [],
       selectedLoanId: null,
       currency: 'INR',
+      fyStartMonth: FY_START_MONTH_DEFAULT,
     };
   }
 };
 
 
-export const initialState: AppStateWithEdit = { // Export initialState
+export const initialState: AppStateWithEdit = {
   ...loadInitialState(),
   ...initialUIState,
 };
@@ -52,7 +55,7 @@ const AppContext = createContext<{
   dispatch: Dispatch<AppAction>;
 } | undefined>(undefined);
 
-export const appReducer = (state: AppStateWithEdit = initialState, action: AppAction): AppStateWithEdit => { // Export appReducer and provide default state
+export const appReducer = (state: AppStateWithEdit = initialState, action: AppAction): AppStateWithEdit => {
   let newState: AppStateWithEdit;
   switch (action.type) {
     case 'ADD_LOAN':
@@ -67,7 +70,7 @@ export const appReducer = (state: AppStateWithEdit = initialState, action: AppAc
         loans: state.loans.map(loan =>
           loan.id === action.payload.id ? action.payload : loan
         ),
-        editingLoanId: null, // Ensure editing mode is exited
+        editingLoanId: null, 
       };
       break;
     case 'DELETE_LOAN':
@@ -78,22 +81,18 @@ export const appReducer = (state: AppStateWithEdit = initialState, action: AppAc
       };
       break;
     case 'LOAD_STATE':
-      // When loading state, only load AppState properties, keep UIState separate
       newState = { 
-        ...state, // Retain current UI state like editingLoanId
+        ...state, 
         loans: action.payload.loans, 
         selectedLoanId: action.payload.selectedLoanId,
-        currency: action.payload.currency || 'INR', // Ensure currency is loaded or defaulted
+        currency: action.payload.currency || 'INR', 
+        fyStartMonth: action.payload.fyStartMonth ?? FY_START_MONTH_DEFAULT, // Handle missing fyStartMonth
       };
       break;
     case 'ADD_PAYMENT': {
         const { loanId, payment } = action.payload;
         const newPayment: Payment = {
-            ...payment,
-            id: uuidv4(),
-            principalPaid: 0, // These will be determined by amortization logic
-            interestPaid: 0,
-            balanceAfterPayment: 0,
+            ...payment, id: uuidv4(), principalPaid: 0, interestPaid: 0, balanceAfterPayment: 0,
         };
         newState = {
             ...state,
@@ -150,8 +149,6 @@ export const appReducer = (state: AppStateWithEdit = initialState, action: AppAc
     case 'END_EDIT_LOAN':
         newState = { ...state, editingLoanId: null };
         break;
-    
-    // Deletion cases
     case 'DELETE_PAYMENT':
         newState = {
             ...state,
@@ -195,16 +192,15 @@ export const appReducer = (state: AppStateWithEdit = initialState, action: AppAc
     case 'SET_CURRENCY':
         newState = { ...state, currency: action.payload };
         break;
+    case 'SET_FY_START_MONTH': // Handle new action
+        newState = { ...state, fyStartMonth: action.payload };
+        break;
     default:
       newState = state;
   }
 
-  // Save to localStorage after every action that modifies persisted state
-  // Exclude UI state like editingLoanId from being saved
   const { editingLoanId, ...persistedState } = newState;
   localStorage.setItem('loanAppState', JSON.stringify(persistedState));
-  // Removed specific saving of loanAppCurrency item
-
 
   return newState;
 };
@@ -212,10 +208,6 @@ export const appReducer = (state: AppStateWithEdit = initialState, action: AppAc
 export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
   const [state, dispatch] = useReducer(appReducer, initialState);
   
-  // Removed useEffect that specifically loaded from 'loanAppCurrency'
-  // loadInitialState now handles currency from 'loanAppState'
-
-
   return (
     <AppContext.Provider value={{ state, dispatch }}>
       {children}
@@ -228,7 +220,6 @@ export const useAppState = (): AppState => {
   if (context === undefined) {
     throw new Error('useAppState must be used within an AppProvider');
   }
-  // Return only the AppState part, excluding UIState
   const { editingLoanId, ...appState } = context.state;
   return appState;
 };

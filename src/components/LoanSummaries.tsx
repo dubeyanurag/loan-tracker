@@ -1,11 +1,11 @@
 // src/components/LoanSummaries.tsx
-import React, { useMemo, useState, useRef, useEffect } from 'react'; 
+import React, { useMemo, useRef, useEffect } from 'react'; // Removed useState
 import styled from 'styled-components';
 import { AmortizationEntry, AnnualSummary, LifespanSummary, CurrentSummary, LoanDetails } from '../types'; 
 import { generateAnnualSummaries, generateLifespanSummary, generateSummaryToDate } from '../utils/amortizationCalculator'; 
 import AnnualSummaryChart from './AnnualSummaryChart'; 
-import { useAppState } from '../contexts/AppContext'; // Import useAppState
-import { formatCurrency, formatDateReadable } from '../utils/formatting'; // Import formatCurrency and formatDateReadable
+import { useAppState } from '../contexts/AppContext'; 
+import { formatCurrency, formatDateReadable } from '../utils/formatting'; 
 
 const SummaryContainer = styled.div`
 `;
@@ -72,16 +72,10 @@ interface LoanSummariesProps {
   loanDetails: LoanDetails; 
 }
 
-const monthOptions = [
-    { value: 0, label: 'January' }, { value: 1, label: 'February' }, { value: 2, label: 'March' }, 
-    { value: 3, label: 'April' }, { value: 4, label: 'May' }, { value: 5, label: 'June' },
-    { value: 6, label: 'July' }, { value: 7, label: 'August' }, { value: 8, label: 'September' },
-    { value: 9, label: 'October' }, { value: 10, label: 'November' }, { value: 11, label: 'December' }
-];
+// monthOptions removed as dropdown is now in SettingsModal
 
 const LoanSummaries: React.FC<LoanSummariesProps> = ({ schedule, loanDetails }) => { 
-  const { currency } = useAppState(); // Get currency
-  const [fyStartMonth, setFyStartMonth] = useState<number>(3); 
+  const { currency, fyStartMonth } = useAppState(); // Get currency and fyStartMonth
   const currentFYRowRef = useRef<HTMLTableRowElement | null>(null); 
   const annualTableContainerRef = useRef<HTMLDivElement | null>(null); 
 
@@ -99,9 +93,9 @@ const LoanSummaries: React.FC<LoanSummariesProps> = ({ schedule, loanDetails }) 
 
   const now = new Date();
   const currentCalendarYear = now.getFullYear();
-  const currentMonth = now.getMonth();
+  const currentMonthNum = now.getMonth(); // Renamed to avoid conflict
   let currentFYStartYear = currentCalendarYear;
-  if (currentMonth < fyStartMonth) {
+  if (currentMonthNum < fyStartMonth) { // Use currentMonthNum
       currentFYStartYear = currentCalendarYear - 1;
   }
   const currentFYLabel = `FY ${currentFYStartYear}-${(currentFYStartYear + 1).toString().slice(-2)}`;
@@ -174,20 +168,8 @@ const LoanSummaries: React.FC<LoanSummariesProps> = ({ schedule, loanDetails }) 
       </SummaryColumns>
 
       <SummarySection>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-            <h4>Annual Summaries (Table)</h4>
-            <div>
-                <label htmlFor="fyStartMonth" style={{ marginRight: '5px', fontSize: '0.9em' }}>FY Start Month:</label>
-                <select 
-                    id="fyStartMonth" 
-                    value={fyStartMonth} 
-                    onChange={(e) => setFyStartMonth(parseInt(e.target.value, 10))}
-                    style={{ padding: '3px', fontSize: '0.9em' }}
-                >
-                    {monthOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-                </select>
-            </div>
-        </div>
+        {/* FY Start Month dropdown removed from here */}
+        <h4>Annual Summaries (Table)</h4>
         {annualSummaries.length > 0 ? (
           <AnnualTableContainer ref={annualTableContainerRef}> 
             <SummaryTable>

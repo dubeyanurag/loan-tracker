@@ -2,7 +2,7 @@
 import React from 'react';
 import styled from 'styled-components';
 import { useAppState, useAppDispatch } from '../contexts/AppContext';
-import Modal from './Modal'; // Re-use the existing Modal component
+import Modal from './Modal'; 
 
 const SettingsContent = styled.div`
   display: flex;
@@ -34,7 +34,6 @@ const Select = styled.select`
   }
 `;
 
-// Share section styles (can be enhanced later)
 const ShareSection = styled.div`
   margin-top: 15px;
   padding-top: 15px;
@@ -43,7 +42,7 @@ const ShareSection = styled.div`
 
 const ShareButton = styled.button`
   padding: 0.5rem 1rem;
-  background-color: #28a745; // Green for share
+  background-color: #28a745; 
   color: white;
   border: none;
   border-radius: 4px;
@@ -76,11 +75,17 @@ const CURRENCIES = [
   { code: 'USD', name: 'US Dollar ($)' },
   { code: 'EUR', name: 'Euro (€)' },
   { code: 'GBP', name: 'British Pound (£)' },
-  // Add more currencies as needed
+];
+
+const MONTHS = [
+    { value: 0, label: 'January (Calendar Year)' }, { value: 1, label: 'February' }, { value: 2, label: 'March' }, 
+    { value: 3, label: 'April (Indian FY)' }, { value: 4, label: 'May' }, { value: 5, label: 'June' },
+    { value: 6, label: 'July' }, { value: 7, label: 'August' }, { value: 8, label: 'September' },
+    { value: 9, label: 'October' }, { value: 10, label: 'November' }, { value: 11, label: 'December' }
 ];
 
 const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
-  const { loans, selectedLoanId, currency } = useAppState(); // Get currency from state
+  const { loans, selectedLoanId, currency, fyStartMonth } = useAppState(); 
   const dispatch = useAppDispatch();
   const [shareFeedback, setShareFeedback] = React.useState('');
 
@@ -89,14 +94,19 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
     dispatch({ type: 'SET_CURRENCY', payload: event.target.value });
   };
 
+  const handleFyStartMonthChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    dispatch({ type: 'SET_FY_START_MONTH', payload: parseInt(event.target.value, 10) });
+  };
+
   const handleShare = async () => {
     const stateToShare = {
       loans: loans,
       selectedLoanId: selectedLoanId,
-      currency: currency, // Include currency in shared state
+      currency: currency, 
+      fyStartMonth: fyStartMonth, // Include fyStartMonth in shared state
     };
     const jsonState = JSON.stringify(stateToShare);
-    const base64State = btoa(jsonState); // Simple encoding
+    const base64State = btoa(jsonState); 
     const shareUrl = `${window.location.origin}${window.location.pathname}?loadState=${encodeURIComponent(base64State)}`;
 
     try {
@@ -125,18 +135,27 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
           </Select>
         </FormGroup>
 
+        <FormGroup>
+          <Label htmlFor="fy-start-month-select">Financial Year Starts In:</Label>
+          <Select id="fy-start-month-select" value={fyStartMonth} onChange={handleFyStartMonthChange}>
+            {MONTHS.map(m => (
+              <option key={m.value} value={m.value}>
+                {m.label}
+              </option>
+            ))}
+          </Select>
+        </FormGroup>
+
         <ShareSection>
           <h4>Share / Export State</h4>
           <p style={{fontSize: '0.85em', color: '#666'}}>
-            Copy a shareable link containing your current loan data. Anyone with the link can view (but not edit) your setup.
+            Copy a shareable link containing your current loan data and settings. Anyone with the link can view your setup.
           </p>
           <ShareButton onClick={handleShare}>
             🔗 Copy Shareable Link
           </ShareButton>
           {shareFeedback && <ShareFeedback>{shareFeedback}</ShareFeedback>}
         </ShareSection>
-
-        {/* Add more settings here in the future */}
       </SettingsContent>
     </Modal>
   );
