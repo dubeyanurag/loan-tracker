@@ -1,322 +1,260 @@
 // src/contexts/AppContext.tsx
-import React, { createContext, useReducer, useContext, ReactNode, useEffect } from 'react';
-import { AppState, AppAction, Loan, Payment, InterestRateChange, CustomEMIChange, Disbursement } from '../types'; 
-import { v4 as uuidv4 } from 'uuid'; 
+import React, { createContext, useReducer, useContext, Dispatch, ReactNode, useEffect } from 'react';
+import { AppState, AppAction, Loan, Payment, InterestRateChange, CustomEMIChange, Disbursement } from '../types';
+import { v4 as uuidv4 } from 'uuid';
 
-const LOCAL_STORAGE_KEY = 'homeLoanTrackerAppState';
-
-// Add editingLoanId to AppState interface
-export interface AppStateWithEdit extends AppState {
-  editingLoanId?: string | null; 
+// Separate state for UI concerns like editing, not persisted or shared
+interface UIState {
+  editingLoanId: string | null;
 }
 
-// Initial state includes editingLoanId
-export const initialState: AppStateWithEdit = { 
-  loans: [],
-  selectedLoanId: null,
-  editingLoanId: null, // Initialize editingLoanId
+export interface AppStateWithEdit extends AppState, UIState {}
+
+const initialUIState: UIState = {
+  editingLoanId: null,
 };
 
-// Reducer manages AppStateWithEdit
-export const appReducer = (state: AppStateWithEdit, action: AppAction): AppStateWithEdit => { 
+// Function to load initial state from localStorage
+const loadInitialState = (): AppState => {
+  try {
+    const serializedState = localStorage.getItem('loanAppState');
+    if (serializedState === null) {
+      return {
+        loans: [],
+        selectedLoanId: null,
+        currency: 'INR', // Default currency
+      };
+    }
+    const storedState = JSON.parse(serializedState);
+    return {
+        ...storedState,
+        currency: storedState.currency || 'INR' // Ensure currency exists
+    };
+  } catch (error) {
+    console.error("Could not load state from localStorage", error);
+    return {
+      loans: [],
+      selectedLoanId: null,
+      currency: 'INR',
+    };
+  }
+};
+
+
+export const initialState: AppStateWithEdit = { // Export initialState
+  ...loadInitialState(),
+  ...initialUIState,
+};
+
+
+const AppContext = createContext<{
+  state: AppStateWithEdit;
+  dispatch: Dispatch<AppAction>;
+} | undefined>(undefined);
+
+export const appReducer = (state: AppStateWithEdit = initialState, action: AppAction): AppStateWithEdit => { // Export appReducer and provide default state
+  let newState: AppStateWithEdit;
   switch (action.type) {
-    case 'LOAD_STATE':
-      // When loading state, ensure it's compatible and includes editingLoanId
-      const loadedState = action.payload as AppState; // Assuming payload is AppState
-      return { ...initialState, ...loadedState, editingLoanId: null }; // Reset editingLoanId on load
     case 'ADD_LOAN':
-      return {
-        ...state,
-        loans: [...state.loans, action.payload],
-        selectedLoanId: action.payload.id, 
-        editingLoanId: null, // Ensure editing is reset
-      };
+      newState = { ...state, loans: [...state.loans, action.payload] };
+      break;
     case 'SELECT_LOAN':
-      return {
-        ...state,
-        selectedLoanId: action.payload,
-        editingLoanId: null, // Reset editing when selecting a new loan
-      };
+      newState = { ...state, selectedLoanId: action.payload };
+      break;
     case 'UPDATE_LOAN':
-      return {
+      newState = {
         ...state,
-        loans: state.loans.map((loan) =>
+        loans: state.loans.map(loan =>
           loan.id === action.payload.id ? action.payload : loan
         ),
-        // editingLoanId: null, // Keep editingLoanId as is, form submission handles closing
+        editingLoanId: null, // Ensure editing mode is exited
       };
+      break;
     case 'DELETE_LOAN':
-      const remainingLoans = state.loans.filter((loan) => loan.id !== action.payload);
-      let newSelectedLoanId = state.selectedLoanId;
-      let newEditingLoanId = state.editingLoanId;
-
-      if (state.selectedLoanId === action.payload) {
-        newSelectedLoanId = remainingLoans.length > 0 ? remainingLoans[0].id : null;
-      }
-      if (state.editingLoanId === action.payload) { // If the loan being edited is deleted
-        newEditingLoanId = null;
-      }
-      return {
+      newState = {
         ...state,
-        loans: remainingLoans,
-        selectedLoanId: newSelectedLoanId,
-        editingLoanId: newEditingLoanId,
+        loans: state.loans.filter(loan => loan.id !== action.payload),
+        selectedLoanId: state.selectedLoanId === action.payload ? null : state.selectedLoanId,
       };
-    
+      break;
+    case 'LOAD_STATE':
+      // When loading state, only load AppState properties, keep UIState separate
+      newState = { 
+        ...state, // Retain current UI state like editingLoanId
+        loans: action.payload.loans, 
+        selectedLoanId: action.payload.selectedLoanId,
+        currency: action.payload.currency || 'INR', // Ensure currency is loaded or defaulted
+      };
+      break;
     case 'ADD_PAYMENT': {
-      const { loanId, payment } = action.payload;
-      const newPayment: Payment = {
-        ...payment,
-        id: uuidv4(),
-        principalPaid: 0, 
-        interestPaid: 0,  
-        balanceAfterPayment: 0, 
-      };
-      return {
-        ...state,
-        loans: state.loans.map(loan => 
-          loan.id === loanId 
-            ? { ...loan, paymentHistory: [...(loan.paymentHistory || []), newPayment] } 
-            : loan
-        ),
-      };
+        const { loanId, payment } = action.payload;
+        const newPayment: Payment = {
+            ...payment,
+            id: uuidv4(),
+            principalPaid: 0, // These will be determined by amortization logic
+            interestPaid: 0,
+            balanceAfterPayment: 0,
+        };
+        newState = {
+            ...state,
+            loans: state.loans.map(loan =>
+                loan.id === loanId
+                    ? { ...loan, paymentHistory: [...(loan.paymentHistory || []), newPayment] }
+                    : loan
+            ),
+        };
+        break;
     }
     case 'ADD_INTEREST_RATE_CHANGE': {
         const { loanId, change } = action.payload;
         const newChange: InterestRateChange = { ...change, id: uuidv4() };
-        return {
-            ...state,
-            loans: state.loans.map(loan => 
-                loan.id === loanId
-                ? { ...loan, interestRateChanges: [...(loan.interestRateChanges || []), newChange] }
-                : loan
-            ),
-        };
-    }
-    case 'ADD_CUSTOM_EMI_CHANGE': {
-        const { loanId, change } = action.payload;
-        const newChange: CustomEMIChange = { ...change, id: uuidv4() };
-        return {
+        newState = {
             ...state,
             loans: state.loans.map(loan =>
                 loan.id === loanId
-                ? { ...loan, customEMIChanges: [...(loan.customEMIChanges || []), newChange] }
-                : loan
+                    ? { ...loan, interestRateChanges: [...(loan.interestRateChanges || []), newChange] }
+                    : loan
             ),
         };
+        break;
+    }
+    case 'ADD_CUSTOM_EMI_CHANGE': {
+        const { loanId, change } = action.payload;
+        const newEmiChange: CustomEMIChange = { ...change, id: uuidv4() };
+        newState = {
+            ...state,
+            loans: state.loans.map(loan =>
+                loan.id === loanId
+                    ? { ...loan, customEMIChanges: [...(loan.customEMIChanges || []), newEmiChange] }
+                    : loan
+            ),
+        };
+        break;
     }
     case 'ADD_DISBURSEMENT': {
         const { loanId, disbursement } = action.payload;
         const newDisbursement: Disbursement = { ...disbursement, id: uuidv4() };
-        return {
+        newState = {
             ...state,
             loans: state.loans.map(loan =>
                 loan.id === loanId
-                ? { 
-                    ...loan, 
-                    details: { 
-                        ...loan.details, 
-                        disbursements: [...(loan.details.disbursements || []), newDisbursement] 
-                    } 
-                  }
-                : loan
+                    ? { ...loan, details: { ...loan.details, disbursements: [...loan.details.disbursements, newDisbursement] } }
+                    : loan
             ),
         };
+        break;
     }
     case 'START_EDIT_LOAN':
-      return {
-        ...state,
-        editingLoanId: action.payload,
-      };
+        newState = { ...state, editingLoanId: action.payload };
+        break;
     case 'END_EDIT_LOAN':
-      return {
-        ...state,
-        editingLoanId: null,
-      };
-    case 'DELETE_PAYMENT':
-      return {
-        ...state,
-        loans: state.loans.map(loan => 
-          loan.id === action.payload.loanId
-            ? { ...loan, paymentHistory: loan.paymentHistory.filter(p => p.id !== action.payload.paymentId) }
-            : loan
-        ),
-      };
-    case 'DELETE_ROI_CHANGE':
-      return {
-        ...state,
-        loans: state.loans.map(loan =>
-          loan.id === action.payload.loanId
-            ? { ...loan, interestRateChanges: loan.interestRateChanges.filter(c => c.id !== action.payload.changeId) }
-            : loan
-        ),
-      };
-    case 'DELETE_CUSTOM_EMI_CHANGE':
-      return {
-        ...state,
-        loans: state.loans.map(loan =>
-          loan.id === action.payload.loanId
-            ? { ...loan, customEMIChanges: loan.customEMIChanges.filter(c => c.id !== action.payload.changeId) }
-            : loan
-        ),
-      };
-    case 'DELETE_DISBURSEMENT':
-      // Prevent deleting the very first disbursement if it's the only one.
-      // Or ensure loan details are updated if principal becomes zero.
-      // For now, simple filter. Consider implications.
-      return {
-        ...state,
-        loans: state.loans.map(loan => {
-          if (loan.id === action.payload.loanId) {
-            const newDisbursements = loan.details.disbursements.filter(d => d.id !== action.payload.disbursementId);
-            // Ensure there's at least one disbursement, or handle loan deletion/invalidation
-            if (newDisbursements.length === 0 && loan.details.disbursements.length > 0) {
-              // Optionally, alert user or prevent deletion of the last disbursement
-              // For now, allowing it might lead to an invalid loan state if not handled carefully by UI/calculator
-              console.warn("Attempting to delete the last disbursement. This might lead to an invalid loan state.");
-            }
-            return { 
-              ...loan, 
-              details: { 
-                ...loan.details, 
-                disbursements: newDisbursements
-              } 
-            };
-          }
-          return loan;
-        }),
-      };
-    default:
-      return state;
-  }
-};
-
-// Context now uses AppStateWithEdit
-const AppStateContext = createContext<AppStateWithEdit | undefined>(undefined); 
-const AppDispatchContext = createContext<React.Dispatch<AppAction> | undefined>(undefined);
-
-interface AppProviderProps {
-  children: ReactNode;
-}
-
-// isValidAppState needs to check AppState, not AppStateWithEdit for localStorage/URL load
-const isValidAppState = (data: any): data is AppState => { 
-    return data && typeof data === 'object' && Array.isArray(data.loans) && 
-           (data.selectedLoanId === null || typeof data.selectedLoanId === 'string');
-};
-
-export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
-  const [state, dispatch] = useReducer(appReducer, initialState, (initial) => {
-    let loadedStateCore: AppState = { loans: initial.loans, selectedLoanId: initial.selectedLoanId };
-
-    try {
-        const urlParams = new URLSearchParams(window.location.search);
-        const base64State = urlParams.get('loadState');
-        if (base64State) {
-            console.log("Found loadState in URL parameter.");
-            const jsonState = atob(base64State);
-            const parsedStateFromUrl = JSON.parse(jsonState);
-            if (isValidAppState(parsedStateFromUrl)) {
-                console.log("Successfully parsed state from URL for merging/loading.");
-                let existingStateFromStorage: AppState = { loans: [], selectedLoanId: null };
-                 try {
-                    const storedState = localStorage.getItem(LOCAL_STORAGE_KEY);
-                    if (storedState) {
-                        const parsedLocalStorageState = JSON.parse(storedState);
-                        if (isValidAppState(parsedLocalStorageState)) {
-                            existingStateFromStorage = parsedLocalStorageState;
-                        }
-                    }
-                } catch (e) { /* ignore */ }
-
-                const urlLoansMap = new Map<string, Loan>();
-                parsedStateFromUrl.loans.forEach(loan => urlLoansMap.set(loan.id, loan));
-                
-                const mergedLoans = existingStateFromStorage.loans.filter(l => !urlLoansMap.has(l.id));
-                mergedLoans.push(...parsedStateFromUrl.loans);
-                
-                loadedStateCore = {
-                    loans: mergedLoans,
-                    selectedLoanId: parsedStateFromUrl.loans.length > 0 ? parsedStateFromUrl.loans[0].id : (mergedLoans.length > 0 ? mergedLoans[0].id : null)
-                };
-            } else {
-                console.warn("Invalid AppState structure from loadState URL parameter.");
-            }
-            window.history.replaceState({}, document.title, window.location.pathname + window.location.hash); 
-        } else {
-            try {
-              const storedState = localStorage.getItem(LOCAL_STORAGE_KEY);
-              if (storedState) {
-                const parsedState = JSON.parse(storedState);
-                 if (isValidAppState(parsedState)) {
-                    console.log("Successfully loaded state from localStorage.");
-                    loadedStateCore = parsedState;
-                 } else {
-                     console.warn("Invalid state structure found in localStorage.");
-                 }
-              }
-            } catch (error) {
-              console.error("Error loading state from localStorage:", error);
-            }
-        }
-    } catch (error) {
-        console.error("Error processing URL parameters or localStorage:", error);
-         try {
-            const storedState = localStorage.getItem(LOCAL_STORAGE_KEY);
-            if (storedState) {
-                const parsedState = JSON.parse(storedState);
-                if (isValidAppState(parsedState)) loadedStateCore = parsedState;
-            }
-        } catch (e) { /* ignore */ }
-    }
+        newState = { ...state, editingLoanId: null };
+        break;
     
-    // Combine loaded core state with initial editingLoanId
-    return { ...initial, ...loadedStateCore, editingLoanId: initial.editingLoanId }; 
-  });
+    // Deletion cases
+    case 'DELETE_PAYMENT':
+        newState = {
+            ...state,
+            loans: state.loans.map(loan => 
+                loan.id === action.payload.loanId 
+                ? { ...loan, paymentHistory: loan.paymentHistory.filter(p => p.id !== action.payload.paymentId) }
+                : loan
+            )
+        };
+        break;
+    case 'DELETE_ROI_CHANGE':
+        newState = {
+            ...state,
+            loans: state.loans.map(loan =>
+                loan.id === action.payload.loanId
+                ? { ...loan, interestRateChanges: loan.interestRateChanges.filter(c => c.id !== action.payload.changeId) }
+                : loan
+            )
+        };
+        break;
+    case 'DELETE_CUSTOM_EMI_CHANGE':
+        newState = {
+            ...state,
+            loans: state.loans.map(loan =>
+                loan.id === action.payload.loanId
+                ? { ...loan, customEMIChanges: loan.customEMIChanges.filter(c => c.id !== action.payload.changeId) }
+                : loan
+            )
+        };
+        break;
+    case 'DELETE_DISBURSEMENT':
+        newState = {
+            ...state,
+            loans: state.loans.map(loan =>
+                loan.id === action.payload.loanId
+                ? { ...loan, details: { ...loan.details, disbursements: loan.details.disbursements.filter(d => d.id !== action.payload.disbursementId)} }
+                : loan
+            )
+        };
+        break;
+    case 'SET_CURRENCY':
+        newState = { ...state, currency: action.payload };
+        break;
+    default:
+      newState = state;
+  }
 
+  // Save to localStorage after every action that modifies persisted state
+  // Exclude UI state like editingLoanId from being saved
+  const { editingLoanId, ...persistedState } = newState;
+  localStorage.setItem('loanAppState', JSON.stringify(persistedState));
+  if (action.type === 'SET_CURRENCY') { // Also save currency specifically if needed elsewhere
+    localStorage.setItem('loanAppCurrency', newState.currency);
+  }
+
+
+  return newState;
+};
+
+export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
+  const [state, dispatch] = useReducer(appReducer, initialState);
+  
+  // Effect to load currency from its specific localStorage item if loanAppState doesn't have it
+  // This handles the case where 'loanAppCurrency' might be set by an older version of the app
+  // or if 'loanAppState' was cleared but 'loanAppCurrency' remains.
   useEffect(() => {
-    // Save only the AppState part to localStorage
-    const { editingLoanId, ...stateToSave } = state; 
-    try {
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(stateToSave));
-    } catch (error) {
-      console.error("Error saving state to localStorage:", error);
+    const storedCurrency = localStorage.getItem('loanAppCurrency');
+    if (storedCurrency && storedCurrency !== state.currency) {
+        // Only dispatch if it's different to avoid loop & if it's a valid known currency (optional check)
+        dispatch({ type: 'SET_CURRENCY', payload: storedCurrency });
     }
-  }, [state]);
+  }, []); // Runs once on mount
+
 
   return (
-    <AppStateContext.Provider value={state}>
-      <AppDispatchContext.Provider value={dispatch}>
-        {children}
-      </AppDispatchContext.Provider>
-    </AppStateContext.Provider>
+    <AppContext.Provider value={{ state, dispatch }}>
+      {children}
+    </AppContext.Provider>
   );
 };
 
-// useAppState now returns AppStateWithEdit for internal use where needed (like App.tsx)
-export const useAppStateWithEdit = (): AppStateWithEdit => {
-  const context = useContext(AppStateContext);
-  if (context === undefined) {
-    throw new Error('useAppStateWithEdit must be used within an AppProvider');
-  }
-  return context;
-};
-
-// Original useAppState for components that don't need editingLoanId
 export const useAppState = (): AppState => {
-  const context = useContext(AppStateContext);
+  const context = useContext(AppContext);
   if (context === undefined) {
     throw new Error('useAppState must be used within an AppProvider');
   }
-  const { editingLoanId, ...appState } = context; // Exclude editingLoanId
+  // Return only the AppState part, excluding UIState
+  const { editingLoanId, ...appState } = context.state;
   return appState;
 };
 
+export const useAppStateWithEdit = (): AppStateWithEdit => {
+    const context = useContext(AppContext);
+    if (context === undefined) {
+        throw new Error('useAppStateWithEdit must be used within an AppProvider');
+    }
+    return context.state;
+};
 
-export const useAppDispatch = (): React.Dispatch<AppAction> => {
-  const context = useContext(AppDispatchContext);
+export const useAppDispatch = (): Dispatch<AppAction> => {
+  const context = useContext(AppContext);
   if (context === undefined) {
     throw new Error('useAppDispatch must be used within an AppProvider');
   }
-  return context;
+  return context.dispatch;
 };

@@ -1,10 +1,12 @@
 // import React from 'react';
+import React, { useState } from 'react'; // Added useState
 import styled from 'styled-components';
 import LoanForm from './components/LoanForm';
 import LoanList from './components/LoanList';
 import { useAppStateWithEdit, useAppDispatch } from './contexts/AppContext'; 
 import LoanDetailsDisplay from './components/LoanDetailsDisplay';
-import ShareState from './components/ShareState'; 
+// import ShareState from './components/ShareState'; // Old import
+import SettingsButton from './components/SettingsButton'; // New import
 import OverallSummary from './components/OverallSummary'; 
 import Modal from './components/Modal'; 
 import EditLoanDetailsForm from './components/EditLoanDetailsForm'; 
@@ -59,6 +61,7 @@ const Section = styled.section`
 function App() {
   const { selectedLoanId, loans, editingLoanId } = useAppStateWithEdit(); 
   const dispatch = useAppDispatch();
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false); // State for settings modal
   const selectedLoan = loans.find(loan => loan.id === selectedLoanId);
   const loanToEdit = loans.find(loan => loan.id === editingLoanId);
 
@@ -70,12 +73,16 @@ function App() {
     <AppContainer>
       <HeaderContainer>
         <MainTitle>Loan Tracker</MainTitle> 
-        {/* ShareState moved out of HeaderContainer */}
       </HeaderContainer>
 
-      <LoanForm /> {/* FAB is inside LoanForm and always visible, outside ContentLayout for stacking */}
-      {loans.length > 0 && <ShareState />} {/* Conditionally render ShareState as a floating button */}
+      <LoanForm /> {/* Add Loan FAB */}
+      {loans.length > 0 && <SettingsButton onClick={() => setIsSettingsModalOpen(true)} />} {/* Settings FAB */}
       
+      {/* TODO: Render SettingsModal when isSettingsModalOpen is true */}
+      {/* <Modal isOpen={isSettingsModalOpen} onClose={() => setIsSettingsModalOpen(false)} title="Settings"> */}
+      {/*   <p>Settings content will go here...</p> */}
+      {/* </Modal> */}
+
       {loans.length === 0 ? (
         <EmptyState />
       ) : (
