@@ -5,8 +5,10 @@ import { Loan } from '../types';
 import { generateAmortizationSchedule } from '../utils/amortizationCalculator';
 import AmortizationTable from './AmortizationTable';
 import LoanSummaries from './LoanSummaries'; 
-import LoanChart from './LoanChart'; // Import LoanChart
+import LoanChart from './LoanChart';
 import { useAppDispatch } from '../contexts/AppContext';
+import Modal from './Modal'; // Import Modal
+import AddDisbursementForm from './AddDisbursementForm'; // Import AddDisbursementForm
 
 const DisplayContainer = styled.div`
   margin-top: 20px;
@@ -21,6 +23,7 @@ const ButtonContainer = styled.div`
   display: flex;
   gap: 0.5rem;
   flex-wrap: wrap;
+  align-items: center; // Align items for the new button
 `;
 
 const StyledButton = styled.button`
@@ -42,13 +45,23 @@ const StyledButton = styled.button`
   }
 `;
 
+const AddEventButton = styled(StyledButton)`
+  background-color: #007bff; // Blue for add actions
+  font-size: 0.8em;
+  padding: 0.4rem 0.8rem;
+  &:hover:not(:disabled) {
+    background-color: #0056b3;
+  }
+`;
+
 interface LoanDetailsDisplayProps {
   loan: Loan;
 }
 
 const LoanDetailsDisplay: React.FC<LoanDetailsDisplayProps> = ({ loan }) => {
   const dispatch = useAppDispatch();
-  const [activeView, setActiveView] = useState<'summaries' | 'schedule' | 'chart'>('summaries'); // Added 'chart'
+  const [activeView, setActiveView] = useState<'summaries' | 'scheduleAndChart'>('summaries'); 
+  const [isAddDisbursementModalOpen, setIsAddDisbursementModalOpen] = useState(false);
 
   const schedule = useMemo(() => generateAmortizationSchedule(loan), [loan]);
 
@@ -81,12 +94,13 @@ const LoanDetailsDisplay: React.FC<LoanDetailsDisplayProps> = ({ loan }) => {
         <StyledButton onClick={() => setActiveView('summaries')} disabled={activeView === 'summaries'}>
           View Summaries
         </StyledButton>
-        <StyledButton onClick={() => setActiveView('schedule')} disabled={activeView === 'schedule'}>
-          View Full Schedule
+        <StyledButton onClick={() => setActiveView('scheduleAndChart')} disabled={activeView === 'scheduleAndChart'}>
+          View Schedule & Chart
         </StyledButton>
-        <StyledButton onClick={() => setActiveView('chart')} disabled={activeView === 'chart'}>
-          View Chart
-        </StyledButton>
+        {/* Add Disbursement Button - shown when summaries are active or generally available */}
+        <AddEventButton onClick={() => setIsAddDisbursementModalOpen(true)} style={{marginLeft: 'auto'}}>
+          + Add Disbursement
+        </AddEventButton>
       </ButtonContainer>
 
       {activeView === 'summaries' && (
@@ -96,20 +110,30 @@ const LoanDetailsDisplay: React.FC<LoanDetailsDisplayProps> = ({ loan }) => {
         />
       )}
 
-      {activeView === 'schedule' && schedule.length > 0 && (
-        <AmortizationTable 
-          schedule={schedule} 
-          loan={loan} 
-          onDeleteDisbursement={handleDeleteDisbursement}
-          onDeletePayment={handleDeletePayment}
-          onDeleteROIChange={handleDeleteROIChange}
-          onDeleteCustomEMIChange={handleDeleteCustomEMIChange}
-        />
+      {activeView === 'scheduleAndChart' && (
+        <>
+          {schedule.length > 0 && <LoanChart schedule={schedule} loan={loan} />}
+          {schedule.length > 0 && (
+            <AmortizationTable 
+              schedule={schedule} 
+              loan={loan} 
+              onDeleteDisbursement={handleDeleteDisbursement}
+              onDeletePayment={handleDeletePayment}
+              onDeleteROIChange={handleDeleteROIChange}
+              onDeleteCustomEMIChange={handleDeleteCustomEMIChange}
+            />
+          )}
+          {schedule.length === 0 && <p>No schedule to display.</p>}
+        </>
       )}
 
-      {activeView === 'chart' && schedule.length > 0 && (
-        <LoanChart schedule={schedule} loan={loan} />
-      )}
+      <Modal 
+        isOpen={isAddDisbursementModalOpen} 
+        onClose={() => setIsAddDisbursementModalOpen(false)}
+        title="Add New Disbursement"
+      >
+        <AddDisbursementForm loanId={loan.id} onClose={() => setIsAddDisbursementModalOpen(false)} />
+      </Modal>
     </DisplayContainer>
   );
 };
