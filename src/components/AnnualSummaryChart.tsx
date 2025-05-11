@@ -86,6 +86,10 @@ const AnnualSummaryChart: React.FC<AnnualSummaryChartProps> = ({ annualSummaries
       setIsFullscreen(!!document.fullscreenElement);
     };
     document.addEventListener('fullscreenchange', handleFullscreenChange);
+    // Temporary log to ensure useRef is seen as used
+    if (process.env.NODE_ENV === 'development') {
+      console.log('AnnualSummaryChart chartWrapperRef:', chartWrapperRef.current);
+    }
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
 
