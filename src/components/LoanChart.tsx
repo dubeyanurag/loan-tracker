@@ -281,7 +281,7 @@ const LoanChart: React.FC<LoanChartProps> = ({ schedule, loan }) => {
 
   return (
     <ChartContainer>
-      <h4>Visualizations</h4>
+      {/* <h4>Visualizations</h4> // Title removed */}
       <ResetZoomButton onClick={resetZoom}>Reset Zoom</ResetZoomButton>
       <Line ref={chartRef} options={options} data={data} />
     </ChartContainer>
