@@ -58,8 +58,9 @@ const StyledTable = styled.table`
 `;
 
 const ActionButton = styled.button`
-  padding: 3px 6px;
-  font-size: 0.8em;
+  padding: 5px 8px; // Increased padding
+  font-size: 0.85em; // Slightly increased font size
+  min-height: 28px; // Minimum tap height
   margin-right: 4px;
   margin-bottom: 4px; 
   cursor: pointer;
@@ -81,8 +82,13 @@ const SmallDeleteButton = styled.button`
     border: none;
     color: #dc3545; 
     cursor: pointer;
-    font-size: 1em; 
-    padding: 0 0 0 5px; 
+    font-size: 1.1em; // Slightly larger for icon
+    padding: 2px 5px; // Add some padding around icon
+    min-width: 28px; // Ensure tap area
+    min-height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     vertical-align: middle; 
     line-height: 1; 
      &:hover {

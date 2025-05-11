@@ -41,8 +41,12 @@ const ActionButtonsContainer = styled.div`
 `;
 
 const StyledButton = styled.button` 
-  padding: 0.25rem 0.5rem; 
-  font-size: 0.8rem; 
+  padding: 0.4rem 0.8rem; // Increased padding
+  font-size: 0.85rem; // Slightly increased font size
+  min-height: 30px; // Ensure a minimum tap height
+  display: inline-flex; // Helps with vertical alignment of icon/text
+  align-items: center;
+  justify-content: center;
   color: white;
   border: none;
   border-radius: 3px;
