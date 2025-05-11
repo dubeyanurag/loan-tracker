@@ -106,12 +106,7 @@ const OverallSummary: React.FC = () => {
         <SummaryItem><strong>Total Principal Paid (To Date):</strong> ₹{overallData.totalPrincipalPaid.toLocaleString()}</SummaryItem>
         {hasAnyPreEMILoan && <SummaryItem><strong>Total Pre-EMI Interest Paid (To Date):</strong> ₹{overallData.totalPreEMIInterestPaid.toLocaleString()}</SummaryItem>}
         <SummaryItem><strong>Total Regular Interest Paid (To Date):</strong> ₹{overallData.totalRegularInterestPaid.toLocaleString()}</SummaryItem>
-        <SummaryItem title="Sum of max deductible principal claimed across all loans up to current date (based on annual limits)">
-            <strong>Total Deductible Principal (To Date):</strong> ₹{overallData.totalDeductiblePrincipal.toLocaleString()}
-        </SummaryItem>
-        <SummaryItem title="Sum of max deductible interest claimed across all loans up to current date (based on annual limits)">
-            <strong>Total Deductible Interest (To Date):</strong> ₹{overallData.totalDeductibleInterest.toLocaleString()}
-        </SummaryItem>
+        {/* Removed Total Deductible Principal and Interest (To Date) */}
       </SummaryGrid>
     </SummaryContainer>
   );
