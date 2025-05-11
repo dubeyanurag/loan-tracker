@@ -1,5 +1,5 @@
 // import React from 'react';
-import { useState } from 'react'; // Removed React import
+import React, { useState, useEffect } from 'react'; // Added useEffect
 import styled from 'styled-components';
 import LoanForm from './components/LoanForm';
 import LoanList from './components/LoanList';
@@ -63,6 +63,29 @@ function App() {
   const { selectedLoanId, loans, editingLoanId } = useAppStateWithEdit(); 
   const dispatch = useAppDispatch();
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false); // State for settings modal
+  
+  useEffect(() => {
+    // Load state from URL if present
+    const params = new URLSearchParams(window.location.search);
+    const loadStateParam = params.get('loadState');
+    if (loadStateParam) {
+      try {
+        const decodedJsonState = atob(decodeURIComponent(loadStateParam));
+        const loadedState = JSON.parse(decodedJsonState);
+        // Ensure loadedState conforms to at least part of AppState structure
+        if (loadedState && loadedState.loans) { // Basic check
+          dispatch({ type: 'LOAD_STATE', payload: loadedState });
+        }
+        // Remove the loadState param from URL to prevent re-loading on refresh
+        window.history.replaceState({}, '', window.location.pathname);
+      } catch (error) {
+        console.error("Failed to load state from URL:", error);
+        alert("Error: Could not load shared state from URL. It might be invalid or corrupted.");
+        window.history.replaceState({}, '', window.location.pathname); // Also clear on error
+      }
+    }
+  }, [dispatch]); // Run once on mount
+
   const selectedLoan = loans.find(loan => loan.id === selectedLoanId);
   const loanToEdit = loans.find(loan => loan.id === editingLoanId);
 
