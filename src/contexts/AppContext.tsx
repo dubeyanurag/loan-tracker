@@ -203,9 +203,7 @@ export const appReducer = (state: AppStateWithEdit = initialState, action: AppAc
   // Exclude UI state like editingLoanId from being saved
   const { editingLoanId, ...persistedState } = newState;
   localStorage.setItem('loanAppState', JSON.stringify(persistedState));
-  if (action.type === 'SET_CURRENCY') { // Also save currency specifically if needed elsewhere
-    localStorage.setItem('loanAppCurrency', newState.currency);
-  }
+  // Removed specific saving of loanAppCurrency item
 
 
   return newState;
@@ -214,16 +212,8 @@ export const appReducer = (state: AppStateWithEdit = initialState, action: AppAc
 export const AppProvider: React.FC<{children: ReactNode}> = ({ children }) => {
   const [state, dispatch] = useReducer(appReducer, initialState);
   
-  // Effect to load currency from its specific localStorage item if loanAppState doesn't have it
-  // This handles the case where 'loanAppCurrency' might be set by an older version of the app
-  // or if 'loanAppState' was cleared but 'loanAppCurrency' remains.
-  useEffect(() => {
-    const storedCurrency = localStorage.getItem('loanAppCurrency');
-    if (storedCurrency && storedCurrency !== state.currency) {
-        // Only dispatch if it's different to avoid loop & if it's a valid known currency (optional check)
-        dispatch({ type: 'SET_CURRENCY', payload: storedCurrency });
-    }
-  }, []); // Runs once on mount
+  // Removed useEffect that specifically loaded from 'loanAppCurrency'
+  // loadInitialState now handles currency from 'loanAppState'
 
 
   return (
