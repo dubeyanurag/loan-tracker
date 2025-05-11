@@ -1,11 +1,12 @@
 // src/components/LoanDetailsDisplay.tsx
 import React, { useMemo, useState } from 'react';
 import styled from 'styled-components';
-import { Loan } from '../types'; // Removed unused AmortizationEntry, AnnualSummary, etc.
+import { Loan } from '../types';
 import { generateAmortizationSchedule } from '../utils/amortizationCalculator';
 import AmortizationTable from './AmortizationTable';
 import LoanSummaries from './LoanSummaries'; 
-import { useAppDispatch } from '../contexts/AppContext'; // Import useAppDispatch
+import LoanChart from './LoanChart'; // Import LoanChart
+import { useAppDispatch } from '../contexts/AppContext';
 
 const DisplayContainer = styled.div`
   margin-top: 20px;
@@ -32,8 +33,12 @@ const StyledButton = styled.button`
   font-size: 0.9em;
   transition: background-color 0.2s;
 
-  &:hover {
+  &:hover:not(:disabled) {
     background-color: #45a049;
+  }
+  &:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
   }
 `;
 
@@ -42,14 +47,13 @@ interface LoanDetailsDisplayProps {
 }
 
 const LoanDetailsDisplay: React.FC<LoanDetailsDisplayProps> = ({ loan }) => {
-  const dispatch = useAppDispatch(); // Get dispatch
-  const [activeView, setActiveView] = useState<'schedule' | 'summaries'>('summaries');
+  const dispatch = useAppDispatch();
+  const [activeView, setActiveView] = useState<'summaries' | 'schedule' | 'chart'>('summaries'); // Added 'chart'
 
   const schedule = useMemo(() => generateAmortizationSchedule(loan), [loan]);
 
   if (!loan) return <p>No loan selected.</p>;
 
-  // Define delete handlers
   const handleDeleteDisbursement = (disbursementId: string) => {
     if (window.confirm('Are you sure you want to delete this disbursement? This may affect loan calculations significantly.')) {
       dispatch({ type: 'DELETE_DISBURSEMENT', payload: { loanId: loan.id, disbursementId } });
@@ -71,7 +75,6 @@ const LoanDetailsDisplay: React.FC<LoanDetailsDisplayProps> = ({ loan }) => {
     }
   };
 
-
   return (
     <DisplayContainer>
       <ButtonContainer>
@@ -80,6 +83,9 @@ const LoanDetailsDisplay: React.FC<LoanDetailsDisplayProps> = ({ loan }) => {
         </StyledButton>
         <StyledButton onClick={() => setActiveView('schedule')} disabled={activeView === 'schedule'}>
           View Full Schedule
+        </StyledButton>
+        <StyledButton onClick={() => setActiveView('chart')} disabled={activeView === 'chart'}>
+          View Chart
         </StyledButton>
       </ButtonContainer>
 
@@ -99,6 +105,10 @@ const LoanDetailsDisplay: React.FC<LoanDetailsDisplayProps> = ({ loan }) => {
           onDeleteROIChange={handleDeleteROIChange}
           onDeleteCustomEMIChange={handleDeleteCustomEMIChange}
         />
+      )}
+
+      {activeView === 'chart' && schedule.length > 0 && (
+        <LoanChart schedule={schedule} loan={loan} />
       )}
     </DisplayContainer>
   );
