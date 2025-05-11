@@ -218,7 +218,7 @@ const LoanChart: React.FC<LoanChartProps> = ({ schedule, loan }) => {
     },
     plugins: { 
       legend: {
-        position: 'top' as const,
+        position: 'bottom' as const, // Changed to bottom
       },
       title: {
         display: true,

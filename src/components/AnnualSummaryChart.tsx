@@ -75,7 +75,7 @@ const AnnualSummaryChart: React.FC<AnnualSummaryChartProps> = ({ annualSummaries
     maintainAspectRatio: true,
     plugins: {
       legend: {
-        position: 'top' as const,
+        position: 'bottom' as const, // Changed to bottom
       },
       title: {
         display: true,
