@@ -73,6 +73,7 @@ type TimelineEvent = {
 
 const LoanHistoryTimeline: React.FC<LoanHistoryTimelineProps> = ({ loan, schedule }) => {
   const events: TimelineEvent[] = [];
+  console.log('[LoanHistoryTimeline] Received schedule with length:', schedule.length, schedule.slice(0,5)); // Log initial schedule info
 
   events.push({
     date: loan.details.startDate,
@@ -105,15 +106,21 @@ const LoanHistoryTimeline: React.FC<LoanHistoryTimelineProps> = ({ loan, schedul
       detailString += ` (Preference: ${p.adjustmentPreference})`;
       const eventDate = new Date(p.date);
       const scheduleEntryIndex = schedule.findIndex(entry => new Date(entry.paymentDate) >= eventDate);
+      
+      console.log(`[LoanHistoryTimeline] Prepayment Event: ${p.date}, Amount: ${p.amount}, Pref: ${p.adjustmentPreference}`);
+      console.log(`[LoanHistoryTimeline] Found scheduleEntryIndex: ${scheduleEntryIndex}`);
 
       if (scheduleEntryIndex !== -1) {
         const scheduleEntryAfterEvent = schedule[scheduleEntryIndex];
+        console.log(`[LoanHistoryTimeline] scheduleEntryAfterEvent for Prepayment ${p.date}:`, scheduleEntryAfterEvent);
         if (p.adjustmentPreference === 'adjustEMI') {
           detailString += `. New EMI: <span>₹${scheduleEntryAfterEvent.emi.toLocaleString()}</span>.`;
         } else { 
           const remainingTenure = schedule.length - scheduleEntryIndex;
           detailString += `. EMI maintained at ~<span>₹${scheduleEntryAfterEvent.emi.toLocaleString()}</span>. Projected remaining tenure: ${remainingTenure} months.`;
         }
+      } else {
+        console.log(`[LoanHistoryTimeline] No schedule entry found for/after Prepayment event date: ${p.date}`);
       }
     }
     events.push({
@@ -131,15 +138,21 @@ const LoanHistoryTimeline: React.FC<LoanHistoryTimelineProps> = ({ loan, schedul
       detailString += ` (Preference: ${c.adjustmentPreference})`;
       const eventDate = new Date(c.date);
       const scheduleEntryIndex = schedule.findIndex(entry => new Date(entry.paymentDate) >= eventDate);
+
+      console.log(`[LoanHistoryTimeline] ROI Change Event: ${c.date}, New Rate: ${c.newRate}%, Pref: ${c.adjustmentPreference}`);
+      console.log(`[LoanHistoryTimeline] Found scheduleEntryIndex: ${scheduleEntryIndex}`);
       
       if (scheduleEntryIndex !== -1) {
         const scheduleEntryAfterEvent = schedule[scheduleEntryIndex];
+        console.log(`[LoanHistoryTimeline] scheduleEntryAfterEvent for ROI Change ${c.date}:`, scheduleEntryAfterEvent);
         if (c.adjustmentPreference === 'adjustEMI' || c.adjustmentPreference === 'customEMI') {
           detailString += `. New EMI: <span>₹${scheduleEntryAfterEvent.emi.toLocaleString()}</span>.`;
         } else { 
           const remainingTenure = schedule.length - scheduleEntryIndex;
           detailString += `. EMI maintained at ~<span>₹${scheduleEntryAfterEvent.emi.toLocaleString()}</span>. Projected remaining tenure: ${remainingTenure} months.`;
         }
+      } else {
+        console.log(`[LoanHistoryTimeline] No schedule entry found for/after ROI Change event date: ${c.date}`);
       }
     }
     events.push({
@@ -162,24 +175,20 @@ const LoanHistoryTimeline: React.FC<LoanHistoryTimelineProps> = ({ loan, schedul
     });
   });
 
-  // Sort all events by date before potentially adding Loan End
   events.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-  // Add Loan End event if applicable
   if (schedule && schedule.length > 0) {
     const lastEntry = schedule[schedule.length - 1];
-    if (lastEntry.closingBalance <= 0.01) { // Consider loan paid off
+    if (lastEntry.closingBalance <= 0.01) { 
       events.push({
         date: lastEntry.paymentDate,
         type: 'Loan End',
         details: `Loan fully paid off. Total tenure: <span>${lastEntry.monthNumber}</span> months.`,
-        icon: '🏆', // Trophy for completion
+        icon: '🏆', 
         originalEvent: lastEntry,
       });
-      // No need to re-sort if this is guaranteed to be the last chronological event
     }
   }
-
 
   if (events.length <= 1 && events[0]?.type === 'Loan Start' && !events[0].details.includes('Initial disbursement')) {
     return (
