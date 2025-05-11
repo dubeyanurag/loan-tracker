@@ -173,8 +173,12 @@ Error generating stack: `+o.message+`
   display: flex;
   gap: 8px;
 `,zv=j.button` 
-  padding: 0.25rem 0.5rem; 
-  font-size: 0.8rem; 
+  padding: 0.4rem 0.8rem; // Increased padding
+  font-size: 0.85rem; // Slightly increased font size
+  min-height: 30px; // Ensure a minimum tap height
+  display: inline-flex; // Helps with vertical alignment of icon/text
+  align-items: center;
+  justify-content: center;
   color: white;
   border: none;
   border-radius: 3px;
@@ -247,8 +251,9 @@ Error generating stack: `+o.message+`
       border-bottom: 2px solid red;
    } 
 `,Kc=j.button`
-  padding: 3px 6px;
-  font-size: 0.8em;
+  padding: 5px 8px; // Increased padding
+  font-size: 0.85em; // Slightly increased font size
+  min-height: 28px; // Minimum tap height
   margin-right: 4px;
   margin-bottom: 4px; 
   cursor: pointer;
@@ -268,8 +273,13 @@ Error generating stack: `+o.message+`
     border: none;
     color: #dc3545; 
     cursor: pointer;
-    font-size: 1em; 
-    padding: 0 0 0 5px; 
+    font-size: 1.1em; // Slightly larger for icon
+    padding: 2px 5px; // Add some padding around icon
+    min-width: 28px; // Ensure tap area
+    min-height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     vertical-align: middle; 
     line-height: 1; 
      &:hover {
