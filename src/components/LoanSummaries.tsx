@@ -40,6 +40,7 @@ const SummaryColumns = styled.div`
 const AnnualTableContainer = styled.div`
     max-height: 300px; 
     overflow-y: auto;
+    overflow-x: auto; // Added for horizontal scrolling
     border: 1px solid #eee; 
     margin-top: 10px;
 `;

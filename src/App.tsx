@@ -49,6 +49,10 @@ const Section = styled.section`
   border-radius: 6px; 
   background-color: #f9f9f9; 
   border: 1px solid #e0e0e0; 
+
+  @media (max-width: 600px) {
+    padding: 0.75rem; // Slightly reduce padding on small screens
+  }
 `;
 
 

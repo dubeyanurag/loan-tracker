@@ -8,6 +8,7 @@ const TableContainer = styled.div`
   margin-top: 10px; 
   max-height: 500px; 
   overflow-y: auto;
+  overflow-x: auto; // Added for horizontal scrolling
   border: 1px solid #ddd;
 `;
 
