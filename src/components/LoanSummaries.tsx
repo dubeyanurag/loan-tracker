@@ -3,14 +3,11 @@ import React, { useMemo, useState, useRef, useEffect } from 'react';
 import styled from 'styled-components';
 import { AmortizationEntry, AnnualSummary, LifespanSummary, CurrentSummary, LoanDetails } from '../types'; 
 import { generateAnnualSummaries, generateLifespanSummary, generateSummaryToDate } from '../utils/amortizationCalculator'; 
-import AnnualSummaryChart from './AnnualSummaryChart'; // Import the new chart
+import AnnualSummaryChart from './AnnualSummaryChart'; 
+import { useAppState } from '../contexts/AppContext'; // Import useAppState
+import { formatCurrency, formatDateReadable } from '../utils/formatting'; // Import formatCurrency and formatDateReadable
 
 const SummaryContainer = styled.div`
-  /* margin-top: 20px; // Removed, as LoanDetailsDisplay handles its own margin */
-  /* padding: 15px; // Handled by sections within or DisplayContainer */
-  /* border: 1px solid #eee; // Handled by sections within or DisplayContainer */
-  /* border-radius: 8px; // Handled by sections within or DisplayContainer */
-  /* background-color: #fff; // Handled by sections within or DisplayContainer */
 `;
 
 const SummarySection = styled.div`
@@ -40,7 +37,7 @@ const SummaryColumns = styled.div`
 const AnnualTableContainer = styled.div`
     max-height: 300px; 
     overflow-y: auto;
-    overflow-x: auto; // Added for horizontal scrolling
+    overflow-x: auto; 
     border: 1px solid #eee; 
     margin-top: 10px;
 `;
@@ -83,6 +80,7 @@ const monthOptions = [
 ];
 
 const LoanSummaries: React.FC<LoanSummariesProps> = ({ schedule, loanDetails }) => { 
+  const { currency } = useAppState(); // Get currency
   const [fyStartMonth, setFyStartMonth] = useState<number>(3); 
   const currentFYRowRef = useRef<HTMLTableRowElement | null>(null); 
   const annualTableContainerRef = useRef<HTMLDivElement | null>(null); 
@@ -117,15 +115,15 @@ const LoanSummaries: React.FC<LoanSummariesProps> = ({ schedule, loanDetails }) 
           
           annualTableContainerRef.current.scrollTo({ top: Math.max(0, scrollTo), behavior: 'smooth' });
       }
-  }, [annualSummaries]); // Rerun when annualSummaries change (e.g. due to fyStartMonth)
+  }, [annualSummaries]); 
 
 
   if (!schedule || schedule.length === 0) {
     return null; 
   }
 
-  const principalLimitHeader = `Deductible Principal (Max ₹${(loanDetails.principalDeductionLimit ?? 150000).toLocaleString()})`;
-  const interestLimitHeader = `Deductible Interest (Max ₹${(loanDetails.interestDeductionLimit ?? 200000).toLocaleString()})`;
+  const principalLimitHeader = `Deductible Principal (Max ${formatCurrency(loanDetails.principalDeductionLimit ?? 150000, currency)})`;
+  const interestLimitHeader = `Deductible Interest (Max ${formatCurrency(loanDetails.interestDeductionLimit ?? 200000, currency)})`;
 
 
   return (
@@ -136,14 +134,14 @@ const LoanSummaries: React.FC<LoanSummariesProps> = ({ schedule, loanDetails }) 
             {lifespanSummary ? (
               <div>
                 <p><strong>Actual Tenure:</strong> {lifespanSummary.actualTenureMonths} months ({ (lifespanSummary.actualTenureMonths / 12).toFixed(1) } years)</p>
-                <p><strong>Total Principal Paid:</strong> ₹{lifespanSummary.totalPrincipalPaid.toLocaleString()}</p>
-                {loanDetails.startedWithPreEMI && <p><strong>Total Pre-EMI Interest Paid:</strong> ₹{lifespanSummary.totalPreEMIInterestPaid.toLocaleString()}</p>}
-                <p><strong>Total Regular Interest Paid:</strong> ₹{lifespanSummary.totalInterestPaid.toLocaleString()}</p>
-                <p><strong>Total Amount Paid:</strong> ₹{lifespanSummary.totalPayment.toLocaleString()}</p>
+                <p><strong>Total Principal Paid:</strong> {formatCurrency(lifespanSummary.totalPrincipalPaid, currency)}</p>
+                {loanDetails.startedWithPreEMI && <p><strong>Total Pre-EMI Interest Paid:</strong> {formatCurrency(lifespanSummary.totalPreEMIInterestPaid, currency)}</p>}
+                <p><strong>Total Regular Interest Paid:</strong> {formatCurrency(lifespanSummary.totalInterestPaid, currency)}</p>
+                <p><strong>Total Amount Paid:</strong> {formatCurrency(lifespanSummary.totalPayment, currency)}</p>
                 {loanDetails.isTaxDeductible && (
                   <>
-                    <p><strong>Total Deductible Principal (Lifespan):</strong> ₹{lifespanSummary.totalDeductiblePrincipal.toLocaleString()}</p>
-                    <p><strong>Total Deductible Interest (Lifespan):</strong> ₹{lifespanSummary.totalDeductibleInterest.toLocaleString()}</p>
+                    <p><strong>Total Deductible Principal (Lifespan):</strong> {formatCurrency(lifespanSummary.totalDeductiblePrincipal, currency)}</p>
+                    <p><strong>Total Deductible Interest (Lifespan):</strong> {formatCurrency(lifespanSummary.totalDeductibleInterest, currency)}</p>
                   </>
                 )}
               </div>
@@ -153,19 +151,19 @@ const LoanSummaries: React.FC<LoanSummariesProps> = ({ schedule, loanDetails }) 
           </SummarySection>
 
           <SummarySection>
-            <h4>Summary To Date ({new Date().toLocaleDateString()})</h4>
+            <h4>Summary To Date ({formatDateReadable(new Date().toISOString().split('T')[0])})</h4>
             {summaryToDate ? (
               <div>
                  <p><strong>Months Elapsed:</strong> {summaryToDate.monthsElapsed}</p>
-                 <p><strong>Outstanding Balance:</strong> ₹{summaryToDate.currentOutstandingBalance.toLocaleString()}</p>
-                 <p><strong>Total Principal Paid (To Date):</strong> ₹{summaryToDate.uncappedTotalPrincipalPaid.toLocaleString()}</p> 
-                 {loanDetails.startedWithPreEMI && <p><strong>Total Pre-EMI Interest Paid (To Date):</strong> ₹{summaryToDate.totalPreEMIInterestPaid.toLocaleString()}</p>}
-                 <p><strong>Total Regular Interest Paid (To Date):</strong> ₹{summaryToDate.uncappedTotalInterestPaid.toLocaleString()}</p> 
-                 <p><strong>Total Amount Paid (To Date):</strong> ₹{summaryToDate.totalPayment.toLocaleString()}</p>
+                 <p><strong>Outstanding Balance:</strong> {formatCurrency(summaryToDate.currentOutstandingBalance, currency)}</p>
+                 <p><strong>Total Principal Paid (To Date):</strong> {formatCurrency(summaryToDate.uncappedTotalPrincipalPaid, currency)}</p> 
+                 {loanDetails.startedWithPreEMI && <p><strong>Total Pre-EMI Interest Paid (To Date):</strong> {formatCurrency(summaryToDate.totalPreEMIInterestPaid, currency)}</p>}
+                 <p><strong>Total Regular Interest Paid (To Date):</strong> {formatCurrency(summaryToDate.uncappedTotalInterestPaid, currency)}</p> 
+                 <p><strong>Total Amount Paid (To Date):</strong> {formatCurrency(summaryToDate.totalPayment, currency)}</p>
                  {loanDetails.isTaxDeductible && (
                    <>
-                    <p><strong>Total Deductible Principal (To Date):</strong> ₹{summaryToDate.totalDeductiblePrincipal.toLocaleString()}</p>
-                    <p><strong>Total Deductible Interest (To Date):</strong> ₹{summaryToDate.totalDeductibleInterest.toLocaleString()}</p>
+                    <p><strong>Total Deductible Principal (To Date):</strong> {formatCurrency(summaryToDate.totalDeductiblePrincipal, currency)}</p>
+                    <p><strong>Total Deductible Interest (To Date):</strong> {formatCurrency(summaryToDate.totalDeductibleInterest, currency)}</p>
                    </>
                  )}
               </div>
@@ -219,15 +217,15 @@ const LoanSummaries: React.FC<LoanSummariesProps> = ({ schedule, loanDetails }) 
                       ref={isCurrentFY ? currentFYRowRef : null} 
                     > 
                       <td>{summary.yearLabel}</td> 
-                      <td>{summary.totalPrincipalPaid.toLocaleString()}</td>
-                      {loanDetails.startedWithPreEMI && <td>{summary.totalPreEMIInterestPaid.toLocaleString()}</td>}
-                      <td>{summary.totalInterestPaid.toLocaleString()}</td>
-                      <td>{summary.totalPrepaymentsMade.toLocaleString()}</td>
-                      <td>{summary.totalPayment.toLocaleString()}</td>
+                      <td>{formatCurrency(summary.totalPrincipalPaid, currency)}</td>
+                      {loanDetails.startedWithPreEMI && <td>{formatCurrency(summary.totalPreEMIInterestPaid, currency)}</td>}
+                      <td>{formatCurrency(summary.totalInterestPaid, currency)}</td>
+                      <td>{formatCurrency(summary.totalPrepaymentsMade, currency)}</td>
+                      <td>{formatCurrency(summary.totalPayment, currency)}</td>
                       {loanDetails.isTaxDeductible && ( 
                         <>
-                          <td>{summary.deductiblePrincipal.toLocaleString()}</td> 
-                          <td>{summary.deductibleInterest.toLocaleString()}</td>
+                          <td>{formatCurrency(summary.deductiblePrincipal, currency)}</td> 
+                          <td>{formatCurrency(summary.deductibleInterest, currency)}</td>
                         </>
                       )}
                     </tr>
@@ -241,7 +239,6 @@ const LoanSummaries: React.FC<LoanSummariesProps> = ({ schedule, loanDetails }) 
         )}
       </SummarySection>
       
-      {/* Integrate Annual Summary Chart */}
       {annualSummaries.length > 0 && (
         <SummarySection>
           <AnnualSummaryChart annualSummaries={annualSummaries} />

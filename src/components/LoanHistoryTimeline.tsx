@@ -2,6 +2,8 @@
 import React from 'react';
 import styled from 'styled-components';
 import { Loan, AmortizationEntry } from '../types'; 
+import { useAppState } from '../contexts/AppContext'; // Import useAppState
+import { formatCurrency, formatDateReadable } from '../utils/formatting'; // Import formatters
 
 const TimelineContainer = styled.div`
   margin-top: 20px;
@@ -72,8 +74,8 @@ type TimelineEvent = {
 };
 
 const LoanHistoryTimeline: React.FC<LoanHistoryTimelineProps> = ({ loan, schedule }) => {
+  const { currency } = useAppState(); // Get currency
   const events: TimelineEvent[] = [];
-  // console.log('[LoanHistoryTimeline] Received schedule with length:', schedule.length, schedule.slice(0,5)); 
 
   events.push({
     date: loan.details.startDate,
@@ -87,13 +89,13 @@ const LoanHistoryTimeline: React.FC<LoanHistoryTimelineProps> = ({ loan, schedul
     if (index === 0 && d.date === loan.details.startDate && d.remarks === 'Initial Disbursement') {
         const firstDisbursementDetail = events.find(e => e.type === 'Loan Start');
         if (firstDisbursementDetail) {
-            firstDisbursementDetail.details += ` Initial disbursement: <span>₹${d.amount.toLocaleString()}</span>.`;
+            firstDisbursementDetail.details += ` Initial disbursement: <span>${formatCurrency(d.amount, currency)}</span>.`;
         }
     } else {
         events.push({
             date: d.date,
             type: 'Disbursement',
-            details: `Disbursed: <span>₹${d.amount.toLocaleString()}</span>. ${d.remarks || ''}`,
+            details: `Disbursed: <span>${formatCurrency(d.amount, currency)}</span>. ${d.remarks || ''}`,
             icon: '💸',
             originalEvent: d,
         });
@@ -101,31 +103,24 @@ const LoanHistoryTimeline: React.FC<LoanHistoryTimelineProps> = ({ loan, schedul
   });
 
   loan.paymentHistory?.filter(p => p.type === 'Prepayment').forEach(p => {
-    let detailString = `Prepayment: <span>₹${p.amount.toLocaleString()}</span>. ${p.remarks || ''}`;
+    let detailString = `Prepayment: <span>${formatCurrency(p.amount, currency)}</span>. ${p.remarks || ''}`;
     if (p.adjustmentPreference) {
       detailString += ` (Preference: ${p.adjustmentPreference})`;
       const eventDate = new Date(p.date);
       const scheduleEntryIndex = schedule.findIndex(entry => new Date(entry.paymentDate) >= eventDate);
       
-      // console.log(`[LoanHistoryTimeline] Prepayment Event: ${p.date}, Amount: ${p.amount}, Pref: ${p.adjustmentPreference}`);
-      // console.log(`[LoanHistoryTimeline] Found scheduleEntryIndex: ${scheduleEntryIndex}`);
-
       if (scheduleEntryIndex !== -1) {
         const scheduleEntryAfterEvent = schedule[scheduleEntryIndex];
-        // console.log(`[LoanHistoryTimeline] scheduleEntryAfterEvent for Prepayment ${p.date}:`, scheduleEntryAfterEvent);
         if (p.adjustmentPreference === 'adjustEMI') {
-          detailString += `. New EMI: <span>₹${scheduleEntryAfterEvent.emi.toLocaleString()}</span>.`;
-        } else { // adjustTenure
+          detailString += `. New EMI: <span>${formatCurrency(scheduleEntryAfterEvent.emi, currency)}</span>.`;
+        } else { 
           let baseEmiForDisplay = scheduleEntryAfterEvent.emi;
           if (scheduleEntryAfterEvent.prepayments && scheduleEntryAfterEvent.prepayments.some(prep => prep.id === p.id)) {
-            // If this prepayment is part of the current schedule entry's total EMI, subtract it for display
-             baseEmiForDisplay -= p.amount; // Assuming only this prepayment affects it for this logic
+             baseEmiForDisplay -= p.amount; 
           }
           const remainingTenure = schedule.length - scheduleEntryIndex;
-          detailString += `. EMI maintained at ~<span>₹${baseEmiForDisplay.toLocaleString()}</span>. Projected remaining tenure: ${remainingTenure} months.`;
+          detailString += `. EMI maintained at ~<span>${formatCurrency(baseEmiForDisplay, currency)}</span>. Projected remaining tenure: ${remainingTenure} months.`;
         }
-      } else {
-        // console.log(`[LoanHistoryTimeline] No schedule entry found for/after Prepayment event date: ${p.date}`);
       }
     }
     events.push({
@@ -143,35 +138,20 @@ const LoanHistoryTimeline: React.FC<LoanHistoryTimelineProps> = ({ loan, schedul
       detailString += ` (Preference: ${c.adjustmentPreference})`;
       const eventDate = new Date(c.date);
       const scheduleEntryIndex = schedule.findIndex(entry => new Date(entry.paymentDate) >= eventDate);
-
-      // console.log(`[LoanHistoryTimeline] ROI Change Event: ${c.date}, New Rate: ${c.newRate}%, Pref: ${c.adjustmentPreference}`);
-      // console.log(`[LoanHistoryTimeline] Found scheduleEntryIndex: ${scheduleEntryIndex}`);
       
       if (scheduleEntryIndex !== -1) {
         const scheduleEntryAfterEvent = schedule[scheduleEntryIndex];
-        // console.log(`[LoanHistoryTimeline] scheduleEntryAfterEvent for ROI Change ${c.date}:`, scheduleEntryAfterEvent);
         if (c.adjustmentPreference === 'adjustEMI' || c.adjustmentPreference === 'customEMI') {
-          detailString += `. New EMI: <span>₹${scheduleEntryAfterEvent.emi.toLocaleString()}</span>.`;
-        } else { // adjustTenure
+          detailString += `. New EMI: <span>${formatCurrency(scheduleEntryAfterEvent.emi, currency)}</span>.`;
+        } else { 
           let baseEmiForDisplay = scheduleEntryAfterEvent.emi;
-          // If the schedule entry's EMI includes prepayments from the same period, subtract them to show the 'base' EMI.
-          // This is a simplification; a more robust way would be to find the EMI *before* prepayments were added for that month's total outflow.
-          // For an ROI change (adjustTenure), the EMI *should* be the one from *before* this change,
-          // unless a prepayment also happened in the same month.
-          // The current scheduleEntryAfterEvent.emi might already include prepayments if they share the same paymentDate month.
           const sumOfPrepaymentsInThisEntry = scheduleEntryAfterEvent.prepayments?.reduce((sum, prep) => sum + prep.amount, 0) || 0;
-          if (sumOfPrepaymentsInThisEntry > 0 && scheduleEntryAfterEvent.emi > sumOfPrepaymentsInThisEntry) {
-             // Check if the event date is before or on the same day as any prepayment in this schedule entry
-             // This logic can get complex if multiple events fall into one schedule period.
-             // For simplicity, if there are prepayments in this schedule entry, we assume the base EMI is the total minus those.
+          if (sumOfPrepaymentsInThisEntry > 0 && scheduleEntryAfterEvent.emi >= sumOfPrepaymentsInThisEntry) { // Ensure EMI is not negative
              baseEmiForDisplay = scheduleEntryAfterEvent.emi - sumOfPrepaymentsInThisEntry;
           }
-
           const remainingTenure = schedule.length - scheduleEntryIndex;
-          detailString += `. EMI maintained at ~<span>₹${baseEmiForDisplay.toLocaleString()}</span>. Projected remaining tenure: ${remainingTenure} months.`;
+          detailString += `. EMI maintained at ~<span>${formatCurrency(baseEmiForDisplay, currency)}</span>. Projected remaining tenure: ${remainingTenure} months.`;
         }
-      } else {
-        // console.log(`[LoanHistoryTimeline] No schedule entry found for/after ROI Change event date: ${c.date}`);
       }
     }
     events.push({
@@ -184,7 +164,7 @@ const LoanHistoryTimeline: React.FC<LoanHistoryTimelineProps> = ({ loan, schedul
   });
 
   loan.customEMIChanges?.forEach(c => {
-    let detailString = `EMI set to <span>₹${c.newEMI.toLocaleString()}</span>. ${c.remarks || ''}`;
+    let detailString = `EMI set to <span>${formatCurrency(c.newEMI, currency)}</span>. ${c.remarks || ''}`;
     events.push({
       date: c.date,
       type: 'Custom EMI',
@@ -224,7 +204,7 @@ const LoanHistoryTimeline: React.FC<LoanHistoryTimelineProps> = ({ loan, schedul
       <TimelineList>
         {events.map((event, index) => (
           <TimelineItem key={index}>
-            <EventDate>{new Date(event.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} - {event.type}</EventDate>
+            <EventDate>{formatDateReadable(event.date)} - {event.type}</EventDate>
             <EventDetails dangerouslySetInnerHTML={{ __html: `${event.icon} ${event.details}` }} />
           </TimelineItem>
         ))}

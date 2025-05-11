@@ -1,5 +1,5 @@
 // src/components/AnnualSummaryChart.tsx
-import React, { useState, useRef } from 'react'; // Removed useEffect
+import React, { useState, useRef } from 'react'; 
 import { Bar } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -10,10 +10,13 @@ import {
   Tooltip,
   Legend,
   ChartOptions,
-  ChartData
+  ChartData,
+  TooltipItem // Import TooltipItem
 } from 'chart.js';
 import { AnnualSummary } from '../types';
 import styled from 'styled-components';
+import { useAppState } from '../contexts/AppContext'; // Import useAppState
+import { formatCurrency } from '../utils/formatting'; // Import formatCurrency
 
 ChartJS.register(
   CategoryScale,
@@ -42,7 +45,7 @@ const ChartWrapper = styled.div`
     padding: 10px; 
   }
   
-  &.fullscreen { // Class for maximized view
+  &.fullscreen { 
     padding: 10px;
     height: 100vh !important;
     width: 100vw !important;
@@ -79,18 +82,16 @@ interface AnnualSummaryChartProps {
 }
 
 const AnnualSummaryChart: React.FC<AnnualSummaryChartProps> = ({ annualSummaries }) => {
+  const { currency } = useAppState(); // Get currency
   const chartWrapperRef = useRef<HTMLDivElement>(null); 
   const chartRef = useRef<ChartJS<'bar'>>(null); 
   const [isMaximized, setIsMaximized] = useState(false);
 
-  // useEffect for native fullscreenchange listeners is removed
-
   const toggleMaximizedView = () => {
     setIsMaximized(!isMaximized);
-    if (!isMaximized) { // When entering maximized view
+    if (!isMaximized) { 
       window.scrollTo(0, 0);
     }
-    // Force chart redraw after a short delay
     setTimeout(() => {
         chartRef.current?.resize(); 
     }, 50);
@@ -106,21 +107,21 @@ const AnnualSummaryChart: React.FC<AnnualSummaryChartProps> = ({ annualSummaries
     labels,
     datasets: [
       {
-        label: 'Total Principal Paid (₹)',
+        label: 'Total Principal Paid',
         data: annualSummaries.map(s => s.totalPrincipalPaid),
         backgroundColor: 'rgba(75, 192, 192, 0.6)',
         borderColor: 'rgba(75, 192, 192, 1)',
         borderWidth: 1,
       },
       {
-        label: 'Total Interest Paid (₹) (Regular + Pre-EMI)',
+        label: 'Total Interest Paid (Regular + Pre-EMI)',
         data: annualSummaries.map(s => s.totalInterestPaid + s.totalPreEMIInterestPaid),
         backgroundColor: 'rgba(255, 99, 132, 0.6)',
         borderColor: 'rgba(255, 99, 132, 1)',
         borderWidth: 1,
       },
       {
-        label: 'Total Prepayments Made (₹)',
+        label: 'Total Prepayments Made',
         data: annualSummaries.map(s => s.totalPrepaymentsMade),
         backgroundColor: 'rgba(153, 102, 255, 0.6)',
         borderColor: 'rgba(153, 102, 255, 1)',
@@ -142,11 +143,11 @@ const AnnualSummaryChart: React.FC<AnnualSummaryChartProps> = ({ annualSummaries
       },
       tooltip: {
         callbacks: {
-          label: function(context: any) {
+          label: function(context: TooltipItem<'bar'>) { // Typed context
             let label = context.dataset.label || '';
             if (label) label += ': ';
             if (context.parsed.y !== null) {
-              label += new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(context.parsed.y);
+              label += formatCurrency(context.parsed.y, currency); // Use formatCurrency
             }
             return label;
           }
@@ -162,11 +163,11 @@ const AnnualSummaryChart: React.FC<AnnualSummaryChartProps> = ({ annualSummaries
         beginAtZero: true,
         title: {
           display: true,
-          text: 'Amount (₹)'
+          text: `Amount (${currency})` // Add currency to axis title
         },
         ticks: {
           callback: function(value) {
-            return '₹' + Number(value).toLocaleString('en-IN');
+            return formatCurrency(Number(value), currency); // Use formatCurrency
           }
         }
       },

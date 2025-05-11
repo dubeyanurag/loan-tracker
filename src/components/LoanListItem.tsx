@@ -2,9 +2,10 @@
 import React, { useMemo } from 'react';
 import styled, { css } from 'styled-components';
 import { Loan } from '../types';
-import { useAppDispatch } from '../contexts/AppContext'; // Import useAppDispatch
+import { useAppDispatch, useAppState } from '../contexts/AppContext'; // Import useAppState
 import { calculateTotalDisbursed } from '../utils/loanCalculations';
 import { generateAmortizationSchedule, generateSummaryToDate } from '../utils/amortizationCalculator';
+import { formatCurrency } from '../utils/formatting'; // Import formatCurrency
 
 const LoanItem = styled.div<{$isSelected: boolean; $isClosed: boolean}>` 
   padding: 0.75rem; 
@@ -41,10 +42,10 @@ const ActionButtonsContainer = styled.div`
 `;
 
 const StyledButton = styled.button` 
-  padding: 0.4rem 0.8rem; // Increased padding
-  font-size: 0.85rem; // Slightly increased font size
-  min-height: 30px; // Ensure a minimum tap height
-  display: inline-flex; // Helps with vertical alignment of icon/text
+  padding: 0.4rem 0.8rem; 
+  font-size: 0.85rem; 
+  min-height: 30px; 
+  display: inline-flex; 
   align-items: center;
   justify-content: center;
   color: white;
@@ -55,7 +56,7 @@ const StyledButton = styled.button`
 `;
 
 const EditButtonStyled = styled(StyledButton)`
-  background-color: #ffc107; // Yellow
+  background-color: #ffc107; 
   color: #212529;
   &:hover {
     background-color: #e0a800; 
@@ -63,7 +64,7 @@ const EditButtonStyled = styled(StyledButton)`
 `;
 
 const DeleteButtonStyled = styled(StyledButton)` 
-  background-color: #dc3545; // Red
+  background-color: #dc3545; 
   &:hover {
     background-color: #c82333; 
   }
@@ -73,22 +74,22 @@ interface LoanListItemProps {
   loan: Loan;
   isSelected: boolean;
   onSelectLoan: (loanId: string) => void;
-  // onDeleteLoan prop is no longer needed here if dispatching directly
 }
 
 const LoanListItem: React.FC<LoanListItemProps> = ({ loan, isSelected, onSelectLoan }) => {
   const dispatch = useAppDispatch();
+  const { currency } = useAppState(); // Get currency
   const schedule = useMemo(() => generateAmortizationSchedule(loan), [loan]);
   const summaryToDate = useMemo(() => generateSummaryToDate(schedule, loan.details, 3), [schedule, loan.details]);
   const isClosed = summaryToDate ? summaryToDate.currentOutstandingBalance <= 0.01 : false;
 
   const handleEdit = (e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent loan selection when clicking edit
+    e.stopPropagation(); 
     dispatch({ type: 'START_EDIT_LOAN', payload: loan.id });
   };
 
   const handleDelete = (e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent loan selection
+    e.stopPropagation(); 
     if (window.confirm(`Are you sure you want to delete loan "${loan.name}"?`)) {
       dispatch({ type: 'DELETE_LOAN', payload: loan.id });
     }
@@ -102,7 +103,7 @@ const LoanListItem: React.FC<LoanListItemProps> = ({ loan, isSelected, onSelectL
     >
       <span>
         {loan.name} 
-        (Total Disbursed: ₹{calculateTotalDisbursed(loan.details.disbursements).toLocaleString()})
+        (Total Disbursed: {formatCurrency(calculateTotalDisbursed(loan.details.disbursements), currency)})
         {isClosed && <em style={{marginLeft: '10px', color: '#555'}}>(Closed)</em>} 
       </span>
       <ActionButtonsContainer>

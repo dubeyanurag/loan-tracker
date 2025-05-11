@@ -3,6 +3,7 @@ import React, { useMemo } from 'react';
 import styled from 'styled-components';
 import { useAppState } from '../contexts/AppContext';
 import { generateAmortizationSchedule, generateSummaryToDate } from '../utils/amortizationCalculator'; 
+import { formatCurrency } from '../utils/formatting'; // Import formatCurrency
 
 const SummaryContainer = styled.div`
   padding: 20px;
@@ -21,7 +22,7 @@ const Title = styled.h3`
 
 const SummaryGrid = styled.div`
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); /* Adjusted minmax for more items */
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: 15px;
 `;
 
@@ -33,7 +34,7 @@ const SummaryItem = styled.div`
 `;
 
 const OverallSummary: React.FC = () => {
-  const { loans } = useAppState();
+  const { loans, currency } = useAppState(); // Get currency from state
 
   const hasAnyPreEMILoan = useMemo(() => loans.some(loan => loan.details.startedWithPreEMI), [loans]);
 
@@ -41,8 +42,9 @@ const OverallSummary: React.FC = () => {
     let totalOutstanding = 0;
     let totalCurrentEMI = 0;
     let totalPrincipalPaid = 0;
-    let totalRegularInterestPaid = 0; // Renamed
-    let totalPreEMIInterestPaid = 0;  // New
+    let totalRegularInterestPaid = 0;
+    let totalPreEMIInterestPaid = 0;
+    // Deductible fields are calculated but not displayed per previous request
     let cumulativeDeductiblePrincipal = 0; 
     let cumulativeDeductibleInterest = 0; 
 
@@ -59,8 +61,8 @@ const OverallSummary: React.FC = () => {
         if(summaryToDate) {
             totalOutstanding += summaryToDate.currentOutstandingBalance;
             totalPrincipalPaid += summaryToDate.uncappedTotalPrincipalPaid; 
-            totalRegularInterestPaid += summaryToDate.uncappedTotalInterestPaid; // This is now regular interest
-            totalPreEMIInterestPaid += summaryToDate.totalPreEMIInterestPaid; // Sum new field
+            totalRegularInterestPaid += summaryToDate.uncappedTotalInterestPaid; 
+            totalPreEMIInterestPaid += summaryToDate.totalPreEMIInterestPaid; 
             
             cumulativeDeductiblePrincipal += summaryToDate.totalDeductiblePrincipal; 
             cumulativeDeductibleInterest += summaryToDate.totalDeductibleInterest; 
@@ -87,8 +89,8 @@ const OverallSummary: React.FC = () => {
         totalPrincipalPaid: parseFloat(totalPrincipalPaid.toFixed(2)), 
         totalRegularInterestPaid: parseFloat(totalRegularInterestPaid.toFixed(2)),   
         totalPreEMIInterestPaid: parseFloat(totalPreEMIInterestPaid.toFixed(2)),
-        totalDeductiblePrincipal: parseFloat(cumulativeDeductiblePrincipal.toFixed(2)),
-        totalDeductibleInterest: parseFloat(cumulativeDeductibleInterest.toFixed(2)),
+        totalDeductiblePrincipal: parseFloat(cumulativeDeductiblePrincipal.toFixed(2)), // Still calculated
+        totalDeductibleInterest: parseFloat(cumulativeDeductibleInterest.toFixed(2)), // Still calculated
         numberOfLoans: loans.length
     };
   }, [loans]);
@@ -101,12 +103,12 @@ const OverallSummary: React.FC = () => {
     <SummaryContainer>
       <Title>Overall Loan Summary ({overallData.numberOfLoans} Loan{overallData.numberOfLoans !== 1 ? 's' : ''})</Title>
       <SummaryGrid>
-        <SummaryItem><strong>Total Outstanding:</strong> ₹{overallData.totalOutstanding.toLocaleString()}</SummaryItem>
-        <SummaryItem><strong>Total Current Monthly EMI:</strong> ₹{overallData.totalCurrentEMI.toLocaleString()}</SummaryItem>
-        <SummaryItem><strong>Total Principal Paid (To Date):</strong> ₹{overallData.totalPrincipalPaid.toLocaleString()}</SummaryItem>
-        {hasAnyPreEMILoan && <SummaryItem><strong>Total Pre-EMI Interest Paid (To Date):</strong> ₹{overallData.totalPreEMIInterestPaid.toLocaleString()}</SummaryItem>}
-        <SummaryItem><strong>Total Regular Interest Paid (To Date):</strong> ₹{overallData.totalRegularInterestPaid.toLocaleString()}</SummaryItem>
-        {/* Removed Total Deductible Principal and Interest (To Date) */}
+        <SummaryItem><strong>Total Outstanding:</strong> {formatCurrency(overallData.totalOutstanding, currency)}</SummaryItem>
+        <SummaryItem><strong>Total Current Monthly EMI:</strong> {formatCurrency(overallData.totalCurrentEMI, currency)}</SummaryItem>
+        <SummaryItem><strong>Total Principal Paid (To Date):</strong> {formatCurrency(overallData.totalPrincipalPaid, currency)}</SummaryItem>
+        {hasAnyPreEMILoan && <SummaryItem><strong>Total Pre-EMI Interest Paid (To Date):</strong> {formatCurrency(overallData.totalPreEMIInterestPaid, currency)}</SummaryItem>}
+        <SummaryItem><strong>Total Regular Interest Paid (To Date):</strong> {formatCurrency(overallData.totalRegularInterestPaid, currency)}</SummaryItem>
+        {/* Removed Total Deductible Principal and Interest (To Date) from display */}
       </SummaryGrid>
     </SummaryContainer>
   );

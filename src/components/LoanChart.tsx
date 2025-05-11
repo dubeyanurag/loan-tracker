@@ -1,5 +1,5 @@
 // src/components/LoanChart.tsx
-import React, { useState } from 'react'; // Removed unused destructured useRef
+import React, { useState, useRef } from 'react';
 import { Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -11,12 +11,15 @@ import {
   Tooltip,
   Legend,
   ChartOptions,
-  ChartData
+  ChartData,
+  TooltipItem // Import TooltipItem
 } from 'chart.js';
 import annotationPlugin from 'chartjs-plugin-annotation';
 import zoomPlugin from 'chartjs-plugin-zoom';
 import { AmortizationEntry, Loan } from '../types';
 import styled from 'styled-components';
+import { useAppState } from '../contexts/AppContext'; // Import useAppState
+import { formatCurrency } from '../utils/formatting'; // Import formatCurrency
 
 ChartJS.register(
   CategoryScale,
@@ -56,7 +59,7 @@ const ChartWrapper = styled.div`
     left: 0 !important;
     z-index: 2000 !important; 
     background-color: #fff !important; 
-    overflow: hidden; // Prevent scrollbars on the wrapper itself in fullscreen
+    overflow: hidden;
   }
 `;
 
@@ -64,7 +67,7 @@ const ChartControls = styled.div`
   position: absolute;
   top: 10px;
   right: 10px;
-  z-index: 10; // Ensure controls are above chart canvas
+  z-index: 10; 
   display: flex;
   gap: 5px;
 `;
@@ -88,25 +91,16 @@ interface LoanChartProps {
 }
 
 const LoanChart: React.FC<LoanChartProps> = ({ schedule, loan }) => {
+  const { currency } = useAppState(); // Get currency
   const chartRef = React.useRef<ChartJS<'line'>>(null); 
-  const chartWrapperRef = React.useRef<HTMLDivElement>(null); // Still useful for targeting the wrapper if needed
-  const [isMaximized, setIsMaximized] = useState(false); // Renamed for clarity
-
-  // Remove useEffect for native fullscreenchange listeners
-  // useEffect(() => {
-  //   const handleFullscreenChange = () => { ... };
-  //   ...
-  //   return () => { ... };
-  // }, []);
+  const chartWrapperRef = React.useRef<HTMLDivElement>(null);
+  const [isMaximized, setIsMaximized] = useState(false);
 
   const toggleMaximizedView = () => {
     setIsMaximized(!isMaximized);
-    // Optional: Scroll to top when maximizing
     if (!isMaximized) {
       window.scrollTo(0, 0);
     }
-    // Force chart redraw after a short delay to ensure it resizes correctly within the new dimensions
-    // This is sometimes necessary when container dimensions change drastically.
     setTimeout(() => {
         chartRef.current?.resize();
     }, 50);
@@ -120,7 +114,6 @@ const LoanChart: React.FC<LoanChartProps> = ({ schedule, loan }) => {
     return null; 
   }
 
-  // ... (rest of the chart data and options logic remains the same) ...
   const now = new Date();
   const currentYear = now.getFullYear();
   const currentMonth = now.getMonth(); 
@@ -155,7 +148,7 @@ const LoanChart: React.FC<LoanChartProps> = ({ schedule, loan }) => {
           eventAnnotations[`prepay_${idx}`] = {
               type: 'line' as const, scaleID: 'x', value: index,
               borderColor: 'green', borderWidth: 1, borderDash: [3, 3],
-              label: { display: true, content: `Prepay: ${p.amount.toLocaleString()}`, position: 'end', 
+              label: { display: true, content: `Prepay: ${formatCurrency(p.amount, currency)}`, position: 'end', 
                        backgroundColor: 'rgba(0,128,0,0.7)', color: 'white', font: { size: 9 } }
           };
       }
@@ -179,7 +172,7 @@ const LoanChart: React.FC<LoanChartProps> = ({ schedule, loan }) => {
           eventAnnotations[`emi_${idx}`] = {
               type: 'line' as const, scaleID: 'x', value: index,
               borderColor: 'purple', borderWidth: 1, borderDash: [5, 5],
-              label: { display: true, content: `EMI: ${c.newEMI.toLocaleString()}`, position: 'end', 
+              label: { display: true, content: `EMI: ${formatCurrency(c.newEMI, currency)}`, position: 'end', 
                         backgroundColor: 'rgba(128,0,128,0.7)', color: 'white', font: { size: 9 } }
           };
       }
@@ -192,7 +185,7 @@ const LoanChart: React.FC<LoanChartProps> = ({ schedule, loan }) => {
           eventAnnotations[`disburse_${idx}`] = {
               type: 'line' as const, scaleID: 'x', value: index,
               borderColor: 'cyan', borderWidth: 1, borderDash: [2, 2],
-              label: { display: true, content: `Disburse: ${d.amount.toLocaleString()}`, position: 'end', 
+              label: { display: true, content: `Disburse: ${formatCurrency(d.amount, currency)}`, position: 'end', 
                        backgroundColor: 'rgba(0,255,255,0.7)', color: 'black', font: { size: 9 } }
           };
       }
@@ -207,10 +200,10 @@ const LoanChart: React.FC<LoanChartProps> = ({ schedule, loan }) => {
   const data: ChartData<'line'> = {
     labels,
     datasets: [
-      { label: 'Outstanding Balance (₹)', data: balanceData, borderColor: 'rgb(53, 162, 235)', backgroundColor: 'rgba(53, 162, 235, 0.5)', yAxisID: 'yBalance', tension: 0.1, pointRadius: 1, },
-      { label: 'Principal Paid (₹)', data: principalData, borderColor: 'rgb(75, 192, 192)', backgroundColor: 'rgba(75, 192, 192, 0.5)', yAxisID: 'yPayments', tension: 0.1, pointRadius: 1, borderDash: [5, 5], },
-      { label: 'Interest Paid (₹)', data: interestData, borderColor: 'rgb(255, 99, 132)', backgroundColor: 'rgba(255, 99, 132, 0.5)', yAxisID: 'yPayments', tension: 0.1, pointRadius: 1, borderDash: [5, 5], },
-      { label: 'EMI Paid (₹)', data: emiData, borderColor: 'rgb(153, 102, 255)', backgroundColor: 'rgba(153, 102, 255, 0.5)', yAxisID: 'yPayments', tension: 0.1, pointRadius: 1, borderDash: [2, 2], },
+      { label: 'Outstanding Balance', data: balanceData, borderColor: 'rgb(53, 162, 235)', backgroundColor: 'rgba(53, 162, 235, 0.5)', yAxisID: 'yBalance', tension: 0.1, pointRadius: 1, },
+      { label: 'Principal Paid', data: principalData, borderColor: 'rgb(75, 192, 192)', backgroundColor: 'rgba(75, 192, 192, 0.5)', yAxisID: 'yPayments', tension: 0.1, pointRadius: 1, borderDash: [5, 5], },
+      { label: 'Interest Paid', data: interestData, borderColor: 'rgb(255, 99, 132)', backgroundColor: 'rgba(255, 99, 132, 0.5)', yAxisID: 'yPayments', tension: 0.1, pointRadius: 1, borderDash: [5, 5], },
+      { label: 'EMI Paid', data: emiData, borderColor: 'rgb(153, 102, 255)', backgroundColor: 'rgba(153, 102, 255, 0.5)', yAxisID: 'yPayments', tension: 0.1, pointRadius: 1, borderDash: [2, 2], },
     ],
   };
 
@@ -221,14 +214,25 @@ const LoanChart: React.FC<LoanChartProps> = ({ schedule, loan }) => {
     plugins: { 
       legend: { position: 'bottom' as const, },
       title: { display: true, text: 'Loan Details Over Time (Zoom/Pan Enabled)', },
-      tooltip: { callbacks: { label: function(context: any) { let label = context.dataset.label || ''; if (label) label += ': '; if (context.parsed.y !== null) { label += new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(context.parsed.y); } return label; } } },
+      tooltip: { 
+        callbacks: { 
+          label: function(context: TooltipItem<'line'>) { // Typed context
+            let label = context.dataset.label || ''; 
+            if (label) label += ': '; 
+            if (context.parsed.y !== null) { 
+              label += formatCurrency(context.parsed.y, currency); // Use formatCurrency
+            } 
+            return label; 
+          } 
+        } 
+      },
       annotation: { annotations: eventAnnotations },
       zoom: { pan: { enabled: true, mode: 'x' as const, }, zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x' as const, } }
     }, 
     scales: { 
         x: { type: 'category' as const, min: 0, max: currentMonthIndex !== -1 ? Math.min(currentMonthIndex + 12, schedule.length - 1) : schedule.length -1 },
-        yBalance: { type: 'linear' as const, display: true, position: 'left' as const, title: { display: true, text: 'Outstanding Balance (₹)'}, ticks: { callback: (value) => '₹' + Number(value).toLocaleString() } },
-        yPayments: { type: 'linear' as const, display: true, position: 'right' as const, title: { display: true, text: 'Monthly Payment (₹)'}, grid: { drawOnChartArea: false }, ticks: { callback: (value) => '₹' + Number(value).toLocaleString() } }
+        yBalance: { type: 'linear' as const, display: true, position: 'left' as const, title: { display: true, text: `Outstanding Balance (${currency})`}, ticks: { callback: (value) => formatCurrency(Number(value), currency) } }, // Use formatCurrency
+        yPayments: { type: 'linear' as const, display: true, position: 'right' as const, title: { display: true, text: `Monthly Payment (${currency})`}, grid: { drawOnChartArea: false }, ticks: { callback: (value) => formatCurrency(Number(value), currency) } } // Use formatCurrency
     } 
   };
 
