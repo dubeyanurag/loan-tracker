@@ -1,6 +1,6 @@
 // src/components/LoanDetailsDisplay.tsx
 import React, { useMemo, useState } from 'react';
-import styled, { css } from 'styled-components'; // Import css
+import styled from 'styled-components'; // Removed css import
 import { Loan } from '../types';
 import { generateAmortizationSchedule } from '../utils/amortizationCalculator';
 import AmortizationTable from './AmortizationTable';
