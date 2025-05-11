@@ -3,17 +3,21 @@ import React, { useMemo, useState, useRef, useEffect } from 'react';
 import styled from 'styled-components';
 import { AmortizationEntry, AnnualSummary, LifespanSummary, CurrentSummary, LoanDetails } from '../types'; 
 import { generateAnnualSummaries, generateLifespanSummary, generateSummaryToDate } from '../utils/amortizationCalculator'; 
+import AnnualSummaryChart from './AnnualSummaryChart'; // Import the new chart
 
 const SummaryContainer = styled.div`
-  margin-top: 20px;
-  padding: 15px;
-  border: 1px solid #eee;
-  border-radius: 8px;
-  background-color: #fff;
+  /* margin-top: 20px; // Removed, as LoanDetailsDisplay handles its own margin */
+  /* padding: 15px; // Handled by sections within or DisplayContainer */
+  /* border: 1px solid #eee; // Handled by sections within or DisplayContainer */
+  /* border-radius: 8px; // Handled by sections within or DisplayContainer */
+  /* background-color: #fff; // Handled by sections within or DisplayContainer */
 `;
 
 const SummarySection = styled.div`
   margin-bottom: 20px;
+  &:last-child {
+    margin-bottom: 0;
+  }
 `;
 
 const SummaryColumns = styled.div`
@@ -110,9 +114,9 @@ const LoanSummaries: React.FC<LoanSummariesProps> = ({ schedule, loanDetails }) 
           const rowHeight = currentFYRowRef.current.clientHeight;
           const scrollTo = rowTop - (containerHeight / 2) + (rowHeight / 2);
           
-          annualTableContainerRef.current.scrollTo({ top: scrollTo, behavior: 'smooth' });
+          annualTableContainerRef.current.scrollTo({ top: Math.max(0, scrollTo), behavior: 'smooth' });
       }
-  }, [annualSummaries]); 
+  }, [annualSummaries]); // Rerun when annualSummaries change (e.g. due to fyStartMonth)
 
 
   if (!schedule || schedule.length === 0) {
@@ -125,72 +129,6 @@ const LoanSummaries: React.FC<LoanSummariesProps> = ({ schedule, loanDetails }) 
 
   return (
     <SummaryContainer>
-      <SummarySection>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-            <h4>Annual Summaries</h4>
-            <div>
-                <label htmlFor="fyStartMonth" style={{ marginRight: '5px', fontSize: '0.9em' }}>FY Start Month:</label>
-                <select 
-                    id="fyStartMonth" 
-                    value={fyStartMonth} 
-                    onChange={(e) => setFyStartMonth(parseInt(e.target.value, 10))}
-                    style={{ padding: '3px', fontSize: '0.9em' }}
-                >
-                    {monthOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-                </select>
-            </div>
-        </div>
-        {annualSummaries.length > 0 ? (
-          <AnnualTableContainer ref={annualTableContainerRef}> 
-            <SummaryTable>
-              <thead>
-                <tr>
-                  <th>Financial Year</th>
-                  <th>Principal Paid</th>
-                  {loanDetails.startedWithPreEMI && <th>Pre-EMI Interest</th>}
-                  <th>Regular Interest</th>
-                  <th>Prepayments Made</th> {/* New Column */}
-                  <th>Total Payment</th>
-                  {loanDetails.isTaxDeductible && ( 
-                    <> 
-                      <th>{principalLimitHeader}</th> 
-                      <th>{interestLimitHeader}</th>
-                    </>
-                  )}
-                </tr>
-              </thead>
-              <tbody>
-                {annualSummaries.map(summary => {
-                  const isCurrentFY = summary.yearLabel === currentFYLabel;
-                  return (
-                    <tr 
-                      key={summary.startYear} 
-                      className={isCurrentFY ? 'highlight-current-fy' : ''} 
-                      ref={isCurrentFY ? currentFYRowRef : null} 
-                    > 
-                      <td>{summary.yearLabel}</td> 
-                      <td>{summary.totalPrincipalPaid.toLocaleString()}</td>
-                      {loanDetails.startedWithPreEMI && <td>{summary.totalPreEMIInterestPaid.toLocaleString()}</td>}
-                      <td>{summary.totalInterestPaid.toLocaleString()}</td>
-                      <td>{summary.totalPrepaymentsMade.toLocaleString()}</td> {/* New Column Data */}
-                      <td>{summary.totalPayment.toLocaleString()}</td>
-                      {loanDetails.isTaxDeductible && ( 
-                        <>
-                          <td>{summary.deductiblePrincipal.toLocaleString()}</td> 
-                          <td>{summary.deductibleInterest.toLocaleString()}</td>
-                        </>
-                      )}
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </SummaryTable>
-          </AnnualTableContainer>
-        ) : (
-          <p>No annual summary data available.</p>
-        )}
-      </SummarySection>
-
       <SummaryColumns> 
           <SummarySection>
             <h4>Loan Lifespan Summary</h4>
@@ -235,6 +173,80 @@ const LoanSummaries: React.FC<LoanSummariesProps> = ({ schedule, loanDetails }) 
             )}
           </SummarySection>
       </SummaryColumns>
+
+      <SummarySection>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+            <h4>Annual Summaries (Table)</h4>
+            <div>
+                <label htmlFor="fyStartMonth" style={{ marginRight: '5px', fontSize: '0.9em' }}>FY Start Month:</label>
+                <select 
+                    id="fyStartMonth" 
+                    value={fyStartMonth} 
+                    onChange={(e) => setFyStartMonth(parseInt(e.target.value, 10))}
+                    style={{ padding: '3px', fontSize: '0.9em' }}
+                >
+                    {monthOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                </select>
+            </div>
+        </div>
+        {annualSummaries.length > 0 ? (
+          <AnnualTableContainer ref={annualTableContainerRef}> 
+            <SummaryTable>
+              <thead>
+                <tr>
+                  <th>Financial Year</th>
+                  <th>Principal Paid</th>
+                  {loanDetails.startedWithPreEMI && <th>Pre-EMI Interest</th>}
+                  <th>Regular Interest</th>
+                  <th>Prepayments Made</th>
+                  <th>Total Payment</th>
+                  {loanDetails.isTaxDeductible && ( 
+                    <> 
+                      <th>{principalLimitHeader}</th> 
+                      <th>{interestLimitHeader}</th>
+                    </>
+                  )}
+                </tr>
+              </thead>
+              <tbody>
+                {annualSummaries.map(summary => {
+                  const isCurrentFY = summary.yearLabel === currentFYLabel;
+                  return (
+                    <tr 
+                      key={summary.startYear} 
+                      className={isCurrentFY ? 'highlight-current-fy' : ''} 
+                      ref={isCurrentFY ? currentFYRowRef : null} 
+                    > 
+                      <td>{summary.yearLabel}</td> 
+                      <td>{summary.totalPrincipalPaid.toLocaleString()}</td>
+                      {loanDetails.startedWithPreEMI && <td>{summary.totalPreEMIInterestPaid.toLocaleString()}</td>}
+                      <td>{summary.totalInterestPaid.toLocaleString()}</td>
+                      <td>{summary.totalPrepaymentsMade.toLocaleString()}</td>
+                      <td>{summary.totalPayment.toLocaleString()}</td>
+                      {loanDetails.isTaxDeductible && ( 
+                        <>
+                          <td>{summary.deductiblePrincipal.toLocaleString()}</td> 
+                          <td>{summary.deductibleInterest.toLocaleString()}</td>
+                        </>
+                      )}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </SummaryTable>
+          </AnnualTableContainer>
+        ) : (
+          <p>No annual summary data available.</p>
+        )}
+      </SummarySection>
+      
+      {/* Integrate Annual Summary Chart */}
+      {annualSummaries.length > 0 && (
+        <SummarySection>
+          <AnnualSummaryChart annualSummaries={annualSummaries} />
+        </SummarySection>
+      )}
+
     </SummaryContainer>
   );
 };
