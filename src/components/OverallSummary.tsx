@@ -3,7 +3,7 @@ import React, { useMemo } from 'react';
 import styled from 'styled-components';
 import { useAppState } from '../contexts/AppContext';
 import { generateAmortizationSchedule, generateSummaryToDate } from '../utils/amortizationCalculator'; 
-import { formatIndianCurrencyShort } from '../utils/formatting'; // Import formatIndianCurrencyShort
+import { formatCurrency, formatIndianCurrencyShort } from '../utils/formatting'; // Import formatCurrency and formatIndianCurrencyShort
 
 const SummaryContainer = styled.div`
   padding: 20px;
