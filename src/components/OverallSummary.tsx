@@ -3,7 +3,7 @@ import React, { useMemo } from 'react';
 import styled from 'styled-components';
 import { useAppState } from '../contexts/AppContext';
 import { generateAmortizationSchedule, generateSummaryToDate } from '../utils/amortizationCalculator'; 
-import { formatCurrency } from '../utils/formatting'; // Import formatCurrency
+import { formatCurrency, formatIndianCurrencyShort } from '../utils/formatting'; // Import formatCurrency and formatIndianCurrencyShort
 
 const SummaryContainer = styled.div`
   padding: 20px;
@@ -103,11 +103,11 @@ const OverallSummary: React.FC = () => {
     <SummaryContainer>
       <Title>Overall Loan Summary ({overallData.numberOfLoans} Loan{overallData.numberOfLoans !== 1 ? 's' : ''})</Title>
       <SummaryGrid>
-        <SummaryItem><strong>Total Outstanding:</strong> {formatCurrency(overallData.totalOutstanding, currency)}</SummaryItem>
-        <SummaryItem><strong>Total Current Monthly EMI:</strong> {formatCurrency(overallData.totalCurrentEMI, currency)}</SummaryItem>
-        <SummaryItem><strong>Total Principal Paid (To Date):</strong> {formatCurrency(overallData.totalPrincipalPaid, currency)}</SummaryItem>
-        {hasAnyPreEMILoan && <SummaryItem><strong>Total Pre-EMI Interest Paid (To Date):</strong> {formatCurrency(overallData.totalPreEMIInterestPaid, currency)}</SummaryItem>}
-        <SummaryItem><strong>Total Regular Interest Paid (To Date):</strong> {formatCurrency(overallData.totalRegularInterestPaid, currency)}</SummaryItem>
+        <SummaryItem><strong>Total Outstanding:</strong> {formatIndianCurrencyShort(overallData.totalOutstanding, currency)}</SummaryItem>
+        <SummaryItem><strong>Total Current Monthly EMI:</strong> {formatIndianCurrencyShort(overallData.totalCurrentEMI, currency)}</SummaryItem>
+        <SummaryItem><strong>Total Principal Paid (To Date):</strong> {formatIndianCurrencyShort(overallData.totalPrincipalPaid, currency)}</SummaryItem>
+        {hasAnyPreEMILoan && <SummaryItem><strong>Total Pre-EMI Interest Paid (To Date):</strong> {formatIndianCurrencyShort(overallData.totalPreEMIInterestPaid, currency)}</SummaryItem>}
+        <SummaryItem><strong>Total Regular Interest Paid (To Date):</strong> {formatIndianCurrencyShort(overallData.totalRegularInterestPaid, currency)}</SummaryItem>
         {/* Removed Total Deductible Principal and Interest (To Date) from display */}
       </SummaryGrid>
     </SummaryContainer>
