@@ -20,6 +20,10 @@ const AppContainer = styled.div`
   font-family: inherit; 
   color: inherit; 
   background-color: #ffffff; 
+  /* Add SVG background pattern */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Ctext x='10' y='30' font-size='20' opacity='0.1'%3E🏠%3C/text%3E%3Ctext x='60' y='70' font-size='20' opacity='0.1'%3E💰%3C/text%3E%3Ctext x='30' y='80' font-size='20' opacity='0.1'%3E🔒%3C/text%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 100px 100px; /* Adjust size of the repeating tile */
   border-radius: 8px; 
   box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
   margin: 1rem auto; 
@@ -39,6 +43,13 @@ const MainTitle = styled.h1`
   color: #1976d2; 
   margin: 0; 
   font-size: 2rem; 
+`;
+
+const SubTitle = styled.p`
+  color: #666; // Muted color
+  margin: 0.25rem 0 0 0; // Small top margin, no other margins
+  font-size: 0.9rem; // Smaller font size
+  font-weight: normal; // Normal font weight
 `;
 
 const ContentLayout = styled.div`
@@ -96,7 +107,10 @@ function App() {
   return (
     <AppContainer>
       <HeaderContainer>
-        <MainTitle>Loan Tracker</MainTitle> 
+        <div> {/* Wrap title and subtitle */}
+          <MainTitle>Loan Tracker</MainTitle> 
+          <SubTitle>Your data is safe and stored only in your browser.</SubTitle>
+        </div>
       </HeaderContainer>
 
       <LoanForm /> {/* Add Loan FAB */}
