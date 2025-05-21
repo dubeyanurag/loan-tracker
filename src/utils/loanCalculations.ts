@@ -2,9 +2,6 @@
 import { LoanDetails, Disbursement } from "../types"; // Corrected path
 
 export const calculateEMI = (principal: number, annualRate: number, tenureMonths: number): number => {
-  if (annualRate < 0) {
-    throw new Error("Annual interest rate cannot be negative.");
-  }
   if (principal <= 0 || tenureMonths <= 0) {
     return 0; 
   }
@@ -25,9 +22,6 @@ export const calculateEMI = (principal: number, annualRate: number, tenureMonths
 
 
 export const calculateTotalDisbursed = (disbursements: Disbursement[]): number => {
-    if (!disbursements) {
-        return 0;
-    }
     return disbursements.reduce((total, d) => total + d.amount, 0);
 };
 
