@@ -1,6 +1,7 @@
 // src/components/SettingsModal.tsx
 import React from 'react';
 import styled from 'styled-components';
+import pako from 'pako';
 import { useAppState, useAppDispatch } from '../contexts/AppContext';
 import Modal from './Modal'; 
 
@@ -106,7 +107,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
       fyStartMonth: fyStartMonth, // Include fyStartMonth in shared state
     };
     const jsonState = JSON.stringify(stateToShare);
-    const base64State = btoa(jsonState); 
+    const compressed = pako.deflate(jsonState);
+    const binaryString = String.fromCharCode.apply(null, Array.from(new Uint8Array(compressed)));
+    const base64State = btoa(binaryString);
     const shareUrl = `${window.location.origin}${window.location.pathname}?loadState=${encodeURIComponent(base64State)}`;
 
     try {

@@ -1,6 +1,7 @@
 // import React from 'react';
 import { useState, useEffect } from 'react'; // Removed React import, kept hooks
 import styled from 'styled-components';
+import pako from 'pako';
 import LoanForm from './components/LoanForm';
 import LoanList from './components/LoanList';
 import { useAppStateWithEdit, useAppDispatch } from './contexts/AppContext'; 
@@ -81,8 +82,11 @@ function App() {
     const loadStateParam = params.get('loadState');
     if (loadStateParam) {
       try {
-        const decodedJsonState = atob(decodeURIComponent(loadStateParam));
-        const loadedState = JSON.parse(decodedJsonState);
+        const base64DecodedBinaryString = atob(decodeURIComponent(loadStateParam));
+        const compressedDataArray = new Uint8Array(base64DecodedBinaryString.length);
+        for (let i = 0; i < base64DecodedBinaryString.length; i++) { compressedDataArray[i] = base64DecodedBinaryString.charCodeAt(i); }
+        const decompressedJsonState = pako.inflate(compressedDataArray, { to: 'string' });
+        const loadedState = JSON.parse(decompressedJsonState);
         // Ensure loadedState conforms to at least part of AppState structure
         if (loadedState && loadedState.loans) { // Basic check
           dispatch({ type: 'LOAD_STATE', payload: loadedState });
