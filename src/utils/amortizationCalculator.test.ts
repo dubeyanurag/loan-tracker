@@ -99,7 +99,6 @@ describe('amortizationCalculator', () => {
       // Check that disbursements are reflected in the schedule
       // The March 1st disbursement should appear in the February payment period
       const febEntry = schedule.find(entry => entry.paymentDate.startsWith('2024-02'));
-      const juneEntry = schedule.find(entry => entry.paymentDate.startsWith('2024-06'));
       
       expect(febEntry?.disbursements).toBeDefined();
       expect(febEntry?.disbursements?.[0].amount).toBe(300000);
