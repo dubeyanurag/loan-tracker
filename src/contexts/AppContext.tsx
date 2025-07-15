@@ -59,7 +59,11 @@ export const appReducer = (state: AppStateWithEdit = initialState, action: AppAc
   let newState: AppStateWithEdit;
   switch (action.type) {
     case 'ADD_LOAN':
-      newState = { ...state, loans: [...state.loans, action.payload] };
+      newState = { 
+        ...state, 
+        loans: [...state.loans, action.payload],
+        selectedLoanId: action.payload.id // Auto-select the newly added loan
+      };
       break;
     case 'SELECT_LOAN':
       newState = { ...state, selectedLoanId: action.payload };
@@ -73,13 +77,22 @@ export const appReducer = (state: AppStateWithEdit = initialState, action: AppAc
         editingLoanId: null, 
       };
       break;
-    case 'DELETE_LOAN':
+    case 'DELETE_LOAN': {
+      const remainingLoans = state.loans.filter(loan => loan.id !== action.payload);
+      let newSelectedLoanId = state.selectedLoanId;
+      
+      // If the deleted loan was selected, select the first remaining loan (or null if none)
+      if (state.selectedLoanId === action.payload) {
+        newSelectedLoanId = remainingLoans.length > 0 ? remainingLoans[0].id : null;
+      }
+      
       newState = {
         ...state,
-        loans: state.loans.filter(loan => loan.id !== action.payload),
-        selectedLoanId: state.selectedLoanId === action.payload ? null : state.selectedLoanId,
+        loans: remainingLoans,
+        selectedLoanId: newSelectedLoanId,
       };
       break;
+    }
     case 'LOAD_STATE':
       newState = { 
         ...state, 

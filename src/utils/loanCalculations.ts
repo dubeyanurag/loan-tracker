@@ -6,8 +6,8 @@ export const calculateEMI = (principal: number, annualRate: number, tenureMonths
     return 0; 
   }
   
-  // Handle 0% interest rate separately
-  if (annualRate === 0) {
+  // Handle 0% or negative interest rate - treat negative as 0%
+  if (annualRate <= 0) {
     return principal / tenureMonths;
   }
 
@@ -17,11 +17,14 @@ export const calculateEMI = (principal: number, annualRate: number, tenureMonths
     monthlyRate *
     (Math.pow(1 + monthlyRate, tenureMonths) /
       (Math.pow(1 + monthlyRate, tenureMonths) - 1));
-  return parseFloat(emi.toFixed(2)); // Keep toFixed for consistency, though it might be redundant for 0 rate
+  return parseFloat(emi.toFixed(2));
 };
 
 
 export const calculateTotalDisbursed = (disbursements: Disbursement[]): number => {
+    if (!disbursements || disbursements.length === 0) {
+        return 0;
+    }
     return disbursements.reduce((total, d) => total + d.amount, 0);
 };
 

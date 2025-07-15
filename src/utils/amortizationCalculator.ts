@@ -49,15 +49,19 @@ export const generateAmortizationSchedule = (
   let actualDebitDay = loanToProcess.details.emiDebitDay || loanStartDate.getDate();
 
   let paymentPeriodEndDate = new Date(loanStartDate);
+  // First payment is always one month after loan start
+  paymentPeriodEndDate.setMonth(paymentPeriodEndDate.getMonth() + 1);
+  
   if (loanToProcess.details.emiDebitDay) { 
-    if (actualDebitDay < loanStartDate.getDate()) {
-      paymentPeriodEndDate.setMonth(paymentPeriodEndDate.getMonth() + 1);
-    }
+    const daysInScheduledMonth = getDaysInMonth(paymentPeriodEndDate.getFullYear(), paymentPeriodEndDate.getMonth() + 1);
+    paymentPeriodEndDate.setDate(Math.min(actualDebitDay, daysInScheduledMonth));
+  } else {
+    // If no specific debit day, use the same day as loan start date
     const daysInScheduledMonth = getDaysInMonth(paymentPeriodEndDate.getFullYear(), paymentPeriodEndDate.getMonth() + 1);
     paymentPeriodEndDate.setDate(Math.min(actualDebitDay, daysInScheduledMonth));
   }
 
-  while (openingBalance > 0.01 && monthNumber < 600) { 
+  while (openingBalance > 0.01 && monthNumber < currentTenureMonths + 12) { // Allow some buffer for rounding 
     monthNumber++;
     
     if (monthNumber > 1) { 
@@ -74,7 +78,7 @@ export const generateAmortizationSchedule = (
     let interestPaidThisMonth = 0;
     
     let effectiveEMIForMonth = currentEMI; 
-    let isPreEmiPeriodCurrentMonth = loanToProcess.details.startedWithPreEMI && paymentPeriodEndDate < emiStartDate; 
+    let isPreEmiPeriodCurrentMonth = loanToProcess.details.startedWithPreEMI && paymentPeriodEndDate <= emiStartDate; 
     let manualPaymentAmount: number | null = null; 
 
     let disbursementsThisMonth: AmortizationEntry['disbursements'] = [];
@@ -135,7 +139,7 @@ export const generateAmortizationSchedule = (
     }
     
     let actualCashOutflowThisMonth = 0;
-    isPreEmiPeriodCurrentMonth = loanToProcess.details.startedWithPreEMI && paymentPeriodEndDate < emiStartDate; 
+    isPreEmiPeriodCurrentMonth = loanToProcess.details.startedWithPreEMI && paymentPeriodEndDate <= emiStartDate; 
 
     if (manualPaymentAmount !== null) {
         actualCashOutflowThisMonth = manualPaymentAmount;
@@ -178,6 +182,20 @@ export const generateAmortizationSchedule = (
         actualCashOutflowThisMonth = totalPrincipalPaidThisMonth + interestPaidThisMonth;
     }
     
+    // Handle very small remaining balances or final payment adjustment
+    if (closingBalance < 1 && closingBalance > 0) {
+        totalPrincipalPaidThisMonth += closingBalance;
+        actualCashOutflowThisMonth = interestPaidThisMonth + totalPrincipalPaidThisMonth;
+        closingBalance = 0;
+    }
+    
+    // If we're at or near the original tenure and have a small balance, close it out
+    if (monthNumber >= currentTenureMonths && closingBalance > 0 && closingBalance < effectiveEMIForMonth) {
+        totalPrincipalPaidThisMonth += closingBalance;
+        actualCashOutflowThisMonth = interestPaidThisMonth + totalPrincipalPaidThisMonth;
+        closingBalance = 0;
+    }
+    
     if (interestPaidThisMonth < 0) interestPaidThisMonth = 0;
 
     schedule.push({
@@ -203,7 +221,7 @@ export const generateAmortizationSchedule = (
 };
 
 const getDaysInMonth = (year: number, month: number): number => { 
-    return new Date(year, month + 1, 0).getDate(); // month is 0-indexed for Date constructor
+    return new Date(year, month, 0).getDate(); // month parameter is 1-based, Date constructor is 0-based
 };
 
 
